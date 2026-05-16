@@ -1,0 +1,59 @@
+# Dependencias
+node_modules/
+vendor/
+
+# Builds
+/dist
+/build
+/.next
+/out
+/coverage
+
+# Variables de entorno
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDE / Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python opcional
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Archivos temporales
+/tmp
+/temp
+*.tmp
+
+# Datos sensibles o exportaciones
+/private
+/secrets
+*.key
+*.pem
+*.p12
+*.csv
+*.xlsx
+*.xls
+
+# Archivos generados
+*.zip
+*.rar

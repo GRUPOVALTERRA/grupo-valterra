@@ -1,0 +1,22 @@
+name: CI Base
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate repository structure
+        run: |
+          test -f README.md
+          test -f .gitignore
+          test -d docs
+          test -d src
+          echo "Estructura base validada correctamente."
