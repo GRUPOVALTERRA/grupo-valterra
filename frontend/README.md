@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GRUPO VALTERRA - Servicios Inmobiliarios del Litoral
 
-## Getting Started
+Repositorio base para el desarrollo de la plataforma **GRUPO VALTERRA**, una solución web de servicios inmobiliarios orientada a marketplace, gestión de propiedades, contactos comerciales y experiencia de usuario premium.
 
-First, run the development server:
+## Objetivo del proyecto
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Construir una plataforma inmobiliaria moderna, escalable y segura, inspirada en buenas prácticas de portales internacionales de alto prestigio, adaptada al mercado del Litoral argentino.
+
+## Estructura del repositorio
+
+```text
+grupo-valterra/
+├── README.md
+├── .gitignore
+├── docs/
+│   ├── arquitectura.md
+│   ├── convencion-ramas.md
+│   └── roadmap.md
+├── src/
+│   ├── frontend/
+│   ├── backend/
+│   └── shared/
+├── public/
+├── config/
+├── scripts/
+├── tests/
+└── .github/
+    ├── workflows/
+    │   └── ci.yml
+    └── ISSUE_TEMPLATE/
+        ├── bug_report.md
+        └── feature_request.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Ramas principales
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `main`: rama estable de producción.
+- `dev`: rama de integración y pruebas.
+- `feature/nombre-funcionalidad`: nuevas funcionalidades.
+- `fix/nombre-error`: correcciones de errores.
+- `hotfix/nombre-urgente`: correcciones urgentes sobre producción.
+- `release/version`: preparación de versiones.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Flujo recomendado
 
-## Learn More
+1. Crear una rama desde `dev`.
+2. Desarrollar la funcionalidad o corrección.
+3. Hacer commits claros y pequeños.
+4. Crear Pull Request hacia `dev`.
+5. Revisar, probar y aprobar.
+6. Integrar `dev` a `main` solo cuando esté estable.
 
-To learn more about Next.js, take a look at the following resources:
+## Convención de commits
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Se recomienda usar Conventional Commits:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```text
+feat: agregar buscador de propiedades
+fix: corregir validación de formulario de contacto
+docs: actualizar roadmap inicial
+style: ajustar diseño visual de cards
+refactor: reorganizar módulo de propiedades
+test: agregar pruebas de filtros
+chore: actualizar configuración del proyecto
+```
 
-## Deploy on Vercel
+## Estado inicial
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Proyecto en etapa base: definición de arquitectura, identidad visual, estructura técnica y planificación del MVP.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Equipo
+
+- Dirección estratégica: GRUPO VALTERRA
+- Desarrollo técnico: pendiente de asignación
+- Diseño UX/UI: pendiente de asignación
+- Backend/API: pendiente de definición tecnológica
+- Frontend/Web: pendiente de definición tecnológica
+
