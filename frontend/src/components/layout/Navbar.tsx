@@ -23,6 +23,18 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Body scroll lock cuando el drawer mobile está abierto
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   const onDark = !scrolled;
 
   return (
@@ -51,11 +63,7 @@ export function Navbar() {
               >
                 VALTERRA
               </span>
-              <span
-                className={`text-[9px] font-medium uppercase tracking-[0.2em] transition-colors ${
-                  onDark ? "text-[#c9a86a]" : "text-[#c9a86a]"
-                }`}
-              >
+              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-[#c9a86a]">
                 Servicios Inmobiliarios
               </span>
             </span>
@@ -100,7 +108,6 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile drawer */}
       <div
         className={`fixed inset-0 z-50 bg-[#0a2540] transition-transform duration-300 lg:hidden ${
           open ? "translate-x-0" : "translate-x-full"

@@ -21,26 +21,24 @@ export function SearchBar() {
   const [location, setLocation] = useState("");
 
   return (
-    <div className="w-full rounded-2xl border border-white/30 bg-white/95 shadow-[0_20px_60px_-20px_rgba(10,37,64,0.4)] backdrop-blur-md">
-      {/* Tabs */}
+    <div className="w-full overflow-hidden rounded-2xl border border-white/30 bg-white/95 shadow-[0_20px_60px_-20px_rgba(10,37,64,0.4)] backdrop-blur-md">
       <div className="flex border-b border-[#e8eaef]">
         {TABS.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`flex-1 px-4 py-3.5 text-sm font-semibold transition-colors ${
+            className={`flex-1 px-3 py-3.5 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
               tab === t.key
                 ? "bg-[#0a2540] text-white"
                 : "text-[#0a2540] hover:bg-[#f5f1ea]"
-            } ${t.key === TABS[0].key ? "rounded-tl-2xl" : ""}`}
+            }`}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* Inputs */}
       <div className="grid gap-0 md:grid-cols-[1.4fr_1fr_auto]">
         <div className="flex items-center gap-3 border-b border-[#e8eaef] px-4 py-3.5 md:border-b-0 md:border-r">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a2540" strokeWidth="2">
@@ -70,22 +68,36 @@ export function SearchBar() {
             <label className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
               Tipo de propiedad
             </label>
-            <select className="w-full appearance-none bg-transparent text-sm text-[#0a2540] focus:outline-none">
-              <option value="">Cualquiera</option>
-              <option value="casa">Casa</option>
-              <option value="departamento">Departamento</option>
-              <option value="country">Country</option>
-              <option value="terreno">Terreno</option>
-              <option value="local">Local</option>
-              <option value="oficina">Oficina</option>
-              <option value="campo">Campo</option>
-            </select>
+            <div className="relative">
+              <select className="w-full appearance-none bg-transparent pr-6 text-sm text-[#0a2540] focus:outline-none">
+                <option value="">Cualquiera</option>
+                <option value="casa">Casa</option>
+                <option value="departamento">Departamento</option>
+                <option value="country">Country</option>
+                <option value="terreno">Terreno</option>
+                <option value="local">Local</option>
+                <option value="oficina">Oficina</option>
+                <option value="campo">Campo</option>
+              </select>
+              <svg
+                aria-hidden
+                className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-slate-500"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
           </div>
         </div>
 
         <button
           type="button"
-          className="flex items-center justify-center gap-2 bg-[#c9a86a] px-6 py-4 text-sm font-bold text-[#0a2540] transition-all hover:brightness-105 md:rounded-br-2xl md:px-8"
+          className="flex items-center justify-center gap-2 bg-[#c9a86a] px-6 py-4 text-sm font-bold text-[#0a2540] transition-all hover:brightness-105 md:px-8"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <circle cx="11" cy="11" r="7" />
@@ -95,7 +107,6 @@ export function SearchBar() {
         </button>
       </div>
 
-      {/* Chips */}
       <div className="flex flex-wrap items-center gap-2 border-t border-[#e8eaef] bg-[#f5f1ea]/50 px-4 py-3 text-xs">
         <span className="font-medium text-slate-600">Búsquedas rápidas:</span>
         {CHIPS.map((c) => (
