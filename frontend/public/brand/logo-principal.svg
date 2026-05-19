@@ -1,0 +1,14 @@
+<svg width="1200" height="320" viewBox="0 0 1200 320" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="320" fill="#F8F7F4"/>
+  <g transform="translate(70 50)">
+    <rect x="0" y="0" width="220" height="220" rx="32" fill="#0A2342"/>
+    <path d="M48 52 L110 176 L172 52" fill="none" stroke="#C9A86A" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M75 52 L110 122 L145 52" fill="none" stroke="#F8F7F4" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
+    <line x1="58" y1="188" x2="162" y2="188" stroke="#C9A86A" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
+  </g>
+  <g transform="translate(340 92)">
+    <text x="0" y="72" font-family="Montserrat, Inter, Arial, sans-serif" font-size="74" font-weight="800" fill="#0A2342" letter-spacing="4">GRUPO VALTERRA</text>
+    <text x="4" y="124" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="500" fill="#2E5E4E" letter-spacing="3">SOLUCIONES INMOBILIARIAS DEL LITORAL</text>
+    <line x1="4" y1="150" x2="640" y2="150" stroke="#C9A86A" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>
