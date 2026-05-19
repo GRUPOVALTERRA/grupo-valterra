@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const LINKS = [
@@ -23,13 +24,8 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Body scroll lock cuando el drawer mobile está abierto
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = open ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
@@ -42,29 +38,31 @@ export function Navbar() {
       <nav
         className={`transition-all duration-300 ${
           scrolled
-            ? "bg-white/95 shadow-[0_4px_24px_-8px_rgba(10,37,64,0.12)] backdrop-blur-md"
+            ? "bg-white/95 shadow-[0_4px_24px_-8px_rgba(10,35,66,0.14)] backdrop-blur-md"
             : "bg-transparent"
         }`}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:px-8">
-          <Link href="/" aria-label="Inicio Valterra" className="flex items-center gap-2.5">
-            <span
-              className={`flex h-9 w-9 items-center justify-center rounded-md font-semibold transition-colors ${
-                onDark ? "bg-[#c9a86a] text-[#0a2540]" : "bg-[#0a2540] text-[#c9a86a]"
-              }`}
-            >
-              V
-            </span>
+          <Link href="/" aria-label="Inicio Grupo Valterra" className="flex items-center gap-2.5">
+            <Image
+              src="/brand/isotipo-vt.svg"
+              alt="Grupo Valterra"
+              width={36}
+              height={36}
+              priority
+              className="rounded-md"
+            />
             <span className="flex flex-col leading-tight">
               <span
-                className={`text-base font-semibold tracking-wide transition-colors ${
-                  onDark ? "text-white" : "text-[#0a2540]"
+                className={`text-base font-extrabold tracking-[0.04em] transition-colors ${
+                  onDark ? "text-white" : "text-[#0A2342]"
                 }`}
+                style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}
               >
-                VALTERRA
+                GRUPO VALTERRA
               </span>
-              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-[#c9a86a]">
-                Servicios Inmobiliarios
+              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-[#C9A86A]">
+                Soluciones Inmobiliarias del Litoral
               </span>
             </span>
           </Link>
@@ -77,7 +75,7 @@ export function Navbar() {
                   className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                     onDark
                       ? "text-white/90 hover:bg-white/10 hover:text-white"
-                      : "text-[#0a2540] hover:bg-[#f5f1ea]"
+                      : "text-[#0A2342] hover:bg-[#F8F7F4]"
                   }`}
                 >
                   {l.label}
@@ -89,7 +87,7 @@ export function Navbar() {
           <div className="hidden items-center gap-2 lg:flex">
             <a
               href="#publicar"
-              className="inline-flex h-10 items-center rounded-lg bg-[#c9a86a] px-4 text-sm font-semibold text-[#0a2540] shadow-sm transition-all hover:brightness-105 hover:shadow-md"
+              className="inline-flex h-10 items-center rounded-full bg-[#C9A86A] px-5 text-sm font-bold text-[#0A2342] shadow-sm transition-all hover:brightness-105 hover:shadow-md"
             >
               Publicar propiedad
             </a>
@@ -99,7 +97,7 @@ export function Navbar() {
             type="button"
             onClick={() => setOpen(true)}
             aria-label="Abrir menú"
-            className={`rounded-md p-2 lg:hidden ${onDark ? "text-white" : "text-[#0a2540]"}`}
+            className={`rounded-md p-2 lg:hidden ${onDark ? "text-white" : "text-[#0A2342]"}`}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 6h18M3 12h18M3 18h18" strokeLinecap="round" />
@@ -109,12 +107,17 @@ export function Navbar() {
       </nav>
 
       <div
-        className={`fixed inset-0 z-50 bg-[#0a2540] transition-transform duration-300 lg:hidden ${
+        className={`fixed inset-0 z-50 bg-[#0A2342] transition-transform duration-300 lg:hidden ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex h-16 items-center justify-between px-4">
-          <span className="text-base font-semibold text-white">VALTERRA</span>
+          <div className="flex items-center gap-2.5">
+            <Image src="/brand/isotipo-vt.svg" alt="Valterra" width={32} height={32} className="rounded-md" />
+            <span className="text-base font-extrabold tracking-[0.04em] text-white" style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}>
+              GRUPO VALTERRA
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -140,7 +143,7 @@ export function Navbar() {
           <a
             href="#publicar"
             onClick={() => setOpen(false)}
-            className="mt-4 block rounded-lg bg-[#c9a86a] px-4 py-3 text-center text-base font-semibold text-[#0a2540]"
+            className="mt-4 block rounded-full bg-[#C9A86A] px-4 py-3 text-center text-base font-bold text-[#0A2342]"
           >
             Publicar propiedad
           </a>

@@ -13,7 +13,7 @@ export function NewsletterForm() {
 
   if (sent) {
     return (
-      <div className="mt-4 rounded-lg border border-[#c9a86a]/40 bg-[#c9a86a]/10 px-3 py-2.5 text-xs text-white/90">
+      <div className="mt-4 rounded-lg border border-[#C9A86A]/40 bg-[#C9A86A]/10 px-3 py-2.5 text-xs text-white/90">
         ✓ ¡Gracias! Te vamos a escribir pronto.
       </div>
     );
@@ -25,11 +25,11 @@ export function NewsletterForm() {
         type="email"
         required
         placeholder="tu@email.com"
-        className="h-11 w-full rounded-lg border border-white/20 bg-white/5 px-3 text-sm text-white placeholder:text-white/50 focus:border-[#c9a86a] focus:outline-none"
+        className="h-11 w-full rounded-lg border border-white/20 bg-white/5 px-3 text-sm text-white placeholder:text-white/50 focus:border-[#C9A86A] focus:outline-none"
       />
       <button
         type="submit"
-        className="h-11 rounded-lg bg-[#c9a86a] px-4 text-sm font-bold text-[#0a2540] transition-all hover:brightness-105"
+        className="h-11 rounded-lg bg-[#C9A86A] px-4 text-sm font-bold text-[#0A2342] transition-all hover:brightness-105"
       >
         Unirme
       </button>

@@ -9,7 +9,7 @@ import { ContactSection } from "@/components/home/ContactSection";
 import { CTASection } from "@/components/home/CTASection";
 
 export const metadata = {
-  title: "Grupo Valterra · Servicios Inmobiliarios del Litoral",
+  title: "Grupo Valterra · Soluciones Inmobiliarias del Litoral",
   description:
     "Propiedades premium en Entre Ríos, Corrientes, Chaco y Misiones. Más de 20 años asesorando familias e inversionistas en el litoral argentino.",
 };
@@ -17,7 +17,7 @@ export const metadata = {
 export default function HomePage() {
   return (
     <div
-      className="bg-white text-[#0a2540]"
+      className="bg-white text-[#0A2342]"
       style={{ fontFamily: "var(--font-geist-sans), system-ui, sans-serif" }}
     >
       <Navbar />

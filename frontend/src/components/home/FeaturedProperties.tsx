@@ -5,14 +5,14 @@ export function FeaturedProperties() {
   const properties = getFeaturedProperties(6);
 
   return (
-    <section className="bg-[#f5f1ea]/60 py-20 md:py-28">
+    <section className="bg-[#F8F7F4]/60 py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c9a86a]">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
               ★ Selección curada
             </span>
-            <h2 className="mt-3 text-3xl font-semibold text-[#0a2540] md:text-5xl">
+            <h2 className="mt-3 text-3xl font-bold text-[#0A2342] md:text-5xl">
               Propiedades destacadas
             </h2>
             <p className="mt-4 text-base text-slate-600">
@@ -22,7 +22,7 @@ export function FeaturedProperties() {
           </div>
           <a
             href="#propiedades"
-            className="group inline-flex items-center gap-2 text-sm font-semibold text-[#0a2540] transition-colors hover:text-[#c9a86a]"
+            className="group inline-flex items-center gap-2 text-sm font-semibold text-[#0A2342] transition-colors hover:text-[#C9A86A]"
           >
             Ver todas
             <svg

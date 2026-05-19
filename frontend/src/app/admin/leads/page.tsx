@@ -25,8 +25,8 @@ export default async function AdminLeadsPage() {
 
   return (
     <>
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#e8eaef] bg-white/95 px-4 py-2 backdrop-blur lg:px-8">
-        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c9a86a]">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#D8D8D8] bg-white/95 px-4 py-2 backdrop-blur lg:px-8">
+        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
           Admin · Sesión activa
         </span>
         <LogoutButton />

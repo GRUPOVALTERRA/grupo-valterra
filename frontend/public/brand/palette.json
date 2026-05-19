@@ -1,0 +1,18 @@
+{
+  "brand": "Grupo Valterra",
+  "version": "Opcion C - Corporativo Internacional",
+  "colors": {
+    "azul_rio_profundo": "#0A2342",
+    "azul_nocturno": "#071A32",
+    "dorado_premium": "#C9A86A",
+    "blanco_marfil": "#F8F7F4",
+    "gris_piedra": "#D8D8D8",
+    "verde_litoral": "#2E5E4E",
+    "gris_texto": "#4A5568"
+  },
+  "fonts": {
+    "primary": "Montserrat",
+    "ui": "Inter",
+    "luxury_accent": "Playfair Display"
+  }
+}

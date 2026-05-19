@@ -48,10 +48,10 @@ export function CategoriesSection() {
     <section className="bg-white py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c9a86a]">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
             ✦ Explorá por categoría
           </span>
-          <h2 className="mt-3 text-3xl font-semibold text-[#0a2540] md:text-5xl">
+          <h2 className="mt-3 text-3xl font-bold text-[#0A2342] md:text-5xl">
             Encontrá lo que buscás, rápido
           </h2>
           <p className="mt-4 text-base text-slate-600">
@@ -65,7 +65,7 @@ export function CategoriesSection() {
             <a
               key={cat.label}
               href={`#cat-${cat.label.toLowerCase()}`}
-              className="group relative aspect-[4/3] overflow-hidden rounded-2xl shadow-[0_4px_24px_-8px_rgba(10,37,64,0.12)] transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(10,37,64,0.35)]"
+              className="group relative aspect-[4/3] overflow-hidden rounded-2xl shadow-[0_4px_24px_-8px_rgba(10,35,66,0.12)] transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(10,35,66,0.35)]"
             >
               <img
                 src={cat.image}
@@ -77,14 +77,14 @@ export function CategoriesSection() {
                 className="absolute inset-0"
                 style={{
                   background:
-                    "linear-gradient(to top, rgba(10,37,64,0.95) 0%, rgba(10,37,64,0.55) 50%, transparent 100%)",
+                    "linear-gradient(to top, rgba(10,35,66,0.95) 0%, rgba(10,35,66,0.55) 50%, transparent 100%)",
                 }}
               />
               <div className="absolute inset-0 flex flex-col justify-end p-6">
                 <span className="text-3xl">{cat.emoji}</span>
                 <h3 className="mt-2 text-2xl font-semibold text-white">{cat.label}</h3>
                 <p className="mt-1 text-sm text-white/80">{cat.count}</p>
-                <span className="mt-3 inline-flex w-fit items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-[#c9a86a] transition-transform group-hover:translate-x-1">
+                <span className="mt-3 inline-flex w-fit items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-[#C9A86A] transition-transform group-hover:translate-x-1">
                   Explorar →
                 </span>
               </div>

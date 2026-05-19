@@ -23,9 +23,9 @@ export function LeadStatsCards({ stats }: LeadStatsCardsProps) {
     {
       label: "Total leads",
       value: stats.total,
-      accent: "border-[#0a2540]",
-      iconBg: "bg-[#0a2540]",
-      iconColor: "text-[#c9a86a]",
+      accent: "border-[#0A2342]",
+      iconBg: "bg-[#0A2342]",
+      iconColor: "text-[#C9A86A]",
       emoji: "📥",
     },
     {
@@ -88,7 +88,7 @@ export function LeadStatsCards({ stats }: LeadStatsCardsProps) {
               {card.emoji}
             </span>
           </div>
-          <div className="mt-3 text-3xl font-semibold text-[#0a2540]">{card.value}</div>
+          <div className="mt-3 text-3xl font-bold text-[#0A2342]">{card.value}</div>
         </div>
       ))}
     </div>

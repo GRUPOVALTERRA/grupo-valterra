@@ -11,7 +11,7 @@ export function StatsSection() {
       className="relative isolate overflow-hidden py-20 md:py-24"
       style={{
         background:
-          "linear-gradient(135deg, #0a2540 0%, #061830 50%, #0a2540 100%)",
+          "linear-gradient(135deg, #0A2342 0%, #071A32 50%, #0A2342 100%)",
       }}
     >
       {/* Subtle pattern overlay */}
@@ -20,16 +20,16 @@ export function StatsSection() {
         className="pointer-events-none absolute inset-0 -z-10 opacity-10"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 20% 30%, #c9a86a 0%, transparent 40%), radial-gradient(circle at 80% 70%, #c9a86a 0%, transparent 40%)",
+            "radial-gradient(circle at 20% 30%, #C9A86A 0%, transparent 40%), radial-gradient(circle at 80% 70%, #C9A86A 0%, transparent 40%)",
         }}
       />
 
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c9a86a]">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
             ✦ Trayectoria con resultados
           </span>
-          <h2 className="mt-3 text-3xl font-semibold text-white md:text-5xl">
+          <h2 className="mt-3 text-3xl font-bold text-white md:text-5xl">
             Números que respaldan
             <br />
             cada operación
@@ -40,9 +40,9 @@ export function StatsSection() {
           {STATS.map((s) => (
             <div
               key={s.label}
-              className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-[#c9a86a]/40 hover:bg-white/10"
+              className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-[#C9A86A]/40 hover:bg-white/10"
             >
-              <div className="text-5xl font-semibold text-[#c9a86a]">{s.value}</div>
+              <div className="text-5xl font-bold text-[#C9A86A]">{s.value}</div>
               <div className="mt-3 text-sm font-semibold uppercase tracking-[0.1em] text-white">
                 {s.label}
               </div>

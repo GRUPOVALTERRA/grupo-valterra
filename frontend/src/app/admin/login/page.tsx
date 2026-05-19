@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { LoginForm } from "./LoginForm";
 import { loginAction } from "./actions";
 
@@ -13,25 +14,31 @@ export default async function LoginPage({
 }) {
   const sp = await searchParams;
   return (
-    <div
-      className="flex min-h-screen items-center justify-center bg-[#0a2540] p-4"
-      style={{ fontFamily: "var(--font-geist-sans), system-ui, sans-serif" }}
-    >
+    <div className="flex min-h-screen items-center justify-center bg-[#0A2342] p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[#0a2540] font-semibold text-[#c9a86a]">
-            V
-          </span>
+        <div className="flex items-center gap-3">
+          <Image
+            src="/brand/isotipo-vt.svg"
+            alt="Grupo Valterra"
+            width={44}
+            height={44}
+            priority
+            className="rounded-lg"
+          />
           <div className="leading-tight">
-            <div className="text-base font-semibold text-[#0a2540]">VALTERRA · Admin</div>
-            <div className="text-[10px] uppercase tracking-[0.18em] text-[#c9a86a]">
+            <div className="text-base font-extrabold tracking-[0.04em] text-[#0A2342]" style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}>
+              GRUPO VALTERRA · ADMIN
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-[#C9A86A]">
               Acceso restringido
             </div>
           </div>
         </div>
 
-        <h1 className="mt-6 text-2xl font-semibold text-[#0a2540]">Iniciar sesión</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="mt-6 text-2xl font-bold text-[#0A2342]" style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}>
+          Iniciar sesión
+        </h1>
+        <p className="mt-1 text-sm text-[#4A5568]">
           Ingresá la contraseña de administrador para acceder al panel.
         </p>
 

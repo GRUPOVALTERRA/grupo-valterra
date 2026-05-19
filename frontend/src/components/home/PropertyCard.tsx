@@ -18,10 +18,10 @@ export function PropertyCard({ property }: PropertyCardProps) {
       property.currency,
     )}) y me gustaría más info.`,
   );
-  const waLink = `https://wa.me/5493430000000?text=${waMsg}`;
+  const waLink = `https://wa.me/5493795159096?text=${waMsg}`;
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_-8px_rgba(10,37,64,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(10,37,64,0.35)]">
+    <article className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_-8px_rgba(10,35,66,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(10,35,66,0.35)]">
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
         <img
           src={property.image}
@@ -32,13 +32,13 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
         {/* Badges */}
         <div className="absolute left-4 top-4 flex flex-wrap gap-1.5">
-          <span className="rounded-full bg-[#0a2540]/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+          <span className="rounded-full bg-[#0A2342]/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
             {OPERATION_LABEL[property.operation]}
           </span>
           {property.badges?.slice(0, 1).map((b) => (
             <span
               key={b}
-              className="rounded-full bg-[#c9a86a] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#0a2540]"
+              className="rounded-full bg-[#C9A86A] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#0A2342]"
             >
               {b}
             </span>
@@ -49,7 +49,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <button
           type="button"
           aria-label="Guardar favorito"
-          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[#0a2540] backdrop-blur-sm transition-all hover:bg-white hover:text-red-500"
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[#0A2342] backdrop-blur-sm transition-all hover:bg-white hover:text-red-500"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
@@ -58,14 +58,14 @@ export function PropertyCard({ property }: PropertyCardProps) {
       </div>
 
       <div className="flex flex-1 flex-col space-y-3 p-5">
-        <div className="text-2xl font-semibold text-[#0a2540]">
+        <div className="text-2xl font-semibold text-[#0A2342]">
           {formatPrice(property.price, property.currency)}
           {property.perMonth && (
             <span className="text-sm font-normal text-slate-500">/mes</span>
           )}
         </div>
 
-        <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[#0a2540]">
+        <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[#0A2342]">
           {property.title}
         </h3>
 
@@ -81,25 +81,25 @@ export function PropertyCard({ property }: PropertyCardProps) {
           </span>
         </p>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#e8eaef] pt-3 text-xs text-slate-600">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#D8D8D8] pt-3 text-xs text-slate-600">
           {typeof property.bedrooms === "number" && (
             <span className="flex items-center gap-1.5">
-              <span className="text-[#c9a86a]">🛏</span> {property.bedrooms} dorm.
+              <span className="text-[#C9A86A]">🛏</span> {property.bedrooms} dorm.
             </span>
           )}
           {typeof property.bathrooms === "number" && (
             <span className="flex items-center gap-1.5">
-              <span className="text-[#c9a86a]">🚿</span> {property.bathrooms} baños
+              <span className="text-[#C9A86A]">🚿</span> {property.bathrooms} baños
             </span>
           )}
           {typeof property.parking === "number" && property.parking > 0 && (
             <span className="flex items-center gap-1.5">
-              <span className="text-[#c9a86a]">🚗</span> {property.parking}
+              <span className="text-[#C9A86A]">🚗</span> {property.parking}
             </span>
           )}
           {typeof property.coveredArea === "number" && (
             <span className="ml-auto flex items-center gap-1.5 font-medium">
-              <span className="text-[#c9a86a]">📐</span> {property.coveredArea} m²
+              <span className="text-[#C9A86A]">📐</span> {property.coveredArea} m²
             </span>
           )}
         </div>

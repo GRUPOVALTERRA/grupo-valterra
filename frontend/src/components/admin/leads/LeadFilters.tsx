@@ -38,23 +38,23 @@ export function LeadFilters({ onChange }: LeadFiltersProps) {
   const activeCount = [q, status].filter(Boolean).length;
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#e8eaef] bg-white p-3 shadow-sm">
-      <div className="flex h-10 flex-1 min-w-[240px] items-center gap-2 rounded-lg border border-[#e8eaef] bg-white px-3 focus-within:border-[#0a2540]">
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#D8D8D8] bg-white p-3 shadow-sm">
+      <div className="flex h-10 flex-1 min-w-[240px] items-center gap-2 rounded-lg border border-[#D8D8D8] bg-white px-3 focus-within:border-[#0A2342]">
         <span aria-hidden className="text-slate-400">🔎</span>
         <input
           value={q}
           onChange={(e) => update({ q: e.target.value })}
           placeholder="Buscar por nombre, email, teléfono o propiedad…"
-          className="w-full bg-transparent text-sm text-[#0a2540] placeholder:text-slate-400 focus:outline-none"
+          className="w-full bg-transparent text-sm text-[#0A2342] placeholder:text-slate-400 focus:outline-none"
         />
       </div>
 
-      <label className="flex h-10 items-center gap-2 rounded-lg border border-[#e8eaef] bg-white px-3 text-xs font-medium text-slate-500">
+      <label className="flex h-10 items-center gap-2 rounded-lg border border-[#D8D8D8] bg-white px-3 text-xs font-medium text-slate-500">
         <span className="hidden md:inline">Estado:</span>
         <select
           value={status}
           onChange={(e) => update({ status: e.target.value as LeadStatus | "" })}
-          className="bg-transparent text-sm text-[#0a2540] focus:outline-none"
+          className="bg-transparent text-sm text-[#0A2342] focus:outline-none"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>

@@ -40,7 +40,7 @@ export function LoginForm({ action, nextPath, initialError }: LoginFormProps) {
           autoFocus
           autoComplete="current-password"
           disabled={pending}
-          className="mt-1 h-11 w-full rounded-lg border border-[#e8eaef] bg-white px-3 text-sm text-[#0a2540] focus:border-[#0a2540] focus:outline-none disabled:opacity-60"
+          className="mt-1 h-11 w-full rounded-lg border border-[#D8D8D8] bg-white px-3 text-sm text-[#0A2342] focus:border-[#0A2342] focus:outline-none disabled:opacity-60"
         />
       </div>
 
@@ -56,7 +56,7 @@ export function LoginForm({ action, nextPath, initialError }: LoginFormProps) {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0a2540] text-sm font-bold text-white transition-all hover:bg-[#061830] disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0A2342] text-sm font-bold text-white transition-all hover:bg-[#071A32] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? "Verificando..." : "Entrar al panel"}
       </button>

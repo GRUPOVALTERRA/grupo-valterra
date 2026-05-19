@@ -52,7 +52,7 @@ function StatusBadge({ status }: { status: LeadStatus }) {
 
 function SourceBadge({ source }: { source: LeadSource }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-[#f5f1ea] px-2.5 py-0.5 text-[11px] font-medium text-[#0a2540]">
+    <span className="inline-flex items-center rounded-full bg-[#F8F7F4] px-2.5 py-0.5 text-[11px] font-medium text-[#0A2342]">
       {SOURCE_LABEL[source]}
     </span>
   );
@@ -84,10 +84,10 @@ export function LeadTable({ leads }: LeadTableProps) {
   return (
     <>
       {/* Desktop */}
-      <div className="hidden overflow-hidden rounded-2xl border border-[#e8eaef] bg-white shadow-sm lg:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-[#D8D8D8] bg-white shadow-sm lg:block">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-[#e8eaef] text-sm">
-            <thead className="bg-[#f5f1ea]/60">
+          <table className="min-w-full divide-y divide-[#D8D8D8] text-sm">
+            <thead className="bg-[#F8F7F4]/60">
               <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                 <th className="px-4 py-3">Nombre</th>
                 <th className="px-4 py-3">Teléfono</th>
@@ -100,11 +100,11 @@ export function LeadTable({ leads }: LeadTableProps) {
                 <th className="px-4 py-3 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e8eaef]">
+            <tbody className="divide-y divide-[#D8D8D8]">
               {leads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-[#f5f1ea]/40">
+                <tr key={lead.id} className="hover:bg-[#F8F7F4]/40">
                   <td className="px-4 py-3 align-top">
-                    <div className="font-medium text-[#0a2540]">{lead.name}</div>
+                    <div className="font-medium text-[#0A2342]">{lead.name}</div>
                     <div className="font-mono text-[10px] text-slate-400">{lead.id}</div>
                   </td>
                   <td className="px-4 py-3 align-top text-slate-700">{lead.phone}</td>
@@ -138,7 +138,7 @@ export function LeadTable({ leads }: LeadTableProps) {
                         href={telLink(lead)}
                         title="Llamar"
                         aria-label={`Llamar a ${lead.name}`}
-                        className="inline-flex h-8 items-center gap-1 rounded-md border border-[#e8eaef] px-2.5 text-xs font-medium text-[#0a2540] hover:bg-[#f5f1ea]"
+                        className="inline-flex h-8 items-center gap-1 rounded-md border border-[#D8D8D8] px-2.5 text-xs font-medium text-[#0A2342] hover:bg-[#F8F7F4]"
                       >
                         📞 Llamar
                       </a>
@@ -166,11 +166,11 @@ export function LeadTable({ leads }: LeadTableProps) {
         {leads.map((lead) => (
           <article
             key={lead.id}
-            className="rounded-2xl border border-[#e8eaef] bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-[#D8D8D8] bg-white p-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-semibold text-[#0a2540]">{lead.name}</div>
+                <div className="font-semibold text-[#0A2342]">{lead.name}</div>
                 <div className="text-xs text-slate-500">{formatRelative(lead.createdAt)}</div>
               </div>
               <StatusBadge status={lead.status} />
@@ -191,10 +191,10 @@ export function LeadTable({ leads }: LeadTableProps) {
               <SourceBadge source={lead.source} />
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#e8eaef] pt-3">
+            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#D8D8D8] pt-3">
               <a
                 href={telLink(lead)}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[#e8eaef] text-sm font-semibold text-[#0a2540] hover:bg-[#f5f1ea]"
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-[#D8D8D8] text-sm font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
               >
                 📞 Llamar
               </a>

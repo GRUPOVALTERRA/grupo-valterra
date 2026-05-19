@@ -11,7 +11,7 @@ const PLANS = [
       "Consultas por email",
     ],
     cta: "Empezar gratis",
-    accent: "border-[#e8eaef]",
+    accent: "border-[#D8D8D8]",
     highlight: false,
   },
   {
@@ -27,7 +27,7 @@ const PLANS = [
       "WhatsApp directo",
     ],
     cta: "Activar Básico",
-    accent: "border-[#e8eaef]",
+    accent: "border-[#D8D8D8]",
     highlight: false,
   },
   {
@@ -44,7 +44,7 @@ const PLANS = [
       "Tour virtual incluido",
     ],
     cta: "Activar VIP",
-    accent: "border-[#c9a86a] ring-2 ring-[#c9a86a]/30",
+    accent: "border-[#C9A86A] ring-2 ring-[#C9A86A]/30",
     highlight: true,
   },
   {
@@ -61,20 +61,20 @@ const PLANS = [
       "Onboarding personalizado",
     ],
     cta: "Hablar con ventas",
-    accent: "border-[#0a2540]",
+    accent: "border-[#0A2342]",
     highlight: false,
   },
 ];
 
 export function PlansSection() {
   return (
-    <section className="bg-[#f5f1ea]/40 py-20 md:py-28" id="planes">
+    <section className="bg-[#F8F7F4]/40 py-20 md:py-28" id="planes">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c9a86a]">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
             ✦ Planes para todo tipo de operación
           </span>
-          <h2 className="mt-3 text-3xl font-semibold text-[#0a2540] md:text-5xl">
+          <h2 className="mt-3 text-3xl font-bold text-[#0A2342] md:text-5xl">
             Elegí el plan que se ajusta a vos
           </h2>
           <p className="mt-4 text-base text-slate-600">
@@ -87,30 +87,30 @@ export function PlansSection() {
           {PLANS.map((plan) => (
             <div
               key={plan.name}
-              className={`relative flex flex-col rounded-2xl border-2 bg-white p-6 transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(10,37,64,0.25)] ${plan.accent} ${
+              className={`relative flex flex-col rounded-2xl border-2 bg-white p-6 transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(10,35,66,0.25)] ${plan.accent} ${
                 plan.highlight ? "shadow-[0_20px_60px_-20px_rgba(201,168,106,0.45)]" : "shadow-sm"
               }`}
             >
               {plan.highlight && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#c9a86a] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[#0a2540]">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#C9A86A] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[#0A2342]">
                   Más elegido
                 </span>
               )}
 
               <div>
-                <h3 className="text-xl font-semibold text-[#0a2540]">{plan.name}</h3>
+                <h3 className="text-xl font-semibold text-[#0A2342]">{plan.name}</h3>
                 <p className="mt-1 text-xs text-slate-500">{plan.description}</p>
               </div>
 
               <div className="mt-5 flex items-baseline gap-1">
-                <span className="text-4xl font-semibold text-[#0a2540]">{plan.price}</span>
+                <span className="text-4xl font-bold text-[#0A2342]">{plan.price}</span>
                 <span className="text-sm text-slate-500">{plan.period}</span>
               </div>
 
               <ul className="mt-6 flex-1 space-y-2.5">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-slate-700">
-                    <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#c9a86a]/20 text-[#c9a86a]">
+                    <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#C9A86A]/20 text-[#C9A86A]">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                         <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
@@ -124,8 +124,8 @@ export function PlansSection() {
                 type="button"
                 className={`mt-7 inline-flex h-11 items-center justify-center rounded-lg text-sm font-semibold transition-all ${
                   plan.highlight
-                    ? "bg-[#c9a86a] text-[#0a2540] hover:brightness-105"
-                    : "border-2 border-[#0a2540] text-[#0a2540] hover:bg-[#0a2540] hover:text-white"
+                    ? "bg-[#C9A86A] text-[#0A2342] hover:brightness-105"
+                    : "border-2 border-[#0A2342] text-[#0A2342] hover:bg-[#0A2342] hover:text-white"
                 }`}
               >
                 {plan.cta}

@@ -24,6 +24,7 @@ export function ContactSection() {
     const hash = window.location.hash.replace(/^#/, "");
     if (hash.startsWith("contacto-")) {
       const slug = hash.replace(/^contacto-/, "");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hash read on mount
       if (MOCK_PROPERTIES.some((p) => p.slug === slug)) setPropertySlug(slug);
     }
   }, []);
@@ -89,13 +90,13 @@ export function ContactSection() {
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="lg:sticky lg:top-24">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#c9a86a]">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
               ✦ Captación directa
             </span>
-            <h2 className="mt-3 text-3xl font-semibold text-[#0a2540] md:text-5xl">
+            <h2 className="mt-3 text-3xl font-bold text-[#0A2342] md:text-5xl">
               Enviá tu consulta.
               <br />
-              <span className="text-[#c9a86a]">Te respondemos en 24hs.</span>
+              <span className="text-[#C9A86A]">Te respondemos en 24hs.</span>
             </h2>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-600">
               Completá el formulario y un asesor experto va a contactarte para asesorarte sobre
@@ -115,7 +116,7 @@ export function ContactSection() {
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-[#e8eaef] bg-white p-6 shadow-[0_20px_60px_-20px_rgba(10,37,64,0.18)] md:p-8">
+          <div className="rounded-2xl border border-[#D8D8D8] bg-white p-6 shadow-[0_20px_60px_-20px_rgba(10,35,66,0.18)] md:p-8">
             {status === "success" ? (
               <SuccessPanel leadId={leadId} onReset={() => setStatus("idle")} />
             ) : (
@@ -144,7 +145,7 @@ export function ContactSection() {
                       value={propertySlug}
                       onChange={(e) => setPropertySlug(e.target.value)}
                       disabled={isSubmitting}
-                      className="h-11 w-full appearance-none rounded-lg border border-[#e8eaef] bg-white px-3 pr-9 text-sm text-[#0a2540] focus:border-[#0a2540] focus:outline-none disabled:opacity-60"
+                      className="h-11 w-full appearance-none rounded-lg border border-[#D8D8D8] bg-white px-3 pr-9 text-sm text-[#0A2342] focus:border-[#0A2342] focus:outline-none disabled:opacity-60"
                     >
                       <option value="">Consulta general</option>
                       {MOCK_PROPERTIES.map((p) => (
@@ -172,8 +173,8 @@ export function ContactSection() {
                     placeholder="Contanos qué estás buscando..."
                     aria-invalid={Boolean(fieldErrors.message)}
                     aria-describedby={fieldErrors.message ? "message-error" : undefined}
-                    className={`mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm text-[#0a2540] placeholder:text-slate-400 focus:outline-none disabled:opacity-60 ${
-                      fieldErrors.message ? "border-red-400 focus:border-red-500" : "border-[#e8eaef] focus:border-[#0a2540]"
+                    className={`mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm text-[#0A2342] placeholder:text-slate-400 focus:outline-none disabled:opacity-60 ${
+                      fieldErrors.message ? "border-red-400 focus:border-red-500" : "border-[#D8D8D8] focus:border-[#0A2342]"
                     }`}
                   />
                   {fieldErrors.message && (
@@ -193,7 +194,7 @@ export function ContactSection() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0a2540] px-6 text-sm font-bold text-white transition-all hover:bg-[#061830] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0A2342] px-6 text-sm font-bold text-white transition-all hover:bg-[#071A32] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? (
                     <>
@@ -254,8 +255,8 @@ function Field({ name, label, type = "text", placeholder, required, disabled, au
         autoComplete={autoComplete}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`mt-1 h-11 w-full rounded-lg border bg-white px-3 text-sm text-[#0a2540] placeholder:text-slate-400 focus:outline-none disabled:opacity-60 ${
-          error ? "border-red-400 focus:border-red-500" : "border-[#e8eaef] focus:border-[#0a2540]"
+        className={`mt-1 h-11 w-full rounded-lg border bg-white px-3 text-sm text-[#0A2342] placeholder:text-slate-400 focus:outline-none disabled:opacity-60 ${
+          error ? "border-red-400 focus:border-red-500" : "border-[#D8D8D8] focus:border-[#0A2342]"
         }`}
       />
       {error && (
@@ -270,15 +271,15 @@ function Field({ name, label, type = "text", placeholder, required, disabled, au
 function SuccessPanel({ leadId, onReset }: { leadId: string | null; onReset: () => void }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#c9a86a]/15 text-3xl">
+      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#C9A86A]/15 text-3xl">
         ✓
       </span>
-      <h3 className="mt-5 text-2xl font-semibold text-[#0a2540]">¡Consulta enviada!</h3>
+      <h3 className="mt-5 text-2xl font-semibold text-[#0A2342]">¡Consulta enviada!</h3>
       <p className="mt-2 max-w-sm text-sm text-slate-600">
         Un asesor de Grupo Valterra te va a contactar en menos de 24 horas hábiles.
       </p>
       {leadId && <p className="mt-3 font-mono text-[11px] text-slate-400">Ref: {leadId}</p>}
-      <button type="button" onClick={onReset} className="mt-6 text-sm font-medium text-[#0a2540] underline-offset-4 hover:underline">
+      <button type="button" onClick={onReset} className="mt-6 text-sm font-medium text-[#0A2342] underline-offset-4 hover:underline">
         Enviar otra consulta
       </button>
     </div>

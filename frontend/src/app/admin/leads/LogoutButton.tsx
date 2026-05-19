@@ -21,7 +21,7 @@ export function LogoutButton() {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#e8eaef] bg-white px-3 text-xs font-semibold text-[#0a2540] transition-colors hover:bg-[#f5f1ea] disabled:opacity-60"
+        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] transition-colors hover:bg-[#F8F7F4] disabled:opacity-60"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" strokeLinecap="round" strokeLinejoin="round" />

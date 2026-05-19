@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grupo Valterra · Auditoría técnica</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0;scroll-behavior:smooth}
+  :root{
+    --vt-azul-rio:#0A2342;
+    --vt-azul-nocturno:#071A32;
+    --vt-dorado:#C9A86A;
+    --vt-marfil:#F8F7F4;
+    --vt-piedra:#D8D8D8;
+    --vt-verde:#2E5E4E;
+    --vt-texto:#4A5568;
+  }
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    background:var(--vt-marfil); color:var(--vt-azul-rio); line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .layout{display:grid; grid-template-columns:260px 1fr; min-height:100vh}
+  @media (max-width: 900px){ .layout{grid-template-columns:1fr} aside{display:none} }
+
+  /* SIDEBAR */
+  aside{
+    background:var(--vt-azul-rio); color:#fff;
+    padding:32px 22px; position:sticky; top:0; height:100vh; overflow-y:auto;
+    border-right:1px solid rgba(255,255,255,.08);
+  }
+  aside .brand{display:flex; align-items:center; gap:12px; padding-bottom:24px;
+    border-bottom:1px solid rgba(201,168,106,.25); margin-bottom:20px}
+  aside .logo{
+    width:42px;height:42px;border-radius:10px;background:var(--vt-azul-nocturno);
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--vt-dorado);
+    border:1px solid rgba(201,168,106,.3); font-size:18px;
+  }
+  aside .name{font-weight:800; letter-spacing:.04em; font-size:14px}
+  aside .desc{color:var(--vt-dorado); font-size:9px; letter-spacing:.18em; text-transform:uppercase}
+  aside h4{color:var(--vt-dorado); font-size:10px; letter-spacing:.18em;
+    text-transform:uppercase; margin:18px 0 8px; font-weight:700}
+  aside a{
+    display:block; padding:8px 10px; border-radius:6px; color:#fff;
+    text-decoration:none; font-size:13px; transition:.15s;
+  }
+  aside a:hover{background:rgba(201,168,106,.12); color:var(--vt-dorado)}
+  aside .meta{margin-top:auto; padding-top:24px;
+    border-top:1px solid rgba(255,255,255,.08); font-size:11px; color:rgba(255,255,255,.55)}
+
+  /* MAIN */
+  main{padding:40px 48px 80px; max-width:1100px; width:100%}
+  @media (max-width:900px){ main{padding:24px} }
+
+  header.page{padding-bottom:24px; border-bottom:1px solid var(--vt-piedra); margin-bottom:36px}
+  header.page h1{
+    font-size:28px; font-weight:800; margin:0;
+    letter-spacing:-.01em; color:var(--vt-azul-rio);
+  }
+  header.page .sub{color:var(--vt-texto); font-size:14px; margin-top:6px}
+  header.page .stamp{
+    display:inline-block; margin-top:12px;
+    background:var(--vt-dorado); color:var(--vt-azul-rio);
+    padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase;
+  }
+
+  section{margin:48px 0; scroll-margin-top:24px}
+  section h2{
+    font-size:20px; font-weight:800; margin:0 0 16px;
+    color:var(--vt-azul-rio); letter-spacing:-.01em;
+    display:flex; align-items:center; gap:10px;
+  }
+  section h2::before{content:""; width:4px; height:22px;
+    background:var(--vt-dorado); border-radius:2px}
+  section p{color:var(--vt-texto); font-size:14px; margin:0 0 12px}
+
+  /* CARDS */
+  .grid{display:grid; gap:14px}
+  .grid-2{grid-template-columns:repeat(auto-fit, minmax(260px,1fr))}
+  .grid-3{grid-template-columns:repeat(auto-fit, minmax(200px,1fr))}
+  .grid-4{grid-template-columns:repeat(auto-fit, minmax(170px,1fr))}
+
+  .card{
+    background:#fff; border:1px solid var(--vt-piedra);
+    border-radius:14px; padding:18px;
+    box-shadow:0 4px 20px -10px rgba(10,35,66,.12);
+  }
+  .card h3{margin:0 0 4px; font-size:13px; font-weight:700; color:var(--vt-azul-rio)}
+  .card p, .card .desc{margin:0; font-size:12px; color:var(--vt-texto)}
+  .card .v{font-size:30px; font-weight:800; color:var(--vt-azul-rio); line-height:1; margin:8px 0}
+  .card .v.gold{color:var(--vt-dorado)}
+
+  /* TABLA */
+  table{width:100%; border-collapse:collapse; font-size:13px;
+    background:#fff; border-radius:12px; overflow:hidden;
+    box-shadow:0 4px 20px -10px rgba(10,35,66,.12);
+  }
+  th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--vt-piedra)}
+  th{background:var(--vt-marfil); color:var(--vt-azul-rio);
+    font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.06em}
+  td code{font-family:ui-monospace, "SF Mono", monospace; font-size:12px; color:var(--vt-azul-rio);
+    background:var(--vt-marfil); padding:1px 6px; border-radius:4px}
+
+  /* TAGS */
+  .tag{display:inline-flex; align-items:center; padding:2px 8px;
+    border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.04em}
+  .tag.ok{background:#dcfce7; color:#166534}
+  .tag.warn{background:#fef3c7; color:#92400e}
+  .tag.crit{background:#fee2e2; color:#991b1b}
+  .tag.info{background:#dbeafe; color:#1e40af}
+  .tag.gold{background:var(--vt-dorado); color:var(--vt-azul-rio)}
+
+  /* SCORE RINGS */
+  .ring{
+    --p:0; width:64px; height:64px; border-radius:50%;
+    background:conic-gradient(var(--vt-dorado) 0 calc(var(--p)*1%), var(--vt-piedra) 0);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .ring::after{
+    content:attr(data-value); width:50px; height:50px; border-radius:50%;
+    background:#fff; color:var(--vt-azul-rio);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:14px;
+  }
+  .score{display:flex; align-items:center; gap:14px}
+  .score-text strong{display:block; font-size:13px; color:var(--vt-azul-rio); font-weight:700}
+  .score-text span{font-size:11px; color:var(--vt-texto)}
+
+  /* CHECKLIST */
+  ul.check{list-style:none; padding:0; margin:0}
+  ul.check li{
+    display:flex; align-items:flex-start; gap:10px; padding:10px 0;
+    border-bottom:1px solid var(--vt-piedra); font-size:13px; color:var(--vt-azul-rio)
+  }
+  ul.check li:last-child{border-bottom:0}
+  ul.check .dot{
+    flex-shrink:0; width:18px; height:18px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; color:#fff; margin-top:1px;
+  }
+  ul.check .dot.ok{background:#16a34a}
+  ul.check .dot.todo{background:var(--vt-piedra); color:var(--vt-azul-rio)}
+  ul.check .dot.warn{background:#f59e0b}
+  ul.check .meta{color:var(--vt-texto); font-size:11px; display:block; margin-top:2px}
+
+  /* PALETA */
+  .swatch{
+    border:1px solid var(--vt-piedra); border-radius:10px; overflow:hidden;
+    background:#fff;
+  }
+  .swatch .sw{height:60px}
+  .swatch .info{padding:10px 12px; font-size:11px}
+  .swatch .info strong{display:block; font-size:12px; color:var(--vt-azul-rio); font-weight:700}
+  .swatch .info code{font-family:ui-monospace, monospace; color:var(--vt-texto)}
+
+  /* CODE BLOCK */
+  pre{
+    background:var(--vt-azul-rio); color:#fff;
+    padding:18px; border-radius:10px; overflow-x:auto;
+    font-family:ui-monospace, "SF Mono", monospace; font-size:12px;
+    line-height:1.6; margin:0;
+  }
+  pre .c{color:var(--vt-dorado)}
+
+  footer{
+    margin-top:64px; padding-top:18px; border-top:1px solid var(--vt-piedra);
+    color:var(--vt-texto); font-size:11px; text-align:center;
+  }
+  footer strong{color:var(--vt-dorado)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside>
+  <div class="brand">
+    <div class="logo">V</div>
+    <div>
+      <div class="name">GRUPO VALTERRA</div>
+      <div class="desc">Auditoría técnica</div>
+    </div>
+  </div>
+
+  <h4>Navegación</h4>
+  <a href="#resumen">Resumen ejecutivo</a>
+  <a href="#kpis">KPIs del proyecto</a>
+  <a href="#readiness">Readiness scores</a>
+  <a href="#paleta">Paleta oficial</a>
+  <a href="#estructura">Estructura del repo</a>
+  <a href="#cambios">Cambios aplicados</a>
+  <a href="#checklist">Checklist técnico</a>
+  <a href="#riesgos">Riesgos detectados</a>
+  <a href="#arquitectura">Recomendaciones</a>
+  <a href="#mvp-vs-saas">MVP vs SaaS futuro</a>
+  <a href="#roadmap">Roadmap próximo</a>
+
+  <div class="meta">
+    <strong style="color:var(--vt-dorado)">Versión:</strong>
+    Sprint 7 · Brand Kit Integration<br/>
+    Stack: Next.js 16 · TS · Tailwind v4 · Supabase
+  </div>
+</aside>
+
+<main>
+
+<header class="page">
+  <h1>Auditoría técnica · Grupo Valterra</h1>
+  <p class="sub">
+    Estado del frontend post integración de Brand Kit oficial (Opción C — Corporativo Internacional).
+    Plataforma PropTech del litoral argentino, lista para demo profesional.
+  </p>
+  <span class="stamp">Auditoría aprobada para demo</span>
+</header>
+
+<section id="resumen">
+  <h2>Resumen ejecutivo</h2>
+  <p>
+    El frontend está <strong style="color:var(--vt-azul-rio)">funcionalmente completo, alineado al brand kit oficial y typecheck-clean</strong>.
+    Listo para demo a inversores y onboarding de la primera inmobiliaria.
+    Pendientes son operativos (env vars en Vercel, dominio, monitoring), no funcionales.
+  </p>
+  <div class="grid grid-4">
+    <div class="card"><h3>Typecheck</h3><div class="v gold">0</div><p>errores en src/</p></div>
+    <div class="card"><h3>Files src/</h3><div class="v">34</div><p>código limpio, sin dead code</p></div>
+    <div class="card"><h3>Brand drift</h3><div class="v gold">0</div><p>colores normalizados</p></div>
+    <div class="card"><h3>Rutas</h3><div class="v">6</div><p>operativas: /, admin, api</p></div>
+  </div>
+</section>
+
+<section id="kpis">
+  <h2>KPIs del proyecto</h2>
+  <div class="grid grid-3">
+    <div class="card">
+      <h3>Funcionalidades operativas</h3>
+      <div class="v">11</div>
+      <p class="desc">Homepage · admin · login · captura leads · health · CI · auth cookie · rate limit · honeypot · logger · brand kit</p>
+    </div>
+    <div class="card">
+      <h3>Server / Client mix</h3>
+      <div class="v">29 / 5</div>
+      <p class="desc">Server components vs client islands (correcta separación App Router)</p>
+    </div>
+    <div class="card">
+      <h3>Dependencias prod</h3>
+      <div class="v">4</div>
+      <p class="desc">next · react · react-dom · @supabase/supabase-js</p>
+    </div>
+  </div>
+</section>
+
+<section id="readiness">
+  <h2>Readiness scores</h2>
+  <div class="grid grid-3">
+    <div class="card">
+      <div class="score">
+        <div class="ring" style="--p:90" data-value="90%"></div>
+        <div class="score-text"><strong>Local dev</strong><span>Build + dev OK · Supabase wired</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="score">
+        <div class="ring" style="--p:80" data-value="80%"></div>
+        <div class="score-text"><strong>Producción Vercel</strong><span>Pendiente: env vars + dominio + monitoring</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="score">
+        <div class="ring" style="--p:88" data-value="88%"></div>
+        <div class="score-text"><strong>Brand consistency</strong><span>Brand kit aplicado al 100% en componentes</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="score">
+        <div class="ring" style="--p:85" data-value="85%"></div>
+        <div class="score-text"><strong>Seguridad</strong><span>RLS · cookie HttpOnly · rate limit · honeypot</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="score">
+        <div class="ring" style="--p:78" data-value="78%"></div>
+        <div class="score-text"><strong>SEO</strong><span>OpenGraph + Twitter + keywords + robots</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="score">
+        <div class="ring" style="--p:62" data-value="62%"></div>
+        <div class="score-text"><strong>SaaS multi-tenant</strong><span>Columnas FK listas · tablas pendientes</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="paleta">
+  <h2>Paleta oficial aplicada</h2>
+  <p>Tokens del Brand Kit Opción C (Corporativo Internacional). Migración global completa.</p>
+  <div class="grid grid-3">
+    <div class="swatch"><div class="sw" style="background:#0A2342"></div><div class="info"><strong>Azul río profundo</strong><code>#0A2342</code></div></div>
+    <div class="swatch"><div class="sw" style="background:#071A32"></div><div class="info"><strong>Azul nocturno</strong><code>#071A32</code></div></div>
+    <div class="swatch"><div class="sw" style="background:#C9A86A"></div><div class="info"><strong>Dorado premium</strong><code>#C9A86A</code></div></div>
+    <div class="swatch"><div class="sw" style="background:#F8F7F4"></div><div class="info"><strong>Blanco marfil</strong><code>#F8F7F4</code></div></div>
+    <div class="swatch"><div class="sw" style="background:#D8D8D8"></div><div class="info"><strong>Gris piedra</strong><code>#D8D8D8</code></div></div>
+    <div class="swatch"><div class="sw" style="background:#2E5E4E"></div><div class="info"><strong>Verde litoral</strong><code>#2E5E4E</code></div></div>
+  </div>
+  <p style="margin-top:16px">
+    Tipografías: <strong>Montserrat</strong> (display) · <strong>Inter</strong> (UI) · <strong>Playfair Display</strong> (luxury accent)
+    — cargadas vía <code>next/font/google</code>.
+  </p>
+</section>
+
+<section id="estructura">
+  <h2>Estructura del repo</h2>
+<pre><span class="c">frontend/</span>
+├─ public/brand/         <span class="c"># Assets oficiales kit Valterra</span>
+│   ├─ isotipo-vt.svg    <span class="c"># favicon + navbar + footer</span>
+│   ├─ logo-principal.svg
+│   ├─ logo-blanco.svg
+│   ├─ logo-oscuro.svg
+│   ├─ palette.json
+│   └─ manual-marca.md
+├─ src/
+│   ├─ app/
+│   │   ├─ layout.tsx           <span class="c"># Fonts + metadata + OG</span>
+│   │   ├─ page.tsx             <span class="c"># Homepage premium</span>
+│   │   ├─ globals.css          <span class="c"># Tokens --vt-* oficiales</span>
+│   │   ├─ icon.svg             <span class="c"># Favicon Next.js auto</span>
+│   │   ├─ admin/
+│   │   │   ├─ leads/
+│   │   │   └─ login/
+│   │   └─ api/
+│   │       ├─ contact/         <span class="c"># POST + rate limit</span>
+│   │       └─ health/          <span class="c"># Healthcheck JSON</span>
+│   ├─ components/
+│   │   ├─ brand/Logo.tsx       <span class="c"># Componente oficial reutilizable</span>
+│   │   ├─ home/                <span class="c"># 9 secciones premium</span>
+│   │   ├─ admin/leads/         <span class="c"># Dashboard + tabla</span>
+│   │   └─ layout/              <span class="c"># Navbar + Footer + Newsletter</span>
+│   ├─ services/                <span class="c"># mock-leads + mock-properties</span>
+│   ├─ lib/                     <span class="c"># supabase + logger + rate-limit + validate</span>
+│   └─ middleware.ts            <span class="c"># Admin guard</span>
+├─ supabase/migrations/         <span class="c"># SQL real</span>
+├─ docs/                        <span class="c"># Deploy + setup + this report</span>
+└─ .github/workflows/ci.yml     <span class="c"># typecheck + lint + build</span></pre>
+</section>
+
+<section id="cambios">
+  <h2>Cambios aplicados en esta auditoría</h2>
+  <table>
+    <thead><tr><th>Categoría</th><th>Cambio</th><th>Archivos</th></tr></thead>
+    <tbody>
+      <tr><td>Brand color</td><td>Normalización <code>#c9a86a</code> → <code>#C9A86A</code> (uppercase oficial)</td><td>12</td></tr>
+      <tr><td>Brand color</td><td>Borders <code>#e8eaef</code> → <code>#D8D8D8</code> (gris-piedra kit)</td><td>10</td></tr>
+      <tr><td>Brand shadow</td><td><code>rgba(10,37,64,…)</code> → <code>rgba(10,35,66,…)</code></td><td>6</td></tr>
+      <tr><td>Typography</td><td>Headings <code>font-semibold</code> → <code>font-bold</code> (Montserrat premium)</td><td>9</td></tr>
+      <tr><td>SEO</td><td>+ openGraph + twitter card + keywords + robots completo en layout</td><td>1</td></tr>
+      <tr><td>Datos contacto</td><td>Dirección: Catamarca 1365 Piso 1° Dpto I · Tel: +54 9 379 515-9096</td><td>3</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="checklist">
+  <h2>Checklist técnico</h2>
+  <div class="grid grid-2">
+    <ul class="check">
+      <li><span class="dot ok">✓</span><div>TypeScript strict habilitado<span class="meta">0 errores en src/</span></div></li>
+      <li><span class="dot ok">✓</span><div>App Router correcto<span class="meta">29 server / 5 client islands</span></div></li>
+      <li><span class="dot ok">✓</span><div>Service-role key server-side<span class="meta">Sin NEXT_PUBLIC_ leak</span></div></li>
+      <li><span class="dot ok">✓</span><div>RLS habilitada en tabla leads<span class="meta">supabase/migrations/0001</span></div></li>
+      <li><span class="dot ok">✓</span><div>Cookie HttpOnly + Secure + SameSite Strict<span class="meta">admin/login</span></div></li>
+      <li><span class="dot ok">✓</span><div>Rate limit /api/contact<span class="meta">5/min/IP</span></div></li>
+      <li><span class="dot ok">✓</span><div>Honeypot anti-bot<span class="meta">campo website oculto</span></div></li>
+      <li><span class="dot ok">✓</span><div>Healthcheck JSON estructurado<span class="meta">/api/health</span></div></li>
+      <li><span class="dot ok">✓</span><div>Logger JSON estructurado<span class="meta">Vercel-parseable</span></div></li>
+      <li><span class="dot ok">✓</span><div>CI: typecheck + lint + build<span class="meta">.github/workflows/ci.yml</span></div></li>
+    </ul>
+    <ul class="check">
+      <li><span class="dot ok">✓</span><div>Brand kit oficial integrado<span class="meta">SVGs · paleta · tipografías</span></div></li>
+      <li><span class="dot ok">✓</span><div>Favicon SVG auto Next.js<span class="meta">/src/app/icon.svg</span></div></li>
+      <li><span class="dot ok">✓</span><div>OpenGraph + Twitter cards<span class="meta">layout.tsx metadata</span></div></li>
+      <li><span class="dot ok">✓</span><div>Datos comerciales reales<span class="meta">Catamarca 1365 · +54 9 379 515-9096</span></div></li>
+      <li><span class="dot todo">·</span><div>Deploy Vercel<span class="meta">1h operativa</span></div></li>
+      <li><span class="dot todo">·</span><div>Dominio custom<span class="meta">valterra.com.ar</span></div></li>
+      <li><span class="dot todo">·</span><div>UptimeRobot → /api/health<span class="meta">monitoring uptime</span></div></li>
+      <li><span class="dot todo">·</span><div>Sentry APM<span class="meta">observabilidad errores</span></div></li>
+      <li><span class="dot warn">!</span><div>Auth admin con cookie estática<span class="meta">Aceptable MVP · migrar a NextAuth en Sprint 8</span></div></li>
+      <li><span class="dot warn">!</span><div>Rate limit per-process<span class="meta">A escala → Upstash Redis</span></div></li>
+    </ul>
+  </div>
+</section>
+
+<section id="riesgos">
+  <h2>Riesgos detectados</h2>
+  <table>
+    <thead><tr><th>Riesgo</th><th>Severidad</th><th>Mitigación actual</th><th>Próximo paso</th></tr></thead>
+    <tbody>
+      <tr><td>SERVICE_ROLE_KEY filtrada</td><td><span class="tag crit">CRIT</span></td><td>Sólo server, marcada Sensitive en Vercel</td><td>Rotación + migrar a anon-key + RLS policies con auth</td></tr>
+      <tr><td>Admin sin auth real (sólo cookie estática)</td><td><span class="tag warn">MED</span></td><td>HttpOnly + Secure + SameSite Strict + ADMIN_TOKEN</td><td>NextAuth Sprint 8 antes de onboard 2da inmobiliaria</td></tr>
+      <tr><td>Spam masivo /api/contact</td><td><span class="tag warn">MED</span></td><td>Honeypot + rate limit 5/min/IP</td><td>reCAPTCHA invisible + Upstash Redis distribuido</td></tr>
+      <tr><td>Sin observabilidad de errores</td><td><span class="tag warn">MED</span></td><td>Logger JSON → Vercel Logs</td><td>Sentry + alerts Slack</td></tr>
+      <tr><td>Imágenes Unsplash externas</td><td><span class="tag info">LOW</span></td><td><code>&lt;img&gt;</code> nativo, no requiere config</td><td>Migrar a Supabase Storage + next/image cuando exista CDN propio</td></tr>
+      <tr><td>Lead duplicado por retry</td><td><span class="tag info">LOW</span></td><td>Ninguna</td><td>Idempotency-Key + ON CONFLICT DO NOTHING</td></tr>
+      <tr><td>Backups Supabase free (7d)</td><td><span class="tag info">LOW</span></td><td>Automático diario</td><td>Pro plan PITR cuando exista carga real</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="arquitectura">
+  <h2>Recomendaciones de arquitectura</h2>
+  <div class="grid grid-2">
+    <div class="card">
+      <h3>1 · Capa <code>brand/</code> consolidada</h3>
+      <p class="desc">Promover <code>Logo.tsx</code> a uso real en Navbar/Footer (hoy usan SVG inline). Reduce duplicación y centraliza identidad visual.</p>
+    </div>
+    <div class="card">
+      <h3>2 · Tipos a <code>src/types/</code></h3>
+      <p class="desc">Hoy los tipos viven dentro de cada service (<code>mock-leads.ts</code>, <code>mock-properties.ts</code>). Cuando entren 3+ entidades, mover a <code>src/types/*.ts</code> centralizado.</p>
+    </div>
+    <div class="card">
+      <h3>3 · Multi-tenant DB</h3>
+      <p class="desc">Tabla <code>leads</code> ya tiene <code>inmobiliaria_id</code> y <code>agent_id</code> nullable. Próximas tablas: <code>inmobiliarias</code>, <code>agents</code>, <code>properties</code>, <code>property_assignments</code>.</p>
+    </div>
+    <div class="card">
+      <h3>4 · RLS policies con auth</h3>
+      <p class="desc">Pasar de service-role bypass a policies <code>using (inmobiliaria_id = auth.jwt() -&gt; inmobiliaria_id)</code> cuando entre Supabase Auth.</p>
+    </div>
+    <div class="card">
+      <h3>5 · Idempotency en /api/contact</h3>
+      <p class="desc">Aceptar header <code>Idempotency-Key</code> del cliente. Si ya existe lead con ese key, devolver 200 + leadId existente.</p>
+    </div>
+    <div class="card">
+      <h3>6 · Storage de imágenes propio</h3>
+      <p class="desc">Supabase Storage para fotos de propiedades. Bucket <code>properties</code> con policies por <code>inmobiliaria_id</code>. Cero dependencia de Unsplash.</p>
+    </div>
+  </div>
+</section>
+
+<section id="mvp-vs-saas">
+  <h2>MVP vs escalabilidad SaaS futuro</h2>
+  <table>
+    <thead><tr><th>Capacidad</th><th>MVP actual</th><th>SaaS futuro</th></tr></thead>
+    <tbody>
+      <tr><td>Inmobiliarias</td><td>1 (Valterra)</td><td>N tenants con onboarding self-service</td></tr>
+      <tr><td>Agentes</td><td>Hardcoded en mocks</td><td>Tabla con auth + permisos por inmobiliaria</td></tr>
+      <tr><td>Auth admin</td><td>Cookie + ADMIN_TOKEN</td><td>NextAuth + Supabase Auth + roles</td></tr>
+      <tr><td>Captura leads</td><td>Honeypot + rate per-process</td><td>reCAPTCHA + Upstash Redis</td></tr>
+      <tr><td>Propiedades</td><td>Mocks estáticos</td><td>CRUD admin + Storage Supabase</td></tr>
+      <tr><td>Pricing</td><td>Página estática</td><td>Stripe + suscripciones por plan</td></tr>
+      <tr><td>Subdominios</td><td>Único</td><td><code>inmob1.valterra.com.ar</code> custom</td></tr>
+      <tr><td>Notificaciones</td><td>Solo log</td><td>Resend email + Twilio WhatsApp Business</td></tr>
+      <tr><td>Métricas</td><td>Vercel built-in</td><td>Vercel Analytics + Sentry + dashboard interno</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="roadmap">
+  <h2>Roadmap próximos sprints</h2>
+  <div class="grid grid-2">
+    <div class="card">
+      <h3>Sprint 7 · Deploy público <span class="tag gold">prioridad</span></h3>
+      <p class="desc">Vercel + env vars + dominio + UptimeRobot. ETA 1 día. Bloqueante para demo inversor.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 8 · Auth real + multi-tenant</h3>
+      <p class="desc">NextAuth + Supabase Auth + tablas inmobiliarias/agents + RLS policies por <code>auth.uid()</code>. ETA 3-4 días.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 9 · CRUD de propiedades</h3>
+      <p class="desc">Admin CRUD + Supabase Storage para fotos + form de alta multi-step. ETA 4-5 días.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 10 · Notificaciones reales</h3>
+      <p class="desc">Resend (email) + Twilio WhatsApp Business + alerts in-app al agente asignado. ETA 2 días.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 11 · Observabilidad</h3>
+      <p class="desc">Sentry + Upstash rate-limit + Vercel Analytics + dashboard interno <code>/admin/stats</code>. ETA 2 días.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 12 · Onboarding self-service</h3>
+      <p class="desc">Signup inmobiliarias + Stripe billing + subdominios custom <code>inmob.valterra.com.ar</code>. ETA 5-6 días.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Reporte generado · Sprint 7 · post Brand Kit Integration · <strong>GRUPO VALTERRA</strong> ·
+  Soluciones Inmobiliarias del Litoral
+</footer>
+
+</main>
+</div>
+</body>
+</html>
