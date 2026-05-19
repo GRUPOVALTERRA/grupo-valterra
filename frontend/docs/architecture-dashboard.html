@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grupo Valterra · Arquitectura Dashboard</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background:#0a2540; color:#e8eaef; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1280px; margin:0 auto; padding:32px 24px 80px}
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-bottom:24px; border-bottom:1px solid rgba(201,168,106,.2)
+  }
+  .brand{display:flex; align-items:center; gap:12px}
+  .logo{
+    width:42px; height:42px; border-radius:8px;
+    background:#c9a86a; color:#0a2540;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:20px;
+  }
+  .brand h1{margin:0; font-size:18px; letter-spacing:.04em; color:#fff}
+  .brand small{color:#c9a86a; font-size:10px; letter-spacing:.2em; text-transform:uppercase}
+  .meta{text-align:right; color:#a8b7ce; font-size:12px}
+  .meta strong{color:#c9a86a}
+
+  h2{
+    margin:48px 0 16px; color:#fff;
+    font-size:22px; letter-spacing:-.01em;
+    display:flex; align-items:center; gap:10px;
+  }
+  h2::before{content:""; width:6px; height:24px; background:#c9a86a; border-radius:2px}
+
+  .grid{display:grid; gap:16px}
+  .grid-2{grid-template-columns:repeat(auto-fit, minmax(280px, 1fr))}
+  .grid-3{grid-template-columns:repeat(auto-fit, minmax(220px, 1fr))}
+  .grid-4{grid-template-columns:repeat(auto-fit, minmax(180px, 1fr))}
+
+  .card{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:14px; padding:18px; backdrop-filter:blur(8px);
+    transition:transform .2s, border-color .2s;
+  }
+  .card:hover{transform:translateY(-2px); border-color:rgba(201,168,106,.3)}
+  .card h3{margin:0 0 6px; color:#fff; font-size:14px; font-weight:600}
+  .card p{margin:0; font-size:13px; color:#a8b7ce}
+  .card .v{font-size:32px; font-weight:600; color:#c9a86a; line-height:1.1; margin:4px 0}
+
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{padding:10px 12px; text-align:left; border-bottom:1px solid rgba(255,255,255,.06)}
+  th{color:#c9a86a; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.08em}
+  td code{font-family:ui-monospace, "SF Mono", monospace; font-size:12px; color:#dcbf72}
+
+  .tag{
+    display:inline-flex; align-items:center; gap:4px;
+    padding:2px 8px; border-radius:999px;
+    font-size:11px; font-weight:600;
+  }
+  .tag.ok{background:rgba(16,185,129,.15); color:#10b981; border:1px solid rgba(16,185,129,.3)}
+  .tag.warn{background:rgba(245,158,11,.15); color:#fbbf24; border:1px solid rgba(245,158,11,.3)}
+  .tag.crit{background:rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.3)}
+  .tag.info{background:rgba(59,130,246,.15); color:#60a5fa; border:1px solid rgba(59,130,246,.3)}
+
+  .flow{
+    background:rgba(255,255,255,.03);
+    border-radius:14px; padding:24px;
+    border:1px solid rgba(255,255,255,.08);
+    overflow-x:auto;
+  }
+  .flow pre{
+    margin:0; color:#dcbf72;
+    font-family:ui-monospace, "SF Mono", monospace; font-size:12px;
+    line-height:1.6;
+  }
+
+  ul.lst{margin:8px 0 0; padding-left:18px; color:#cdd5e0; font-size:13px}
+  ul.lst li{margin:4px 0}
+  ul.lst code{color:#dcbf72; font-size:12px}
+
+  .score{
+    display:flex; align-items:center; gap:14px;
+    background:rgba(255,255,255,.04);
+    padding:16px; border-radius:12px;
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .ring{
+    --p:0;
+    width:64px; height:64px; border-radius:50%;
+    background:conic-gradient(#c9a86a 0 calc(var(--p)*1%), rgba(255,255,255,.1) 0);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .ring::after{
+    content:attr(data-value);
+    width:48px; height:48px; border-radius:50%;
+    background:#0a2540; color:#c9a86a;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:15px;
+  }
+  .score-text strong{display:block; color:#fff; font-size:14px}
+  .score-text span{font-size:12px; color:#a8b7ce}
+
+  footer{
+    margin-top:64px; padding-top:24px;
+    border-top:1px solid rgba(201,168,106,.2);
+    text-align:center; color:#7a8fb3; font-size:11px;
+  }
+  footer strong{color:#c9a86a}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">V</div>
+      <div>
+        <h1>GRUPO VALTERRA</h1>
+        <small>Arquitectura · Dashboard técnico</small>
+      </div>
+    </div>
+    <div class="meta">
+      Stack: <strong>Next.js 16 · Supabase · TS estricto</strong><br/>
+      Generado: <strong>Sprint 6 (Hardening + Auth + Deploy)</strong>
+    </div>
+  </header>
+
+  <h2>KPIs del proyecto</h2>
+  <div class="grid grid-4">
+    <div class="card"><h3>Archivos TS/TSX</h3><div class="v">29</div><p>Source clean, layering modular</p></div>
+    <div class="card"><h3>Rutas activas</h3><div class="v">6</div><p>/, admin, login, api/contact, api/health</p></div>
+    <div class="card"><h3>Server actions</h3><div class="v">2</div><p>login + logout</p></div>
+    <div class="card"><h3>Dependencias</h3><div class="v">4</div><p>next · react · react-dom · @supabase/supabase-js</p></div>
+  </div>
+
+  <h2>Readiness scores</h2>
+  <div class="grid grid-3">
+    <div class="score">
+      <div class="ring" style="--p:75" data-value="75%"></div>
+      <div class="score-text">
+        <strong>Producción</strong>
+        <span>Funcional. Falta dominio + monitoring.</span>
+      </div>
+    </div>
+    <div class="score">
+      <div class="ring" style="--p:60" data-value="60%"></div>
+      <div class="score-text">
+        <strong>SaaS multi-tenant</strong>
+        <span>Tabla tiene FK keys. Falta tablas inmobiliarias/agents + RLS policies.</span>
+      </div>
+    </div>
+    <div class="score">
+      <div class="ring" style="--p:85" data-value="85%"></div>
+      <div class="score-text">
+        <strong>Deploy Vercel</strong>
+        <span>Listo. Sólo falta configurar env vars en Vercel.</span>
+      </div>
+    </div>
+  </div>
+
+  <h2>Stack layering</h2>
+  <div class="flow"><pre>
+┌─────────────────────────────────────────────────────────────┐
+│  app/         App Router (server components + route handlers)│
+│   ├─ page.tsx                  Homepage                       │
+│   ├─ admin/leads/page.tsx      Dashboard server               │
+│   ├─ admin/login/              Login page + LoginForm + action│
+│   ├─ api/contact/route.ts      POST + GET dev                 │
+│   └─ api/health/route.ts       Healthcheck                    │
+├─────────────────────────────────────────────────────────────┤
+│  components/  UI (server por defecto + 5 client islands)      │
+│   ├─ home/      Hero, Search, Cards, Categories, Plans, CTA  │
+│   ├─ admin/     Dashboard, Table, Filters, Stats             │
+│   └─ layout/    Navbar, Footer, NewsletterForm               │
+├─────────────────────────────────────────────────────────────┤
+│  services/    Data access                                     │
+│   ├─ mock-leads.ts   Supabase + memory fallback              │
+│   └─ mock-properties.ts                                       │
+├─────────────────────────────────────────────────────────────┤
+│  lib/         Cross-cutting                                    │
+│   ├─ supabase.ts     Client factory + withTimeout            │
+│   ├─ validateLead.ts Validación sin deps                     │
+│   ├─ rate-limit.ts   In-memory por IP                        │
+│   └─ logger.ts       Structured JSON logging                  │
+├─────────────────────────────────────────────────────────────┤
+│  middleware.ts        Edge - admin guard + x-pathname        │
+├─────────────────────────────────────────────────────────────┤
+│  supabase/    DB                                              │
+│   ├─ migrations/0001_create_leads.sql                         │
+│   └─ seed.sql                                                 │
+└─────────────────────────────────────────────────────────────┘</pre></div>
+
+  <h2>Flujo end-to-end de un lead</h2>
+  <div class="flow"><pre>
+[Browser]                [Next.js Server]                 [Supabase]
+   │                            │                              │
+   │  ContactSection submit     │                              │
+   ├───── POST /api/contact ──▶ │                              │
+   │      (JSON)                │ 1. rateLimit(IP, 5/min)      │
+   │                            │ 2. honeypot check            │
+   │                            │ 3. validateLead()            │
+   │                            │ 4. addLead()                 │
+   │                            ├──── INSERT leads ──────────▶ │
+   │                            │ ◀── row + id ─────────────── │
+   │  ◀── 201 { leadId } ────── │                              │
+   │                            │ logger.info("lead creado")   │
+   │                            │                              │
+   │  Admin abre /admin/leads   │                              │
+   │  (middleware verifica      │                              │
+   │   cookie vs ADMIN_TOKEN)   │                              │
+   ├──── GET /admin/leads ────▶ │                              │
+   │                            │ getAllLeads()                │
+   │                            ├──── SELECT * ORDER BY ─────▶ │
+   │                            │ ◀── rows ──────────────────  │
+   │  ◀── HTML (SSR) ────────── │                              │</pre></div>
+
+  <h2>Rutas y métodos</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Tipo</th><th>Runtime</th><th>Protección</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><code>/</code></td><td>Server Component</td><td>Node</td><td>Pública</td><td><span class="tag ok">OK</span></td></tr>
+      <tr><td><code>/admin/leads</code></td><td>Server Component</td><td>Node</td><td>Cookie + ADMIN_TOKEN</td><td><span class="tag ok">OK</span></td></tr>
+      <tr><td><code>/admin/login</code></td><td>Server + Client form</td><td>Node</td><td>Pública (rate-limited)</td><td><span class="tag ok">OK</span></td></tr>
+      <tr><td><code>POST /api/contact</code></td><td>Route Handler</td><td>Node</td><td>Honeypot + rate limit 5/min</td><td><span class="tag ok">OK</span></td></tr>
+      <tr><td><code>GET /api/contact</code></td><td>Route Handler</td><td>Node</td><td>Sólo dev (405 en prod)</td><td><span class="tag ok">OK</span></td></tr>
+      <tr><td><code>GET /api/health</code></td><td>Route Handler</td><td>Node</td><td>Pública</td><td><span class="tag ok">OK</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Variables de entorno</h2>
+  <table>
+    <thead><tr><th>Variable</th><th>Uso</th><th>Tipo</th><th>Requerida</th></tr></thead>
+    <tbody>
+      <tr><td><code>SUPABASE_URL</code></td><td>URL del proyecto</td><td>plain</td><td>prod</td></tr>
+      <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>Acceso bypass-RLS</td><td><span class="tag crit">secret</span></td><td>prod</td></tr>
+      <tr><td><code>ADMIN_PASSWORD</code></td><td>Login admin</td><td><span class="tag crit">secret</span></td><td>prod</td></tr>
+      <tr><td><code>ADMIN_TOKEN</code></td><td>Cookie value</td><td><span class="tag crit">secret</span></td><td>prod</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Registro de riesgos</h2>
+  <table>
+    <thead><tr><th>Riesgo</th><th>Severidad</th><th>Mitigación actual</th><th>Próximo paso</th></tr></thead>
+    <tbody>
+      <tr><td>SERVICE_ROLE_KEY leaked</td><td><span class="tag crit">CRIT</span></td><td>Sólo server-side, no NEXT_PUBLIC_</td><td>Migrar a anon key + RLS policies con auth</td></tr>
+      <tr><td>/admin público con DB real</td><td><span class="tag crit">CRIT</span></td><td>Middleware + cookie + ADMIN_TOKEN</td><td>NextAuth + roles cuando entren agentes</td></tr>
+      <tr><td>Spam masivo en /api/contact</td><td><span class="tag warn">HIGH</span></td><td>Honeypot + rate limit 5/min/IP</td><td>Upstash Redis + reCAPTCHA invisible</td></tr>
+      <tr><td>Memoria rate limit no compartida</td><td><span class="tag warn">MED</span></td><td>Suficiente para MVP</td><td>Redis distribuido</td></tr>
+      <tr><td>Lead duplicado por retry cliente</td><td><span class="tag info">LOW</span></td><td>Ninguna</td><td>Nonce + ON CONFLICT DO NOTHING</td></tr>
+      <tr><td>Sin observabilidad de errores</td><td><span class="tag warn">MED</span></td><td>Logger JSON estructurado → Vercel logs</td><td>Sentry</td></tr>
+      <tr><td>Backups Supabase Free 7d retention</td><td><span class="tag info">LOW</span></td><td>OK para MVP</td><td>Supabase Pro: PITR</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Seguridad checklist</h2>
+  <table>
+    <thead><tr><th>Control</th><th>Implementado</th></tr></thead>
+    <tbody>
+      <tr><td>TypeScript strict</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>Service role key server-only</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>RLS habilitada en tabla leads</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>Validación server-side (validateLead)</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>Honeypot anti-bot</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>Rate limit por IP</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>Cookies HttpOnly + Secure + SameSite Strict</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>Admin protegido (middleware)</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>Login rate-limited (5/5min)</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>Timeouts en queries DB</td><td><span class="tag ok">SÍ (8s)</span></td></tr>
+      <tr><td>Logging estructurado JSON</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>Healthcheck público</td><td><span class="tag ok">SÍ</span></td></tr>
+      <tr><td>NextAuth / OAuth</td><td><span class="tag warn">NO (MVP)</span></td></tr>
+      <tr><td>Sentry / APM</td><td><span class="tag warn">NO</span></td></tr>
+      <tr><td>reCAPTCHA</td><td><span class="tag warn">NO</span></td></tr>
+      <tr><td>WAF Vercel</td><td><span class="tag info">automático</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Roadmap escalabilidad SaaS</h2>
+  <div class="grid grid-2">
+    <div class="card">
+      <h3>Sprint 7 — Multi-tenant DB</h3>
+      <p>Tablas <code>inmobiliarias</code>, <code>agents</code>; FKs reales; RLS policies por <code>auth.uid()</code>.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 8 — Auth real</h3>
+      <p>Supabase Auth + NextAuth adapter; roles (admin / agent / owner); session JWT en lugar de cookie estática.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 9 — Property CRUD</h3>
+      <p>Tabla <code>properties</code> en DB; UI admin para alta/edición; storage de imágenes en Supabase.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 10 — Notificaciones</h3>
+      <p>Resend para email transaccional; Twilio WhatsApp; notifications al agente asignado.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 11 — Observabilidad</h3>
+      <p>Sentry; Upstash Redis para rate limit distribuido; UptimeRobot → /api/health.</p>
+    </div>
+    <div class="card">
+      <h3>Sprint 12 — Onboarding inmobiliarias</h3>
+      <p>Flow de signup, billing (Stripe), subdominios <code>inmob.valterra.com.ar</code>.</p>
+    </div>
+  </div>
+
+  <footer>
+    Generado por la <strong>arquitectura técnica Valterra</strong> · static HTML, descargable, no requiere backend para visualizarse.
+  </footer>
+</div>
+</body>
+</html>
