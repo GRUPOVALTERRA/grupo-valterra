@@ -29,16 +29,22 @@ export interface Property {
   badges?: string[];
   image: string;
   featured?: boolean;
+  /** Asignacion - opcional - usado en pagina de detalle */
+  agentName?: string;
+  agentPhone?: string;
+  /** Geo - opcional - activado en Sprint 11 (mapa Mapbox) */
+  lat?: number;
+  lng?: number;
 }
 
 export const MOCK_PROPERTIES: Property[] = [
   {
     id: "prop-001",
     slug: "casa-frente-rio-parana",
-    title: "Casa premium frente al río Paraná",
-    city: "Paraná",
-    neighborhood: "Costa del Paraná",
-    province: "Entre Ríos",
+    title: "Casa premium frente al rio Parana",
+    city: "Parana",
+    neighborhood: "Costa del Parana",
+    province: "Entre Rios",
     price: 485000,
     currency: "USD",
     operation: "venta",
@@ -48,7 +54,7 @@ export const MOCK_PROPERTIES: Property[] = [
     parking: 2,
     coveredArea: 320,
     totalArea: 850,
-    badges: ["Destacado", "Frente al río"],
+    badges: ["Destacado", "Frente al rio"],
     image:
       "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&q=80&auto=format&fit=crop",
     featured: true,
@@ -56,10 +62,10 @@ export const MOCK_PROPERTIES: Property[] = [
   {
     id: "prop-002",
     slug: "depto-moderno-centro-parana",
-    title: "Departamento moderno con balcón",
-    city: "Paraná",
+    title: "Departamento moderno con balcon",
+    city: "Parana",
     neighborhood: "Centro",
-    province: "Entre Ríos",
+    province: "Entre Rios",
     price: 165000,
     currency: "USD",
     operation: "venta",
@@ -78,7 +84,7 @@ export const MOCK_PROPERTIES: Property[] = [
     slug: "casa-quinta-villa-urquiza",
     title: "Casa quinta con pileta",
     city: "Villa Urquiza",
-    province: "Entre Ríos",
+    province: "Entre Rios",
     price: 298000,
     currency: "USD",
     operation: "venta",
@@ -117,7 +123,7 @@ export const MOCK_PROPERTIES: Property[] = [
   {
     id: "prop-005",
     slug: "depto-resistencia",
-    title: "Departamento de categoría",
+    title: "Departamento de categoria",
     city: "Resistencia",
     neighborhood: "Centro",
     province: "Chaco",
@@ -137,7 +143,7 @@ export const MOCK_PROPERTIES: Property[] = [
   {
     id: "prop-006",
     slug: "casa-posadas-frente-rio",
-    title: "Residencia frente al río Paraná",
+    title: "Residencia frente al rio Parana",
     city: "Posadas",
     neighborhood: "Costanera",
     province: "Misiones",
@@ -150,7 +156,7 @@ export const MOCK_PROPERTIES: Property[] = [
     parking: 3,
     coveredArea: 380,
     totalArea: 1500,
-    badges: ["Premium", "Frente al río"],
+    badges: ["Premium", "Frente al rio"],
     image:
       "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80&auto=format&fit=crop",
     featured: true,

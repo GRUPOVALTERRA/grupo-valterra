@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sprint 8 · Auditoría Estratégica Post-Deploy · Grupo Valterra</title>
+<style>
+  :root {
+    --navy: #0A2342;
+    --navy-deep: #071A32;
+    --gold: #C9A86A;
+    --gold-soft: rgba(201,168,106,0.12);
+    --ivory: #F8F7F4;
+    --line: #D8D8D8;
+    --text: #1A202C;
+    --muted: #4A5568;
+    --ok: #16A34A;
+    --warn: #D97706;
+    --crit: #DC2626;
+    --info: #2563EB;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--ivory); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+  .montserrat { font-family: 'Montserrat', 'Inter', sans-serif; letter-spacing: 0.02em; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  header.hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 100%); color: white; padding: 64px 0 56px; border-bottom: 4px solid var(--gold); }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
+  .brand-mark { width: 48px; height: 48px; background: var(--gold); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--navy); font-weight: 800; font-family: 'Montserrat', sans-serif; font-size: 22px; }
+  .brand-name { font-weight: 800; font-size: 16px; letter-spacing: 0.06em; }
+  .brand-tagline { font-size: 10px; text-transform: uppercase; letter-spacing: 0.22em; color: var(--gold); margin-top: 2px; }
+  .eyebrow { display: inline-block; padding: 6px 14px; border: 1px solid rgba(201,168,106,0.5); border-radius: 999px; color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; background: var(--gold-soft); }
+  h1.title { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 44px; line-height: 1.08; margin: 18px 0 14px; max-width: 880px; }
+  .subtitle { font-size: 17px; opacity: 0.88; max-width: 760px; line-height: 1.6; }
+  .meta { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 32px; font-size: 12px; }
+  .meta .pill { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); padding: 8px 14px; border-radius: 8px; }
+  .meta .pill b { color: var(--gold); margin-right: 6px; }
+  section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  section h2 { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 28px; color: var(--navy); margin: 0 0 8px; }
+  section .lead { color: var(--muted); font-size: 15px; max-width: 780px; line-height: 1.65; margin-bottom: 36px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .kpi { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 22px; box-shadow: 0 6px 24px -16px rgba(10,35,66,0.18); }
+  .kpi .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); font-weight: 600; }
+  .kpi .value { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 30px; color: var(--navy); margin-top: 6px; }
+  .kpi .delta { font-size: 12px; color: var(--ok); margin-top: 4px; font-weight: 600; }
+  .kpi.warn .delta { color: var(--warn); }
+  .kpi.crit .delta { color: var(--crit); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+  .card h3 { font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--navy); margin: 0 0 10px; font-size: 17px; }
+  .card p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+  .badge.ok { background: rgba(22,163,74,0.1); color: var(--ok); }
+  .badge.warn { background: rgba(217,119,6,0.12); color: var(--warn); }
+  .badge.crit { background: rgba(220,38,38,0.12); color: var(--crit); }
+  .badge.info { background: rgba(37,99,235,0.12); color: var(--info); }
+  .badge.gold { background: var(--gold-soft); color: #8B6F32; }
+  table { width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  thead { background: var(--navy); color: white; }
+  thead th { text-align: left; padding: 14px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
+  tbody td { padding: 14px 16px; border-top: 1px solid var(--line); font-size: 13.5px; vertical-align: top; }
+  tbody tr:nth-child(even) { background: #FAFAF8; }
+  ul.clean { list-style: none; padding: 0; margin: 0; }
+  ul.clean li { padding: 8px 0 8px 22px; position: relative; font-size: 14px; line-height: 1.55; color: var(--text); border-bottom: 1px dashed var(--line); }
+  ul.clean li:last-child { border-bottom: none; }
+  ul.clean li::before { content: '◆'; position: absolute; left: 0; top: 8px; color: var(--gold); font-size: 11px; }
+  ul.clean li.ok::before { content: '✓'; color: var(--ok); font-weight: 700; }
+  ul.clean li.crit::before { content: '✕'; color: var(--crit); font-weight: 700; }
+  ul.clean li.warn::before { content: '⚠'; color: var(--warn); }
+  .quote { background: white; border-left: 4px solid var(--gold); padding: 20px 24px; margin: 26px 0; border-radius: 0 10px 10px 0; box-shadow: 0 6px 24px -16px rgba(10,35,66,0.18); font-style: italic; color: var(--text); }
+  .quote b { color: var(--navy); font-style: normal; }
+  .severity { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+  .severity.CRITICAL { background: #FEE2E2; color: #991B1B; }
+  .severity.HIGH { background: #FED7AA; color: #9A3412; }
+  .severity.MEDIUM { background: #FEF3C7; color: #92400E; }
+  .severity.LOW { background: #DBEAFE; color: #1E40AF; }
+  .roadmap-sprint { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 26px; margin-bottom: 18px; position: relative; }
+  .roadmap-sprint::before { content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 5px; background: var(--gold); border-radius: 14px 0 0 14px; }
+  .roadmap-sprint h3 { display: flex; justify-content: space-between; align-items: center; font-family: 'Montserrat', sans-serif; font-weight: 800; color: var(--navy); font-size: 20px; margin: 0 0 14px; }
+  .roadmap-sprint h3 .stamp { background: var(--navy); color: white; font-size: 10px; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.14em; }
+  .roadmap-sprint .objective { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+  .roadmap-sprint ul { margin: 10px 0 0 0; padding-left: 18px; font-size: 14px; line-height: 1.65; }
+  .roadmap-sprint ul li { color: var(--text); margin-bottom: 4px; }
+  footer { padding: 38px 0; background: var(--navy); color: white; }
+  footer .container { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  footer .container .left { opacity: 0.7; }
+  footer .container .right { color: var(--gold); letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; }
+  @media print { section { page-break-inside: avoid; } header.hero { page-break-after: always; } }
+  @media (max-width: 880px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    h1.title { font-size: 32px; }
+    .container { padding: 0 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="brand">
+      <div class="brand-mark">VT</div>
+      <div>
+        <div class="brand-name montserrat">GRUPO VALTERRA</div>
+        <div class="brand-tagline">Soluciones Inmobiliarias del Litoral</div>
+      </div>
+    </div>
+    <span class="eyebrow">Sprint 8 · Auditoría Estratégica Post-Deploy</span>
+    <h1 class="title">Estado real, brechas competitivas y roadmap de los próximos 4 sprints.</h1>
+    <p class="subtitle">Auditoría read-only ejecutada sobre la build productiva en Vercel + análisis de gap vs Zillow, Compass, Sotheby's y Properstar, con propuesta de hoja de ruta evolutiva hasta Sprint 12.</p>
+    <div class="meta">
+      <span class="pill"><b>Fecha</b>22/05/2026</span>
+      <span class="pill"><b>Entorno</b>Producción (Vercel)</span>
+      <span class="pill"><b>Versión</b>0.1.0</span>
+      <span class="pill"><b>Stack</b>Next.js 16 · React 19 · Supabase · TS strict</span>
+      <span class="pill"><b>Modo</b>Read-only · sin tocar código</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <h2>1. Resumen ejecutivo</h2>
+    <p class="lead">Grupo Valterra está <b>online en producción</b>, con identidad premium consolidada y un MVP funcional capaz de captar leads de forma real. La base técnica es sólida para soportar las próximas etapas de expansión comercial, pero existen <b>brechas de producto, seguridad y SEO</b> que deben atenderse antes de escalar a operación multi-inmobiliaria.</p>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Deploy</div><div class="value">Ready</div><div class="delta">Vercel · build verde</div></div>
+      <div class="kpi"><div class="label">Stack</div><div class="value">Next 16</div><div class="delta">App Router · Edge middleware</div></div>
+      <div class="kpi warn"><div class="label">Madurez producto</div><div class="value">MVP</div><div class="delta">Pre-multi-tenant</div></div>
+      <div class="kpi warn"><div class="label">Brechas vs benchmark</div><div class="value">11</div><div class="delta">3 CRITICAL · 4 HIGH</div></div>
+    </div>
+
+    <div class="quote">
+      <b>Veredicto:</b> Valterra ya puede recibir tráfico y captar leads reales. Para competir contra portales del litoral (ZonaProp, Argenprop, Mercado Libre Inmuebles) hace falta <b>propiedades dinámicas reales, mapa, multi-tenant y SEO regional</b>. La base es premium; el siguiente salto es marketplace operativo.
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>2. Producción Vercel · estado actual</h2>
+    <p class="lead">Verificación read-only del estado de deploy, runtime y configuración productiva.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>✅ Lo que funciona</h3>
+        <ul class="clean">
+          <li class="ok">Deploy en Vercel con status <b>Ready</b>, framework Next.js detectado correctamente.</li>
+          <li class="ok">Root directory configurado en <code>frontend/</code> (monorepo).</li>
+          <li class="ok">Build limpio: typecheck 0 errors, lint 0 errors (3 warnings intencionales de <code>&lt;img&gt;</code>).</li>
+          <li class="ok">Runtime <code>nodejs</code> en endpoints críticos (no edge), permite Supabase server-side seguro.</li>
+          <li class="ok">Middleware activo: propaga <code>x-pathname</code> + guarda <code>/admin/*</code>.</li>
+          <li class="ok">Server actions de login operativas con rate limit por IP.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>⚠ Pendiente o deuda técnica</h3>
+        <ul class="clean">
+          <li class="warn">Existen <b>2 proyectos Vercel duplicados</b> (<code>grupo-valterra</code> + <code>grupo-valterra-l9ba</code>). Confirmar producción canónica y eliminar el otro.</li>
+          <li class="warn">Variables env críticas a verificar en producción: <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>ADMIN_PASSWORD</code>, <code>ADMIN_TOKEN</code>.</li>
+          <li class="warn">No hay monitor externo (UptimeRobot, Better Uptime) apuntando a <code>/api/health</code>.</li>
+          <li class="warn">No hay alertas de error (Sentry, Logtail). Se pierden los <code>log.error</code> en stdout de Vercel.</li>
+          <li class="warn">Sin dominio propio (<code>valterra.com.ar</code>). Vive en subdominio <code>*.vercel.app</code>.</li>
+          <li class="warn">CI ejecuta build pero no smoke test sobre el deploy preview.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>3. Endpoint /api/health</h2>
+    <p class="lead">Diseño robusto y seguro. El endpoint expone observabilidad sin filtrar secretos.</p>
+
+    <table>
+      <thead><tr><th>Campo</th><th>Origen</th><th>Diseño</th><th>Riesgo</th></tr></thead>
+      <tbody>
+        <tr><td><b>status</b></td><td>derivado de <code>db</code></td><td>"ok" / "degraded" / "down"</td><td><span class="badge ok">Seguro</span></td></tr>
+        <tr><td><b>db</b></td><td>ping Supabase con timeout 4s</td><td>"connected" / "fallback" / "error"</td><td><span class="badge ok">Seguro</span></td></tr>
+        <tr><td><b>env</b></td><td><code>process.env.NODE_ENV</code></td><td>production / preview / development</td><td><span class="badge ok">Seguro</span></td></tr>
+        <tr><td><b>uptime</b></td><td>delta desde PROCESS_START</td><td>segundos vivos del proceso</td><td><span class="badge info">Útil</span></td></tr>
+        <tr><td><b>version</b></td><td>package.json</td><td>0.1.0</td><td><span class="badge warn">Agregar commit SHA</span></td></tr>
+        <tr><td><b>checks.supabase</b></td><td>flag + latencyMs + error opcional</td><td>error genérico, sin stack</td><td><span class="badge ok">Seguro</span></td></tr>
+        <tr><td><b>checks.auth_middleware</b></td><td>flag presencia de ADMIN_TOKEN</td><td>"active" / "permissive"</td><td><span class="badge ok">Seguro</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="quote">
+      <b>Mejoras recomendadas para Sprint 9:</b> agregar <code>commit</code> (env <code>VERCEL_GIT_COMMIT_SHA</code>) y <code>region</code> (env <code>VERCEL_REGION</code>) al payload. Conectar a UptimeRobot con ping cada 5 minutos.
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>4. Flujo de negocio E2E · captación de leads</h2>
+    <p class="lead">Recorrido completo Homepage → búsqueda → contacto → API → Supabase → dashboard admin.</p>
+
+    <div class="grid-3">
+      <div class="card">
+        <h3>1 · Formulario público</h3>
+        <p>Validación client + server con misma función pura. Honeypot oculto. Estados loading/error/success. Mensaje de éxito muestra ID de lead.</p>
+        <div style="margin-top:12px"><span class="badge ok">Operativo</span></div>
+      </div>
+      <div class="card">
+        <h3>2 · API /api/contact</h3>
+        <p>Rate limit 5/min por IP. Honeypot. Validación TS pura. Persistencia con fallback memoria. Logger estructurado JSON.</p>
+        <div style="margin-top:12px"><span class="badge ok">Operativo</span></div>
+      </div>
+      <div class="card">
+        <h3>3 · Dashboard admin</h3>
+        <p>Server component <code>force-dynamic</code>. Filtros + tabla. Auth por cookie HttpOnly contra ADMIN_TOKEN. Logout via server action.</p>
+        <div style="margin-top:12px"><span class="badge ok">Operativo</span></div>
+      </div>
+    </div>
+
+    <div class="quote">
+      <b>Brechas detectadas en el flujo:</b> sin idempotency key (riesgo de duplicado por double-click), sin asignación automática a agente, sin notificación push al equipo (email/WhatsApp/Slack) cuando entra lead nuevo, sin SLA tracking en dashboard.
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>5. Seguridad mínima SaaS</h2>
+    <p class="lead">Auditoría de superficie de ataque, headers, secrets y posture de cookies.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>✓ Fortalezas</h3>
+        <ul class="clean">
+          <li class="ok">Cookie admin: <b>HttpOnly + Secure + SameSite=Strict + maxAge 24h</b>.</li>
+          <li class="ok"><code>SUPABASE_SERVICE_ROLE_KEY</code> solo server-side (sin prefijo <code>NEXT_PUBLIC_</code>).</li>
+          <li class="ok">Whitelist en <code>safeNext</code> del loginAction → previene open redirect.</li>
+          <li class="ok">Rate limit login (5 / 5min) + contact (5 / 1min) por IP.</li>
+          <li class="ok">Honeypot anti-bot funcional (<code>website</code>).</li>
+          <li class="ok">Logger sin stack traces en payload de respuesta pública.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>⚠ Riesgos / mejoras</h3>
+        <ul class="clean">
+          <li class="warn"><b>ADMIN_TOKEN estático</b>: no rota, no expira en servidor. Pivot necesario a NextAuth + sesiones DB (Sprint 9/10).</li>
+          <li class="warn"><b>Sin <code>crypto.timingSafeEqual</code></b>: comparación de password con <code>===</code> habilita timing attack teórico.</li>
+          <li class="warn">Rate limit <b>in-memory por proceso</b>; en Vercel multi-región el límite efectivo se diluye. Migrar a Upstash Redis.</li>
+          <li class="warn">Sin <b>CSP</b>, sin <b>X-Frame-Options</b>, sin <b>Permissions-Policy</b> en <code>next.config</code>.</li>
+          <li class="warn">Logger imprime IP en texto plano (privacy bajo Habeas Data / Ley 25.326 AR). Hashear con sal.</li>
+          <li class="warn">Sin audit log de eventos admin (quién vio qué lead, quién hizo logout).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>6. UX/UI premium · comparativa internacional</h2>
+    <p class="lead">Evaluación cualitativa del nivel percibido frente a referentes globales del segmento premium.</p>
+
+    <table>
+      <thead><tr><th>Eje</th><th>Valterra hoy</th><th>Benchmark</th><th>Gap percibido</th></tr></thead>
+      <tbody>
+        <tr><td>Identidad visual</td><td>Navy + dorado + Montserrat. Consistente.</td><td>Sotheby's, Compass</td><td><span class="badge ok">Equiparable</span></td></tr>
+        <tr><td>Hero + búsqueda</td><td>Imagen full-bleed + searchbar integrada</td><td>Zillow, Properstar</td><td><span class="badge ok">Premium</span></td></tr>
+        <tr><td>Mapa interactivo</td><td>No existe</td><td>Zillow, Compass</td><td><span class="badge crit">CRÍTICO</span></td></tr>
+        <tr><td>Galería de fotos</td><td>Mock estático sin lightbox</td><td>Sotheby's, Airbnb</td><td><span class="badge crit">CRÍTICO</span></td></tr>
+        <tr><td>Filtros avanzados</td><td>Solo tab + ubicación + tipo</td><td>Properstar, ZonaProp</td><td><span class="badge warn">HIGH</span></td></tr>
+        <tr><td>Favoritos / shortlist</td><td>No existe</td><td>Zillow, Compass</td><td><span class="badge warn">HIGH</span></td></tr>
+        <tr><td>Loan calculator</td><td>No existe</td><td>Zillow</td><td><span class="badge info">MEDIUM</span></td></tr>
+        <tr><td>Compartir WhatsApp</td><td>No existe</td><td>ZonaProp AR</td><td><span class="badge warn">HIGH (AR)</span></td></tr>
+        <tr><td>Mobile navbar</td><td>Drawer fullscreen con lock scroll</td><td>Airbnb</td><td><span class="badge ok">Equiparable</span></td></tr>
+        <tr><td>Iconografía</td><td>Emojis 🏠📍📞 en hero y footer</td><td>Sotheby's: SVG custom</td><td><span class="badge warn">Restar emoji</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>7. SEO + Branding</h2>
+    <p class="lead">Posicionamiento orgánico, share previews y consistencia de identidad.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>✓ Configurado correctamente</h3>
+        <ul class="clean">
+          <li class="ok"><code>metadataBase</code>, title template, description.</li>
+          <li class="ok">Array de keywords regionales.</li>
+          <li class="ok">OpenGraph completo (type/locale/url/siteName/images).</li>
+          <li class="ok">Twitter card <code>summary_large_image</code>.</li>
+          <li class="ok">Robots index/follow + googleBot directives.</li>
+          <li class="ok">Canonical alternate + theme-color #0A2342.</li>
+          <li class="ok">Idioma <code>es-AR</code> declarado.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>⚠ Pendiente para escalar SEO</h3>
+        <ul class="clean">
+          <li class="crit"><b>OG image apunta a un SVG 36x36</b>. Share preview en Slack/FB/WhatsApp se verá roto. Generar JPG/PNG 1200×630 con branding hero.</li>
+          <li class="crit">Sin <b>schema.org JSON-LD</b> (RealEstateListing, LocalBusiness, Organization). Sin esto Google no entiende qué somos.</li>
+          <li class="warn">Sin <b>sitemap.xml</b> ni <b>robots.txt</b> verificados.</li>
+          <li class="warn">Sin <b>páginas regionales SEO</b> (/propiedades/corrientes, /propiedades/parana). Las keywords del title no se rankearán sin landings.</li>
+          <li class="warn">Sin verificación Google Search Console / Bing.</li>
+          <li class="warn">Datos de contacto no están en JSON-LD LocalBusiness → no aparecen en Google Maps Knowledge Panel.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>8. Business Gap Analysis · priorizado</h2>
+    <p class="lead">Brechas para competir y escalar, segmentadas por severidad y área.</p>
+
+    <table>
+      <thead><tr><th>Severidad</th><th>Área</th><th>Brecha</th><th>Impacto comercial</th></tr></thead>
+      <tbody>
+        <tr><td><span class="severity CRITICAL">Critical</span></td><td>Producto</td><td>Propiedades reales en DB (hoy mocks)</td><td>Sin esto no hay marketplace ni inventario vendible.</td></tr>
+        <tr><td><span class="severity CRITICAL">Critical</span></td><td>Marketplace</td><td>Multi-tenant: tabla <code>inmobiliarias</code> + <code>agents</code> activa</td><td>Onboarding de otras inmobiliarias = modelo SaaS.</td></tr>
+        <tr><td><span class="severity CRITICAL">Critical</span></td><td>SEO</td><td>Páginas regionales + JSON-LD + OG image real</td><td>Sin esto, Google no rankea y share previews salen rotos.</td></tr>
+        <tr><td><span class="severity HIGH">High</span></td><td>UX</td><td>Mapa interactivo (Mapbox / Google Maps)</td><td>Estándar PropTech 2026. Sin mapa el usuario rebota.</td></tr>
+        <tr><td><span class="severity HIGH">High</span></td><td>UX</td><td>Galería de fotos con lightbox/swipe</td><td>Conversion driver principal en inmobiliario.</td></tr>
+        <tr><td><span class="severity HIGH">High</span></td><td>Growth</td><td>Compartir por WhatsApp + tracking</td><td>WhatsApp es el canal #1 en Argentina.</td></tr>
+        <tr><td><span class="severity HIGH">High</span></td><td>Seguridad</td><td>NextAuth + sesiones DB + roles</td><td>Reemplaza ADMIN_TOKEN estático antes de invitar brokers.</td></tr>
+        <tr><td><span class="severity MEDIUM">Medium</span></td><td>Producto</td><td>Favoritos + alertas guardadas</td><td>Retention loop. Trae al usuario de vuelta.</td></tr>
+        <tr><td><span class="severity MEDIUM">Medium</span></td><td>UX</td><td>Filtros avanzados (precio, sup, ambientes)</td><td>Mejora discovery, alarga sesión.</td></tr>
+        <tr><td><span class="severity MEDIUM">Medium</span></td><td>PropTech</td><td>Loan calculator + estimador hipotecario</td><td>Diferenciador en mercado AR.</td></tr>
+        <tr><td><span class="severity MEDIUM">Medium</span></td><td>Escalabilidad</td><td>Rate limit Redis (Upstash) + caché</td><td>Necesario al crecer tráfico orgánico.</td></tr>
+        <tr><td><span class="severity LOW">Low</span></td><td>Branding</td><td>Reemplazar emojis por SVG custom</td><td>Eleva nivel percibido a Sotheby's-tier.</td></tr>
+        <tr><td><span class="severity LOW">Low</span></td><td>Observability</td><td>Sentry + Logtail + UptimeRobot</td><td>Visibilidad para CTO/CEO.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>9. Roadmap evolutivo · Sprints 9 → 12</h2>
+    <p class="lead">Hoja de ruta priorizada con objetivo, foco y entregables por sprint.</p>
+
+    <div class="roadmap-sprint">
+      <h3>Sprint 9 · Foundations Real <span class="stamp">2 semanas</span></h3>
+      <div class="objective"><b>Objetivo:</b> reemplazar mocks por datos reales sin tocar UI. Conectar propiedades a Supabase y publicar primera carga real.</div>
+      <ul>
+        <li>Tabla <code>properties</code> con campos completos (precio, ubicación geo, fotos, agente).</li>
+        <li>Service <code>properties.ts</code> con fallback memoria igual que leads.</li>
+        <li>Páginas dinámicas <code>/propiedades/[slug]</code> server-rendered.</li>
+        <li>OG image 1200×630 real + favicon PNG fallback.</li>
+        <li>Mejorar <code>/api/health</code> con commit SHA y region.</li>
+        <li>Configurar UptimeRobot + Sentry.</li>
+      </ul>
+    </div>
+
+    <div class="roadmap-sprint">
+      <h3>Sprint 10 · Multi-Tenant Foundation <span class="stamp">2-3 semanas</span></h3>
+      <div class="objective"><b>Objetivo:</b> habilitar onboarding de inmobiliarias y agentes con login propio. Romper el modelo single-tenant.</div>
+      <ul>
+        <li>Migración NextAuth + Supabase Auth (email/pass + Google).</li>
+        <li>Tablas <code>inmobiliarias</code>, <code>agents</code>, <code>memberships</code> con RLS.</li>
+        <li>Roles: <code>owner</code>, <code>admin</code>, <code>agent</code>, <code>viewer</code>.</li>
+        <li>Panel inmobiliaria: ver solo sus propios leads y propiedades.</li>
+        <li>Audit log de eventos admin.</li>
+        <li>Reemplazar rate limit in-memory por Upstash Redis.</li>
+      </ul>
+    </div>
+
+    <div class="roadmap-sprint">
+      <h3>Sprint 11 · Marketplace Premium <span class="stamp">2-3 semanas</span></h3>
+      <div class="objective"><b>Objetivo:</b> elevar el listing experience a estándar Zillow/Compass. Mapa, galería, filtros avanzados, favoritos.</div>
+      <ul>
+        <li>Mapa interactivo Mapbox con clusters + filtros vinculados.</li>
+        <li>Galería con lightbox/swipe + lazy loading + Cloudinary o Supabase Storage.</li>
+        <li>Filtros avanzados (precio range, sup m², ambientes, amenities, hipoteca apta).</li>
+        <li>Favoritos + alertas guardadas (requiere user auth de Sprint 10).</li>
+        <li>Compartir por WhatsApp con tracking UTM.</li>
+        <li>Reemplazar emojis por iconografía SVG custom (Lucide o pack propio).</li>
+      </ul>
+    </div>
+
+    <div class="roadmap-sprint">
+      <h3>Sprint 12 · Growth & SEO Engine <span class="stamp">2 semanas</span></h3>
+      <div class="objective"><b>Objetivo:</b> activar el motor de adquisición orgánica. Páginas regionales, datos estructurados, analytics y dashboard CEO.</div>
+      <ul>
+        <li>Páginas SEO regionales: <code>/propiedades/[ciudad]</code> con copy único + Open Graph propio.</li>
+        <li>JSON-LD: RealEstateListing por propiedad + LocalBusiness en home + Organization global.</li>
+        <li>Sitemap.xml dinámico + robots.txt verificado.</li>
+        <li>Analytics: PostHog o Plausible (eventos clave: view_property, click_whatsapp, submit_lead).</li>
+        <li>Dashboard CEO: leads/semana, conversión por agente, propiedades top.</li>
+        <li>Loan calculator embebido en página de propiedad.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>10. Próximas decisiones que requieren al CEO</h2>
+    <ul class="clean">
+      <li>Confirmar cuál Vercel project es canónico y eliminar el duplicado.</li>
+      <li>Comprar dominio <b>valterra.com.ar</b> y conectar a Vercel + DNS + SSL.</li>
+      <li>Aprobar contratación de servicios: Mapbox (~$0-49/mes según uso), Upstash (free hasta 10k cmd/día), Sentry (free tier OK), PostHog (free tier OK).</li>
+      <li>Definir partners de carga inicial (1-3 inmobiliarias) para onboarding Sprint 10.</li>
+      <li>Definir paquete fotográfico estándar (qué se le pide al agente al publicar).</li>
+      <li>Decidir si el modelo de cobro es por inmobiliaria (SaaS) o por lead (lead-gen). Esto define la arquitectura de facturación de Sprint 12+.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="left">© 2026 Grupo Valterra · Sprint 8 · Auditoría estratégica post-deploy</div>
+    <div class="right">Soluciones Inmobiliarias del Litoral</div>
+  </div>
+</footer>
+
+</body>
+</html>

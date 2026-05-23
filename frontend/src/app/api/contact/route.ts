@@ -3,6 +3,7 @@ import { validateLead } from "@/lib/validateLead";
 import { addLead, getAllLeads, computeStats } from "@/services/mock-leads";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { log } from "@/lib/logger";
+import { notifyNewLead } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactRe
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { ok: false, error: "validation", details: { _root: "JSON inválido" } },
+      { ok: false, error: "validation", details: { _root: "JSON invalido" } },
       { status: 400 },
     );
   }
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactRe
     return NextResponse.json({ ok: false, error: "spam" }, { status: 400 });
   }
 
-  // Validación
+  // Validacion
   const result = validateLead({
     name: data.name,
     email: data.email,
@@ -75,9 +76,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactRe
       source: "contact-form",
     });
     log.info("api/contact", "lead creado", { id: lead.id, ip, propertySlug: lead.propertySlug });
+
+    // Fire-and-forget notificacion al equipo. Si Resend falla, NO afecta la
+    // respuesta al usuario - el lead ya esta persistido en DB.
+    notifyNewLead(lead).catch((err) => {
+      log.error("api/contact", "notifyNewLead unexpected throw", err instanceof Error ? err : { err: String(err) });
+    });
+
     return NextResponse.json({ ok: true, leadId: lead.id }, { status: 201 });
   } catch (err) {
-    log.error("api/contact", "persistencia falló", err instanceof Error ? err : { err: String(err) });
+    log.error("api/contact", "persistencia fallo", err instanceof Error ? err : { err: String(err) });
     return NextResponse.json({ ok: false, error: "server" }, { status: 500 });
   }
 }

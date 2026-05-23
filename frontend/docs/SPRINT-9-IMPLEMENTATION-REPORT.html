@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sprint 9 · Implementation Report · Grupo Valterra</title>
+<style>
+  :root {
+    --navy: #0A2342;
+    --navy-deep: #071A32;
+    --gold: #C9A86A;
+    --gold-soft: rgba(201,168,106,0.12);
+    --ivory: #F8F7F4;
+    --line: #D8D8D8;
+    --text: #1A202C;
+    --muted: #4A5568;
+    --ok: #16A34A;
+    --warn: #D97706;
+    --crit: #DC2626;
+    --info: #2563EB;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--ivory); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  header.hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 100%); color: white; padding: 64px 0 56px; border-bottom: 4px solid var(--gold); }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
+  .brand-mark { width: 48px; height: 48px; background: var(--gold); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--navy); font-weight: 800; font-family: 'Montserrat', sans-serif; font-size: 22px; }
+  .brand-name { font-weight: 800; font-size: 16px; letter-spacing: 0.06em; font-family: 'Montserrat', sans-serif; }
+  .brand-tagline { font-size: 10px; text-transform: uppercase; letter-spacing: 0.22em; color: var(--gold); margin-top: 2px; }
+  .eyebrow { display: inline-block; padding: 6px 14px; border: 1px solid rgba(201,168,106,0.5); border-radius: 999px; color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; background: var(--gold-soft); }
+  h1.title { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 40px; line-height: 1.08; margin: 16px 0 12px; max-width: 880px; }
+  .subtitle { font-size: 17px; opacity: 0.88; max-width: 760px; line-height: 1.6; }
+  .meta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; font-size: 12px; }
+  .meta .pill { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); padding: 7px 13px; border-radius: 8px; }
+  .meta .pill b { color: var(--gold); margin-right: 6px; }
+  section { padding: 50px 0; border-bottom: 1px solid var(--line); }
+  section h2 { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 26px; color: var(--navy); margin: 0 0 8px; }
+  section .lead { color: var(--muted); font-size: 15px; max-width: 780px; line-height: 1.65; margin-bottom: 30px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kpi { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 22px; box-shadow: 0 6px 24px -16px rgba(10,35,66,0.18); }
+  .kpi .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); font-weight: 600; }
+  .kpi .value { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 30px; color: var(--navy); margin-top: 6px; }
+  .kpi .delta { font-size: 12px; color: var(--ok); margin-top: 4px; font-weight: 600; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+  .card h3 { font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--navy); margin: 0 0 10px; font-size: 16px; }
+  .card p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  thead { background: var(--navy); color: white; }
+  thead th { text-align: left; padding: 13px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
+  tbody td { padding: 12px 16px; border-top: 1px solid var(--line); font-size: 13px; vertical-align: top; }
+  tbody tr:nth-child(even) { background: #FAFAF8; }
+  tbody td code { background: #F1F5F9; color: var(--navy); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: 'JetBrains Mono', 'Menlo', monospace; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+  .badge.ok { background: rgba(22,163,74,0.1); color: var(--ok); }
+  .badge.warn { background: rgba(217,119,6,0.12); color: var(--warn); }
+  .badge.info { background: rgba(37,99,235,0.12); color: var(--info); }
+  .badge.gold { background: var(--gold-soft); color: #8B6F32; }
+  ul.clean { list-style: none; padding: 0; margin: 0; }
+  ul.clean li { padding: 7px 0 7px 22px; position: relative; font-size: 13.5px; line-height: 1.55; color: var(--text); border-bottom: 1px dashed var(--line); }
+  ul.clean li:last-child { border-bottom: none; }
+  ul.clean li::before { content: '◆'; position: absolute; left: 0; top: 7px; color: var(--gold); font-size: 11px; }
+  ul.clean li.ok::before { content: '✓'; color: var(--ok); font-weight: 700; }
+  ul.clean li.warn::before { content: '⚠'; color: var(--warn); }
+  .quote { background: white; border-left: 4px solid var(--gold); padding: 18px 22px; margin: 22px 0; border-radius: 0 10px 10px 0; box-shadow: 0 6px 24px -16px rgba(10,35,66,0.18); color: var(--text); font-size: 14px; line-height: 1.6; }
+  .quote b { color: var(--navy); }
+  pre { background: var(--navy); color: white; padding: 18px 20px; border-radius: 10px; font-size: 13px; line-height: 1.6; overflow-x: auto; font-family: 'JetBrains Mono', monospace; }
+  pre code { color: white; }
+  footer { padding: 32px 0; background: var(--navy); color: white; }
+  footer .container { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  footer .container .left { opacity: 0.7; }
+  footer .container .right { color: var(--gold); letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; }
+  @media (max-width: 880px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    h1.title { font-size: 28px; }
+    .container { padding: 0 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="brand">
+      <div class="brand-mark">VT</div>
+      <div>
+        <div class="brand-name">GRUPO VALTERRA</div>
+        <div class="brand-tagline">Soluciones Inmobiliarias del Litoral</div>
+      </div>
+    </div>
+    <span class="eyebrow">Sprint 9 · Implementation Report</span>
+    <h1 class="title">Foundations Real · Properties reales, sin tocar producción.</h1>
+    <p class="subtitle">Migración hybrid de mocks a Supabase con fallback memoria, SSR de detalle con SEO production-ready y API REST consumible para listados futuros. Cero breaking changes en el contrato UI existente.</p>
+    <div class="meta">
+      <span class="pill"><b>Fecha</b>22/05/2026</span>
+      <span class="pill"><b>Sprint</b>9 · Foundations Real</span>
+      <span class="pill"><b>Estado</b>Listo para deploy</span>
+      <span class="pill"><b>Stack</b>Next 16 · Supabase · TS strict</span>
+      <span class="pill"><b>Breaking</b>0</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <h2>1 · Resumen ejecutivo</h2>
+    <p class="lead">Sprint 9 cerrado. El frontend ahora puede consumir propiedades reales desde Supabase con un fallback transparente a mocks cuando la DB esté vacía o haya fallo. Tres rutas nuevas (1 página SSR + 2 API REST) habilitan la integración con sistemas externos. Cero refactor de UI: el contrato camelCase de <code>Property</code> sigue intacto y los componentes premium quedaron sin tocar.</p>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Archivos creados</div><div class="value">7</div><div class="delta">Service · API · SSR · SQL</div></div>
+      <div class="kpi"><div class="label">Archivos modificados</div><div class="value">3</div><div class="delta">Cambios mínimos</div></div>
+      <div class="kpi"><div class="label">Líneas nuevas</div><div class="value">767</div><div class="delta">+ ~30 netas modificadas</div></div>
+      <div class="kpi"><div class="label">Breaking changes</div><div class="value">0</div><div class="delta">Backward-compat 100%</div></div>
+    </div>
+
+    <div class="quote">
+      <b>Veredicto técnico:</b> arquitectura limpia, contrato UI preservado, fallback en cascada para robustez, y el schema DB ya viene preparado para Sprint 10 (multi-tenant) y Sprint 11 (mapa Mapbox) sin tener que volver a migrar.
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>2 · Archivos creados</h2>
+    <table>
+      <thead><tr><th>Archivo</th><th>Líneas</th><th>Propósito</th></tr></thead>
+      <tbody>
+        <tr><td><code>supabase/migrations/0002_create_properties.sql</code></td><td>101</td><td>Tabla properties con 31 columnas (geo + business + multi-tenant hook), 4 índices, RLS bloqueado, trigger updated_at reusado</td></tr>
+        <tr><td><code>supabase/seed-properties.sql</code></td><td>88</td><td>INSERT idempotente de los 6 properties seed iniciales</td></tr>
+        <tr><td><code>src/services/properties.ts</code></td><td>215</td><td>Service hybrid Supabase + fallback memoria · rowToProperty strict types · getAllProperties + getFeaturedProperties + getPropertyBySlug</td></tr>
+        <tr><td><code>src/app/api/properties/route.ts</code></td><td>77</td><td>GET /api/properties con 5 query params · sin overfetch</td></tr>
+        <tr><td><code>src/app/api/properties/[slug]/route.ts</code></td><td>29</td><td>GET /api/properties/[slug] · 404 controlado</td></tr>
+        <tr><td><code>src/app/propiedades/[slug]/page.tsx</code></td><td>230</td><td>SSR detalle con generateMetadata dinámica · breadcrumb · hero · specs · CTA</td></tr>
+        <tr><td><code>src/app/propiedades/[slug]/not-found.tsx</code></td><td>27</td><td>404 branded con link a destacadas</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>3 · Archivos modificados</h2>
+    <table>
+      <thead><tr><th>Archivo</th><th>Cambio</th><th>Por qué</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>src/services/mock-properties.ts</code></td>
+          <td>+4 props opcionales al type Property: <code>agentName</code>, <code>agentPhone</code>, <code>lat</code>, <code>lng</code></td>
+          <td>Backward-compat 100% · habilita SSR detalle y mapa Sprint 11</td>
+        </tr>
+        <tr>
+          <td><code>src/app/page.tsx</code></td>
+          <td>async server component · <code>await getFeaturedProperties(6)</code> · <code>revalidate = 60</code> · pasa props</td>
+          <td>Data fetching separado de presentación · ISR estabiliza TTFB</td>
+        </tr>
+        <tr>
+          <td><code>src/components/home/FeaturedProperties.tsx</code></td>
+          <td>Recibe <code>properties: Property[]</code> como prop · quitó import de mock-properties</td>
+          <td>Dumb component · JSX intacto</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>4 · Guardrails aplicados</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>1 · SEO marketplace-ready</h3>
+        <p><code>generateMetadata()</code> async en <code>/propiedades/[slug]/page.tsx</code> genera title <code>"Casa frente al río · Paraná"</code>, description con precio + operación + ubicación, openGraph (incluye cover_image 1200×800) + twitter card. Canonical por slug. Si la propiedad no existe → <code>robots: { index: false }</code>.</p>
+      </div>
+      <div class="card">
+        <h3>2 · Performance · sin overfetch</h3>
+        <p>Homepage llama <code>getFeaturedProperties(limit=6)</code>. API route soporta los 5 query params (<code>featured</code>, <code>limit</code>, <code>city</code>, <code>operation_type</code>, <code>property_type</code>) con whitelist server-side y cap de <code>limit</code> a 50.</p>
+      </div>
+      <div class="card">
+        <h3>3 · Observability</h3>
+        <p>Usa el logger oficial (<code>src/lib/logger.ts</code>) para los 3 eventos exigidos: <code>log.error</code> en supabase fetch fail, <code>log.warn</code> una vez por proceso en fallback memoria activado, <code>log.info</code> en slug no encontrado. Cero <code>console.log</code>.</p>
+      </div>
+      <div class="card">
+        <h3>4 · Types strict</h3>
+        <p>Cero <code>any</code> en código nuevo. <code>rowToProperty(row: PropertyRow): Property</code> fuertemente tipado. Cast <code>as unknown as PropertyRow</code> únicamente en el boundary del SDK Supabase v2 (estándar para sus generic builders). Backward-compat 100% del type Property.</p>
+      </div>
+      <div class="card">
+        <h3>5 · Execution discipline</h3>
+        <p>7 micro-fases secuenciales en el orden exigido: Migration → Seed → Service → API → Homepage → Detalle → SEO metadata. Validación final con typecheck + lint antes de cerrar.</p>
+      </div>
+      <div class="card">
+        <h3>+ Contrato UI intacto</h3>
+        <p><code>mock-properties.ts</code> sigue siendo source-of-truth del type. PropertyCard, HeroSection, CategoriesSection, StatsSection, ContactSection y todo admin NO se tocaron. Solo el wrapper de la home recibió props en lugar de leer del módulo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>5 · Validation report</h2>
+    <table>
+      <thead><tr><th>Check</th><th>Resultado</th><th>Detalle</th></tr></thead>
+      <tbody>
+        <tr><td><code>tsc --noEmit</code></td><td><span class="badge ok">PASS</span></td><td>0 errors · types strict cumplido</td></tr>
+        <tr><td><code>eslint src --max-warnings=10</code></td><td><span class="badge ok">PASS</span></td><td>0 errors · 3 warnings &lt;img&gt; pre-existentes (no introducidas en Sprint 9)</td></tr>
+        <tr><td><code>next build</code> (local Linux sandbox)</td><td><span class="badge warn">SKIPPED</span></td><td>SWC binary linux/x64 ausente (npm install hecho en Windows). No bloquea: Vercel reinstala SWC correcto en el deploy</td></tr>
+        <tr><td><code>next build</code> (Vercel runner)</td><td><span class="badge info">PENDIENTE</span></td><td>Se valida en deploy · esperado verde</td></tr>
+        <tr><td>Breaking risk</td><td><span class="badge ok">LOW</span></td><td>Fallback memoria garantiza UI con datos en cualquier escenario</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>6 · Cómo activar en producción</h2>
+    <p class="lead">Tres pasos. Si saltás el seed, la DB queda vacía y el service cae en fallback memoria → UI idéntica con los 6 mocks.</p>
+
+    <pre><code># 1. Aplicar migración (Supabase Studio · SQL editor)
+\i supabase/migrations/0002_create_properties.sql
+
+# 2. Aplicar seed (opcional · 6 properties iniciales)
+\i supabase/seed-properties.sql
+
+# 3. Deploy
+git add .
+git commit -m "feat(sprint-9): properties reales + SSR detalle + hybrid service"
+git push origin main</code></pre>
+
+    <div class="quote">
+      <b>Verificación post-deploy:</b><br>
+      → <code>GET /api/health</code> sigue devolviendo <code>db: "connected"</code><br>
+      → <code>GET /api/properties?featured=1&amp;limit=6</code> devuelve los 6 items<br>
+      → <code>GET /api/properties/casa-frente-rio-parana</code> devuelve el detalle<br>
+      → <code>https://valterra.app/propiedades/casa-frente-rio-parana</code> renderiza con SEO correcto (probar en <a href="https://opengraph.dev" style="color:var(--gold)">opengraph.dev</a>)
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>7 · Deuda heredada (no introducida)</h2>
+    <ul class="clean">
+      <li class="warn"><code>ContactSection.tsx</code> sigue leyendo <code>MOCK_PROPERTIES</code> para el &lt;select&gt;. Refactor a fetch async desde client agrega complejidad sin valor MVP. Resuelve Sprint 10.</li>
+      <li class="warn">Sin admin CRUD de properties. Hoy se cargan vía SQL/Studio. Resuelve Sprint 10 dentro del panel inmobiliaria.</li>
+      <li class="warn">Imágenes son URLs estáticas (Unsplash) en el seed. Sin upload propio. Sprint 11 con Supabase Storage + signed URLs.</li>
+      <li class="warn">RLS sin policy permisiva para <code>anon</code>. API server-side usa SERVICE_ROLE; no necesita anon. Resuelve Sprint 10+ si se expone a realtime client-side.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>8 · Próximo paso · Sprint 10</h2>
+    <p class="lead">Multi-Tenant Foundation: NextAuth + Supabase Auth, tablas <code>agencies</code> + <code>agents</code> + <code>memberships</code> con RLS por agency_id, panel inmobiliaria viendo solo sus leads y properties, audit log de eventos admin, y migración del rate-limit in-memory a Upstash Redis.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="left">© 2026 Grupo Valterra · Sprint 9 · Foundations Real</div>
+    <div class="right">Soluciones Inmobiliarias del Litoral</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -29,7 +29,7 @@ const SITE = {
     "Soluciones Inmobiliarias del Litoral. Compra, venta, alquiler e inversión de propiedades premium en Entre Ríos, Corrientes, Chaco y Misiones. Patrimonio, confianza y futuro.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   locale: "es_AR",
-  ogImage: "/brand/logo-principal.svg",
+  ogImage: "/brand/og-default.jpg",
 };
 
 export const metadata: Metadata = {
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
       {
         url: SITE.ogImage,
         width: 1200,
-        height: 320,
+        height: 630,
         alt: SITE.fullName,
       },
     ],

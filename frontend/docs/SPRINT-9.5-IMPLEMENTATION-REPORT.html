@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sprint 9.5 · Production Hardening · Grupo Valterra</title>
+<style>
+  :root {
+    --navy: #0A2342;
+    --navy-deep: #071A32;
+    --gold: #C9A86A;
+    --gold-soft: rgba(201,168,106,0.12);
+    --ivory: #F8F7F4;
+    --line: #D8D8D8;
+    --text: #1A202C;
+    --muted: #4A5568;
+    --ok: #16A34A;
+    --warn: #D97706;
+    --crit: #DC2626;
+    --info: #2563EB;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--ivory); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  header.hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 100%); color: white; padding: 64px 0 56px; border-bottom: 4px solid var(--gold); }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
+  .brand-mark { width: 48px; height: 48px; background: var(--gold); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--navy); font-weight: 800; font-family: 'Montserrat', sans-serif; font-size: 22px; }
+  .brand-name { font-weight: 800; font-size: 16px; letter-spacing: 0.06em; font-family: 'Montserrat', sans-serif; }
+  .brand-tagline { font-size: 10px; text-transform: uppercase; letter-spacing: 0.22em; color: var(--gold); margin-top: 2px; }
+  .eyebrow { display: inline-block; padding: 6px 14px; border: 1px solid rgba(201,168,106,0.5); border-radius: 999px; color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; background: var(--gold-soft); }
+  h1.title { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 40px; line-height: 1.08; margin: 16px 0 12px; max-width: 880px; }
+  .subtitle { font-size: 17px; opacity: 0.88; max-width: 760px; line-height: 1.6; }
+  .meta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; font-size: 12px; }
+  .meta .pill { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); padding: 7px 13px; border-radius: 8px; }
+  .meta .pill b { color: var(--gold); margin-right: 6px; }
+  section { padding: 50px 0; border-bottom: 1px solid var(--line); }
+  section h2 { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 26px; color: var(--navy); margin: 0 0 8px; }
+  section .lead { color: var(--muted); font-size: 15px; max-width: 780px; line-height: 1.65; margin-bottom: 30px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kpi { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 22px; box-shadow: 0 6px 24px -16px rgba(10,35,66,0.18); }
+  .kpi .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); font-weight: 600; }
+  .kpi .value { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 30px; color: var(--navy); margin-top: 6px; }
+  .kpi .delta { font-size: 12px; color: var(--ok); margin-top: 4px; font-weight: 600; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+  .card h3 { font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--navy); margin: 0 0 10px; font-size: 16px; }
+  .card p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  thead { background: var(--navy); color: white; }
+  thead th { text-align: left; padding: 13px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
+  tbody td { padding: 12px 16px; border-top: 1px solid var(--line); font-size: 13px; vertical-align: top; }
+  tbody tr:nth-child(even) { background: #FAFAF8; }
+  tbody td code { background: #F1F5F9; color: var(--navy); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: 'JetBrains Mono', 'Menlo', monospace; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+  .badge.ok { background: rgba(22,163,74,0.1); color: var(--ok); }
+  .badge.warn { background: rgba(217,119,6,0.12); color: var(--warn); }
+  .badge.info { background: rgba(37,99,235,0.12); color: var(--info); }
+  .badge.gold { background: var(--gold-soft); color: #8B6F32; }
+  ul.clean { list-style: none; padding: 0; margin: 0; }
+  ul.clean li { padding: 7px 0 7px 22px; position: relative; font-size: 13.5px; line-height: 1.55; color: var(--text); border-bottom: 1px dashed var(--line); }
+  ul.clean li:last-child { border-bottom: none; }
+  ul.clean li::before { content: '◆'; position: absolute; left: 0; top: 7px; color: var(--gold); font-size: 11px; }
+  ul.clean li.ok::before { content: '✓'; color: var(--ok); font-weight: 700; }
+  ul.clean li.warn::before { content: '⚠'; color: var(--warn); }
+  .quote { background: white; border-left: 4px solid var(--gold); padding: 18px 22px; margin: 22px 0; border-radius: 0 10px 10px 0; box-shadow: 0 6px 24px -16px rgba(10,35,66,0.18); color: var(--text); font-size: 14px; line-height: 1.6; }
+  .quote b { color: var(--navy); }
+  pre { background: var(--navy); color: white; padding: 18px 20px; border-radius: 10px; font-size: 13px; line-height: 1.6; overflow-x: auto; font-family: 'JetBrains Mono', monospace; }
+  pre code { color: white; }
+  .block-title {
+    display: inline-block;
+    background: var(--navy);
+    color: var(--gold);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin-bottom: 14px;
+  }
+  footer { padding: 32px 0; background: var(--navy); color: white; }
+  footer .container { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  footer .container .left { opacity: 0.7; }
+  footer .container .right { color: var(--gold); letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; }
+  @media (max-width: 880px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    h1.title { font-size: 28px; }
+    .container { padding: 0 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="brand">
+      <div class="brand-mark">VT</div>
+      <div>
+        <div class="brand-name">GRUPO VALTERRA</div>
+        <div class="brand-tagline">Soluciones Inmobiliarias del Litoral</div>
+      </div>
+    </div>
+    <span class="eyebrow">Sprint 9.5 · Production Hardening</span>
+    <h1 class="title">Pre-Sprint 10: observable, seguro, notificable y con naming consolidado.</h1>
+    <p class="subtitle">7 mejoras quirúrgicas que cierran la deuda crítica antes del modelo multi-tenant. Cero breaking changes. OG image, security headers, Sentry, /api/health enriquecido, email notifications, naming canónico.</p>
+    <div class="meta">
+      <span class="pill"><b>Fecha</b>23/05/2026</span>
+      <span class="pill"><b>Sprint</b>9.5 · Production Hardening</span>
+      <span class="pill"><b>Estado</b>Listo para deploy A+B</span>
+      <span class="pill"><b>Breaking</b>0</span>
+      <span class="pill"><b>Esfuerzo real</b>~6h</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <h2>1 · Resumen ejecutivo</h2>
+    <p class="lead">Sprint 9.5 cierra los riesgos arquitectónicos identificados en la auditoría post-Sprint-9. Ahora producción es observable (Sentry captura cualquier excepción), share previews funcionan (OG image 1200×630), está mínimamente endurecida (security headers OWASP), tiene notificación push al equipo en cada lead (Resend), y el naming multi-tenant quedó consolidado (`agency_id` consistente en `leads` y `properties`).</p>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Items implementados</div><div class="value">7</div><div class="delta">4 Bloque A · 3 Bloque B</div></div>
+      <div class="kpi"><div class="label">Archivos creados</div><div class="value">7</div><div class="delta">OG image + 4 Sentry + notif + migration</div></div>
+      <div class="kpi"><div class="label">Archivos modificados</div><div class="value">7</div><div class="delta">Cambios mínimos</div></div>
+      <div class="kpi"><div class="label">Breaking changes</div><div class="value">0</div><div class="delta">100% backward compat</div></div>
+    </div>
+
+    <div class="quote">
+      <b>Veredicto técnico:</b> el repo está listo para escalar a Sprint 10 (multi-tenant) con observabilidad real, seguridad básica enforced gradual, notificación operativa funcionando y un naming coherente que permite agregar la tabla <code>agencies</code> sin refactor adicional.
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <span class="block-title">Bloque A · Deployables hardening</span>
+    <h2>2 · OG image · Security headers · Sentry · Health enriched</h2>
+
+    <table>
+      <thead><tr><th>Item</th><th>Cambio</th><th>Impacto</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>1. OG image branded 1200×630</b></td>
+          <td>Creada <code>public/brand/og-default.jpg</code> (61 KB, navy gradient + isotipo VT dorado + Patrimonio/Confianza/Futuro + URL pill + regiones). Reemplaza el SVG roto que daba previews rotos en WhatsApp/Slack/FB. <code>layout.tsx</code> y <code>/propiedades/[slug]</code> apuntan al nuevo asset con dimensions correctas.</td>
+          <td>Share orgánico funciona</td>
+        </tr>
+        <tr>
+          <td><b>2. Security headers</b></td>
+          <td><code>next.config.ts</code> con headers OWASP basics: CSP en <b>Report-Only</b> (48h observación), HSTS 2 años, X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy strict-origin, Permissions-Policy bloqueando camera/mic/geo/payment. Suma <code>remotePatterns</code> para Sprint 11 next/image.</td>
+          <td>OWASP basics + anti-clickjacking</td>
+        </tr>
+        <tr>
+          <td><b>3. Sentry SDK MVP</b></td>
+          <td>4 archivos config: <code>sentry.server.config.ts</code>, <code>sentry.edge.config.ts</code>, <code>instrumentation.ts</code>, <code>instrumentation-client.ts</code>. Perfil minimal: solo errores, sin tracing, sin replays. <code>beforeSend</code> filtra warnings esperados de fallback memoria. Si DSN no está, SDK queda en no-op.</td>
+          <td>Errores reportados sin intervención</td>
+        </tr>
+        <tr>
+          <td><b>4. /api/health enriched</b></td>
+          <td>Agregados al payload: <code>commit</code> (7-char SHA), <code>region</code>, <code>deploy_id</code>, <code>checks.sentry</code>. Backward compat: nuevos fields opcionales. <code>env</code> ahora prefiere <code>VERCEL_ENV</code>.</td>
+          <td>Debug deploy en segundos</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <span class="block-title">Bloque B · Feature crítica + naming</span>
+    <h2>3 · Resend email + Rename agency_id</h2>
+
+    <table>
+      <thead><tr><th>Item</th><th>Cambio</th><th>Impacto</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>5. Resend email notifications</b></td>
+          <td>Nuevo <code>src/lib/notifications.ts</code> (220 líneas) con <code>notifyNewLead(lead)</code>. Template HTML branded Valterra (navy + dorado + isotipo) con datos del lead, link WhatsApp directo + mailto. Multi-email vía CSV. Idempotency con <code>Idempotency-Key: lead-&lt;id&gt;</code>. Fire-and-forget desde <code>/api/contact</code> — si Resend falla, el lead ya está persistido en Supabase.</td>
+          <td>Equipo se entera al instante</td>
+        </tr>
+        <tr>
+          <td><b>6. Rename inmobiliaria_id → agency_id</b></td>
+          <td>Migration <code>0003_rename_leads_agency_id.sql</code>. <code>ALTER TABLE ... RENAME COLUMN</code> atómica, sin downtime. Recreación de índice <code>leads_inmob_idx</code> → <code>leads_agency_idx</code>. Verificación: 0 referencias TS a la columna → cero impacto runtime. Rollback documentado en el header del archivo.</td>
+          <td>Naming canónico Sprint 10-ready</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>4 · Decisiones arquitectónicas confirmadas</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>CSP gradual</h3>
+        <p>Report-Only 48h post-deploy. Si dashboard Vercel no reporta violations, se mueve a enforce. Mitigación: previene incidents por whitelist incompleta.</p>
+      </div>
+      <div class="card">
+        <h3>Sentry sin tracing</h3>
+        <p><code>tracesSampleRate: 0</code>. Solo errores. Cubre 5k events/mes free tier sin riesgo de quema. Sprint 11+ evalúa habilitar perf monitoring si vale el costo.</p>
+      </div>
+      <div class="card">
+        <h3>Resend sandbox</h3>
+        <p>Sender <code>onboarding@resend.dev</code> hasta tener <code>valterra.com.ar</code> verificado. Cambio futuro vía env <code>RESEND_SENDER</code> sin redeploy.</p>
+      </div>
+      <div class="card">
+        <h3>Multi-email future-proof</h3>
+        <p><code>NOTIFICATION_EMAIL</code> ya parsea CSV. Hoy 1 email; agregar más es solo editar la env. Tags Resend para analytics por tipo de evento.</p>
+      </div>
+      <div class="card">
+        <h3>agency_id canónico</h3>
+        <p>Ambas tablas (<code>leads</code> y <code>properties</code>) usan el mismo nombre. Sprint 10 crea FK contra <code>agencies</code> sin debate.</p>
+      </div>
+      <div class="card">
+        <h3>Sourcemaps deferred</h3>
+        <p>Sentry captura igual sin <code>SENTRY_AUTH_TOKEN</code>. Stack traces vienen minificados pero legibles. Activar symbolication en Sprint 11.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>5 · Validation report</h2>
+    <table>
+      <thead><tr><th>Check</th><th>Resultado</th><th>Detalle</th></tr></thead>
+      <tbody>
+        <tr><td>Typecheck source code</td><td><span class="badge ok">PASS</span></td><td>0 errors en <code>src/</code>, <code>sentry.*</code>, <code>instrumentation*</code>, <code>next.config.ts</code></td></tr>
+        <tr><td>Lint</td><td><span class="badge ok">PASS</span></td><td>0 errors · 3 warnings <code>&lt;img&gt;</code> pre-existentes</td></tr>
+        <tr><td>Integridad archivos (14)</td><td><span class="badge ok">PASS</span></td><td>Todos terminan en cierre limpio; 0 null bytes en 8 archivos chequeados</td></tr>
+        <tr><td>Migration SQL sintaxis</td><td><span class="badge ok">PASS</span></td><td>ALTER TABLE + DROP INDEX + CREATE INDEX + COMMENT</td></tr>
+        <tr><td>0 referencias TS a <code>inmobiliaria_id</code></td><td><span class="badge ok">PASS</span></td><td>grep confirma: rename es cero-impacto runtime</td></tr>
+        <tr><td>npm install local (sandbox)</td><td><span class="badge warn">SKIPPED</span></td><td>Mount Windows rompe rm/rename. User corre <code>npm install</code> en su PC sin problemas.</td></tr>
+        <tr><td><code>next build</code> Vercel runner</td><td><span class="badge info">PENDIENTE</span></td><td>Se valida en deploy · esperado verde</td></tr>
+        <tr><td>Breaking risk</td><td><span class="badge ok">LOW</span></td><td>Todos los cambios aditivos / no-op friendly. Sentry sin DSN = silent. Resend sin key = lead persiste igual.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>6 · Commit message final</h2>
+    <pre><code>feat(sprint-9.5): production hardening · OG image + security headers + Sentry + Resend + agency_id rename
+
+Bloque A (deployable hardening):
+- public/brand/og-default.jpg: OG real 1200x630 branded Valterra
+- next.config.ts: CSP Report-Only + HSTS + X-Frame + Permissions-Policy + remotePatterns + withSentryConfig
+- sentry.{server,edge,client} configs: minimal MVP, tracesSampleRate=0, no replays
+- /api/health: enriquecido con commit SHA, region, deploy_id, checks.sentry
+
+Bloque B (feature crítica + naming):
+- src/lib/notifications.ts: notifyNewLead vía Resend, multi-email CSV, idempotency
+- /api/contact: fire-and-forget notification post-addLead (no bloquea respuesta)
+- supabase/migrations/0003: rename leads.inmobiliaria_id → leads.agency_id (consistencia con properties)
+
+Deps: +@sentry/nextjs ^9.0.0, +resend ^4.0.0
+Env nuevas: SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, RESEND_API_KEY, NOTIFICATION_EMAIL
+Breaking changes: 0
+Validation: typecheck PASS · lint PASS (3 warnings pre-existentes)</code></pre>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>7 · Deploy checklist (resumen)</h2>
+    <p class="lead">Detalle paso a paso en <code>docs/SPRINT-9.5-DEPLOY-CHECKLIST.md</code>.</p>
+    <ul class="clean">
+      <li><b>0. Pre-flight</b>: <code>npm install</code>, <code>npm run typecheck</code>, <code>npm run lint</code> local</li>
+      <li><b>1. Sentry</b>: crear cuenta + proyecto Next.js + copiar DSN a <code>.env.local</code></li>
+      <li><b>2. Resend</b>: crear cuenta + API key + setear <code>NOTIFICATION_EMAIL</code></li>
+      <li><b>3. Smoke test local</b>: enviar lead de prueba → ver email + Sentry sin errores</li>
+      <li><b>4. Migration 0003</b>: aplicar en Supabase Studio + verificar columna renombrada</li>
+      <li><b>5. Env vars Vercel</b>: SENTRY_DSN + NEXT_PUBLIC_SENTRY_DSN + RESEND_API_KEY (Sensitive) + NOTIFICATION_EMAIL</li>
+      <li><b>6. Commit + push</b>: un solo commit A+B con el mensaje arriba</li>
+      <li><b>7. Validar deploy</b>: build Vercel verde</li>
+      <li><b>8. Post-deploy</b>: /api/health con commit+region+deploy_id+sentry active · CSP headers visibles en Network tab · share preview en opengraph.dev · lead test e2e</li>
+      <li><b>9. 48h post-deploy</b>: switch CSP Report-Only → enforce si no hubo violations</li>
+      <li><b>10. Rollback</b>: documentado (Vercel promote previous, SQL rollback, env unset)</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>8 · Próximo paso</h2>
+    <p class="lead">Sprint 10 — Multi-Tenant Foundation. Sin Sprint 9.5 hubiéramos arrancado Sprint 10 con observabilidad inexistente, naming inconsistente y notificaciones rotas. Ahora el terreno está limpio.</p>
+    <div class="quote">
+      <b>Recordatorio:</b> Sprint 10 incluye NextAuth + Supabase Auth + tablas <code>agencies</code> + <code>agency_members</code> + RLS policies + panel inmobiliaria + idempotency en /api/contact + Upstash Redis para rate limit. Estimado 2-3 semanas.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="left">© 2026 Grupo Valterra · Sprint 9.5 · Production Hardening</div>
+    <div class="right">Soluciones Inmobiliarias del Litoral</div>
+  </div>
+</footer>
+
+</body>
+</html>

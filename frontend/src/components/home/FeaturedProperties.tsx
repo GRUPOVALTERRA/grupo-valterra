@@ -1,8 +1,16 @@
-import { getFeaturedProperties } from "@/services/mock-properties";
+import type { Property } from "@/services/mock-properties";
 import { PropertyCard } from "./PropertyCard";
 
-export function FeaturedProperties() {
-  const properties = getFeaturedProperties(6);
+interface FeaturedPropertiesProps {
+  properties: Property[];
+}
+
+/**
+ * Dumb component: recibe propiedades ya resueltas por el server component padre.
+ * El data fetching vive en `src/app/page.tsx` (await getFeaturedProperties).
+ */
+export function FeaturedProperties({ properties }: FeaturedPropertiesProps) {
+  if (properties.length === 0) return null;
 
   return (
     <section className="bg-[#F8F7F4]/60 py-20 md:py-28">

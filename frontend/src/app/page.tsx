@@ -7,6 +7,7 @@ import { StatsSection } from "@/components/home/StatsSection";
 import { PlansSection } from "@/components/home/PlansSection";
 import { ContactSection } from "@/components/home/ContactSection";
 import { CTASection } from "@/components/home/CTASection";
+import { getFeaturedProperties } from "@/services/properties";
 
 export const metadata = {
   title: "Grupo Valterra · Soluciones Inmobiliarias del Litoral",
@@ -14,7 +15,13 @@ export const metadata = {
     "Propiedades premium en Entre Ríos, Corrientes, Chaco y Misiones. Más de 20 años asesorando familias e inversionistas en el litoral argentino.",
 };
 
-export default function HomePage() {
+// ISR: la home se regenera cada 60s al sumar / despublicar propiedades.
+// TTFB estable, contenido fresco sin force-dynamic.
+export const revalidate = 60;
+
+export default async function HomePage() {
+  const featured = await getFeaturedProperties(6);
+
   return (
     <div
       className="bg-white text-[#0A2342]"
@@ -23,7 +30,7 @@ export default function HomePage() {
       <Navbar />
       <HeroSection />
       <CategoriesSection />
-      <FeaturedProperties />
+      <FeaturedProperties properties={featured} />
       <StatsSection />
       <PlansSection />
       <ContactSection />
