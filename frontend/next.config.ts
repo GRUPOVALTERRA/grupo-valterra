@@ -2,12 +2,12 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 /**
- * next.config.ts - Sprint 9.5 production hardening.
+ * next.config.ts - Production hardening.
  *
- * - Security headers OWASP basics (CSP Report-Only, HSTS, X-Frame, etc.)
- * - CSP en Report-Only durante 48h. Cuando el dashboard Sentry / Vercel logs
- *   no reporte violations, mover la key a "Content-Security-Policy" (enforce)
- *   y quitar "-Report-Only".
+ * - Security headers OWASP basics (CSP enforced, HSTS, X-Frame, etc.)
+ * - CSP enforce activado post 48h Sprint 9.5 sin violations.
+ *   Si en el futuro suma dominios externos (Cloudinary, Mapbox, PostHog),
+ *   agregarlos a la whitelist correspondiente antes del deploy.
  * - remotePatterns documenta los dominios externos para next/image (Sprint 11).
  * - Sentry wrap v10: sourcemaps.disable=true en MVP (no requiere
  *   SENTRY_AUTH_TOKEN). Sprint 11 activa symbolication agregando el token.
@@ -28,7 +28,8 @@ const CSP_DIRECTIVES = [
 ].join("; ");
 
 const SECURITY_HEADERS = [
-  { key: "Content-Security-Policy-Report-Only", value: CSP_DIRECTIVES },
+  // CSP enforce (era Report-Only durante Sprint 9.5 - sin violations en 48h)
+  { key: "Content-Security-Policy", value: CSP_DIRECTIVES },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },

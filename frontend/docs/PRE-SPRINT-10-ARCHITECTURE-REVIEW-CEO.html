@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pre-Sprint 10 · Architecture Review · Grupo Valterra</title>
+<style>
+  :root {
+    --navy: #0A2342;
+    --navy-deep: #071A32;
+    --gold: #C9A86A;
+    --gold-soft: rgba(201,168,106,0.12);
+    --ivory: #F8F7F4;
+    --line: #D8D8D8;
+    --text: #1A202C;
+    --muted: #4A5568;
+    --ok: #16A34A;
+    --warn: #D97706;
+    --crit: #DC2626;
+    --info: #2563EB;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--ivory); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+  header.hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 100%); color: white; padding: 70px 0 60px; border-bottom: 4px solid var(--gold); }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; }
+  .brand-mark { width: 48px; height: 48px; background: var(--gold); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--navy); font-weight: 800; font-family: 'Montserrat', sans-serif; font-size: 22px; }
+  .brand-name { font-weight: 800; font-size: 16px; letter-spacing: 0.06em; font-family: 'Montserrat', sans-serif; }
+  .brand-tagline { font-size: 10px; text-transform: uppercase; letter-spacing: 0.22em; color: var(--gold); margin-top: 2px; }
+  .eyebrow { display: inline-block; padding: 6px 14px; border: 1px solid rgba(201,168,106,0.5); border-radius: 999px; color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; background: var(--gold-soft); }
+  h1.title { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 42px; line-height: 1.08; margin: 18px 0 14px; max-width: 880px; }
+  .subtitle { font-size: 17px; opacity: 0.88; max-width: 760px; line-height: 1.6; }
+  .meta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 32px; font-size: 12px; }
+  .meta .pill { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); padding: 7px 13px; border-radius: 8px; }
+  .meta .pill b { color: var(--gold); margin-right: 6px; }
+
+  section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  section h2 { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 28px; color: var(--navy); margin: 0 0 8px; }
+  section .lead { color: var(--muted); font-size: 15px; max-width: 780px; line-height: 1.65; margin-bottom: 32px; }
+
+  .score-card { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 100%); color: white; border-radius: 16px; padding: 36px; text-align: center; box-shadow: 0 20px 60px -20px rgba(10,35,66,0.4); }
+  .score-card .big { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 84px; color: var(--gold); line-height: 1; margin: 12px 0; }
+  .score-card .max { font-size: 24px; color: rgba(255,255,255,0.6); }
+  .score-card .label { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+  .score-card .verdict { margin-top: 14px; font-size: 16px; max-width: 540px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+
+  .breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 28px; }
+  .breakdown-item { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .breakdown-item .name { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .breakdown-item .score { font-family: 'Montserrat', sans-serif; font-weight: 800; color: var(--navy); font-size: 22px; margin-top: 4px; }
+  .breakdown-item .score.ok { color: var(--ok); }
+  .breakdown-item .score.warn { color: var(--warn); }
+  .breakdown-item .score.crit { color: var(--crit); }
+  .breakdown-item .why { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kpi { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 22px; box-shadow: 0 6px 24px -16px rgba(10,35,66,0.18); }
+  .kpi .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); font-weight: 600; }
+  .kpi .value { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 30px; color: var(--navy); margin-top: 6px; }
+  .kpi .delta { font-size: 12px; color: var(--ok); margin-top: 4px; font-weight: 600; }
+  .kpi.warn .delta { color: var(--warn); }
+  .kpi.crit .delta { color: var(--crit); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+  .card h3 { font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--navy); margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .card p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+  .card.ok { border-left: 4px solid var(--ok); }
+  .card.warn { border-left: 4px solid var(--warn); }
+  .card.crit { border-left: 4px solid var(--crit); }
+
+  table { width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  thead { background: var(--navy); color: white; }
+  thead th { text-align: left; padding: 13px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; }
+  tbody td { padding: 12px 16px; border-top: 1px solid var(--line); font-size: 13px; vertical-align: top; }
+  tbody tr:nth-child(even) { background: #FAFAF8; }
+  tbody td code { background: #F1F5F9; color: var(--navy); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+  .badge.ok { background: rgba(22,163,74,0.1); color: var(--ok); }
+  .badge.warn { background: rgba(217,119,6,0.12); color: var(--warn); }
+  .badge.crit { background: rgba(220,38,38,0.12); color: var(--crit); }
+  .badge.info { background: rgba(37,99,235,0.12); color: var(--info); }
+
+  .severity { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+  .severity.P0 { background: #FEE2E2; color: #991B1B; }
+  .severity.P1 { background: #FED7AA; color: #9A3412; }
+  .severity.P2 { background: #DBEAFE; color: #1E40AF; }
+
+  .decision-box { background: white; border: 3px solid var(--gold); border-radius: 18px; padding: 36px; box-shadow: 0 20px 60px -20px rgba(10,35,66,0.25); }
+  .decision-box .stamp { display: inline-block; background: var(--navy); color: var(--gold); padding: 8px 16px; border-radius: 8px; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 800; margin-bottom: 18px; }
+  .decision-box .verdict { font-family: 'Montserrat', sans-serif; font-weight: 800; color: var(--navy); font-size: 24px; line-height: 1.3; margin: 0 0 18px; }
+  .decision-box .reason { color: var(--text); font-size: 15px; line-height: 1.65; }
+  .decision-box .actions { background: var(--ivory); border-radius: 12px; padding: 20px; margin-top: 24px; }
+  .decision-box .actions h4 { font-family: 'Montserrat', sans-serif; color: var(--navy); margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.14em; }
+  .decision-box .actions ol { margin: 0; padding-left: 22px; font-size: 14px; line-height: 1.7; }
+
+  .roadmap-sprint { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 24px; margin-bottom: 14px; position: relative; }
+  .roadmap-sprint::before { content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 5px; background: var(--gold); border-radius: 14px 0 0 14px; }
+  .roadmap-sprint h3 { display: flex; justify-content: space-between; align-items: center; font-family: 'Montserrat', sans-serif; font-weight: 800; color: var(--navy); font-size: 18px; margin: 0 0 10px; }
+  .roadmap-sprint h3 .stamp { background: var(--navy); color: white; font-size: 10px; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.14em; font-weight: 700; }
+  .roadmap-sprint h3 .risk { background: var(--gold-soft); color: #8B6F32; font-size: 10px; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.14em; font-weight: 700; }
+  .roadmap-sprint .objective { font-size: 13px; color: var(--muted); margin-bottom: 8px; line-height: 1.5; }
+
+  footer { padding: 32px 0; background: var(--navy); color: white; }
+  footer .container { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  footer .container .left { opacity: 0.7; }
+  footer .container .right { color: var(--gold); letter-spacing: 0.14em; text-transform: uppercase; font-size: 10px; }
+
+  @media (max-width: 880px) {
+    .kpi-grid, .breakdown { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    h1.title { font-size: 30px; }
+    .container { padding: 0 20px; }
+    .score-card .big { font-size: 64px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="brand">
+      <div class="brand-mark">VT</div>
+      <div>
+        <div class="brand-name">GRUPO VALTERRA</div>
+        <div class="brand-tagline">Soluciones Inmobiliarias del Litoral</div>
+      </div>
+    </div>
+    <span class="eyebrow">Pre-Sprint 10 · Architecture Review</span>
+    <h1 class="title">¿La plataforma está lista para abrirla a otras inmobiliarias?</h1>
+    <p class="subtitle">Auditoría arquitectónica completa antes de habilitar el modelo multi-tenant. Evaluación de readiness, riesgos clasificados, modelo objetivo, micro-fases de implementación y decisión ejecutiva final.</p>
+    <div class="meta">
+      <span class="pill"><b>Fecha</b>23/05/2026</span>
+      <span class="pill"><b>Sprint actual</b>9.5 · cerrado</span>
+      <span class="pill"><b>Próximo</b>Sprint 10 · Multi-Tenant</span>
+      <span class="pill"><b>Modo</b>Read-only · sin código</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <h2>1. Resumen ejecutivo</h2>
+    <p class="lead">Después de Sprint 9.5 la plataforma quedó observable (Sentry), segura (CSP + headers OWASP), notificable (Resend) y con naming canónico (<code>agency_id</code> en ambas tablas). La base técnica para abrir el modelo multi-inmobiliaria está lista en un 65%. Los 35% que faltan están concentrados en 3 ítems: (1) tabla <code>agencies</code> no existe todavía, (2) auth admin sigue siendo cookie estática, (3) el panel admin no scopea leads ni properties por inmobiliaria. Los tres son abordables en las primeras 3 micro-fases de Sprint 10 sin breaking changes en producción.</p>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Multi-tenant readiness</div><div class="value">6.5/10</div><div class="delta">Sólido para arrancar</div></div>
+      <div class="kpi warn"><div class="label">Bloqueantes P0</div><div class="value">6</div><div class="delta">Todos en Sprint 10 MF1-MF5</div></div>
+      <div class="kpi warn"><div class="label">Recomendables P1</div><div class="value">6</div><div class="delta">Resolver en paralelo</div></div>
+      <div class="kpi"><div class="label">Pueden convivir P2</div><div class="value">6</div><div class="delta">Sprint 11-13</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>2. Readiness Score · breakdown</h2>
+    <p class="lead">Evaluación área por área del estado actual frente a los requisitos para escalar a multi-tenant.</p>
+
+    <div class="score-card">
+      <div class="label">Multi-Tenant Readiness</div>
+      <div class="big">6.5<span class="max">/10</span></div>
+      <div class="verdict">Buena base. Faltan los 3 grandes (tabla agencies, Supabase Auth integrado, admin scoping per-agency).</div>
+    </div>
+
+    <div class="breakdown">
+      <div class="breakdown-item"><div class="name">DB schema</div><div class="score ok">8/10</div><div class="why">agency_id ready en ambas tablas con índices y RLS habilitado</div></div>
+      <div class="breakdown-item"><div class="name">Service layer</div><div class="score ok">8/10</div><div class="why">Filters extensibles, fallback memoria robusto, patrón reusable</div></div>
+      <div class="breakdown-item"><div class="name">Naming consistency</div><div class="score ok">10/10</div><div class="why">agency_id canónico en leads y properties post Sprint 9.5</div></div>
+      <div class="breakdown-item"><div class="name">Observability</div><div class="score ok">8/10</div><div class="why">Sentry + logger estructurado + /api/health enriched</div></div>
+      <div class="breakdown-item"><div class="name">Auth</div><div class="score crit">2/10</div><div class="why">Cookie estática single super-admin. Sin Supabase Auth</div></div>
+      <div class="breakdown-item"><div class="name">Admin scoping</div><div class="score crit">1/10</div><div class="why">/admin/leads muestra todo sin filtro por agency</div></div>
+      <div class="breakdown-item"><div class="name">Lead attribution</div><div class="score crit">2/10</div><div class="why">addLead nunca setea agency_id - todos quedan NULL</div></div>
+      <div class="breakdown-item"><div class="name">Public/private boundary</div><div class="score warn">5/10</div><div class="why">API ya server-only, falta scoping por agency</div></div>
+      <div class="breakdown-item"><div class="name">Branding multi-tenant</div><div class="score crit">1/10</div><div class="why">Todo Valterra hardcoded - acepta marketplace single-brand</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>3. Qué está listo · qué no está listo</h2>
+    <div class="grid-2">
+      <div class="card ok">
+        <h3>✓ Ya soporta multi-tenant</h3>
+        <ul style="margin:10px 0 0 0;padding-left:20px;font-size:14px;line-height:1.75;color:var(--text);">
+          <li>Columnas <code>agency_id</code> en <code>leads</code> y <code>properties</code> con índices</li>
+          <li>RLS habilitado en ambas tablas (deny-all default)</li>
+          <li>Service hybrid pattern reusable para sumar filtro por agency</li>
+          <li>Migrations versionadas + idempotentes (0001, 0002, 0003)</li>
+          <li>Sentry, logger y healthcheck preparados para tagear por agency</li>
+          <li>Naming canónico <code>agency_id</code> en todo el stack</li>
+        </ul>
+      </div>
+      <div class="card warn">
+        <h3>⚠ Sigue siendo single-tenant oculto</h3>
+        <ul style="margin:10px 0 0 0;padding-left:20px;font-size:14px;line-height:1.75;color:var(--text);">
+          <li><b>Tabla <code>agencies</code> no existe</b> · sin esto, FK imposible</li>
+          <li><b>Auth admin estática</b> · una cookie = todos los admins</li>
+          <li><b><code>/admin/leads</code> muestra TODOS</b> · sin filtro por agency</li>
+          <li><b><code>addLead()</code> no setea <code>agency_id</code></b> · leads quedan huérfanos</li>
+          <li><b>ContactSection</b> es client component leyendo MOCK_PROPERTIES</li>
+          <li>WhatsApp + agent_name hardcoded en componentes</li>
+          <li>Seed properties con agency_id NULL · necesita backfill</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>4. Riesgos clasificados</h2>
+    <p class="lead">P0 bloquea Sprint 10 hasta resolverse. P1 conviene atender en paralelo. P2 puede convivir hasta Sprints siguientes.</p>
+
+    <table>
+      <thead><tr><th>Prioridad</th><th>Riesgo</th><th>Impacto si no se resuelve</th></tr></thead>
+      <tbody>
+        <tr><td><span class="severity P0">P0</span></td><td>Tabla <code>agencies</code> inexistente</td><td>Bloquea FK, RLS, ownership y todo el modelo</td></tr>
+        <tr><td><span class="severity P0">P0</span></td><td>Supabase Auth no integrado</td><td>Sin <code>auth.uid()</code> no hay RLS per-user</td></tr>
+        <tr><td><span class="severity P0">P0</span></td><td><code>/admin/leads</code> muestra todo</td><td>Privacy breach cuando entren otras agencies</td></tr>
+        <tr><td><span class="severity P0">P0</span></td><td><code>/api/contact</code> no setea agency</td><td>Leads quedan huérfanos del scoping</td></tr>
+        <tr><td><span class="severity P0">P0</span></td><td>Seed con agency_id NULL</td><td>ALTER NOT NULL falla sin backfill previo</td></tr>
+        <tr><td><span class="severity P0">P0</span></td><td>ContactSection lee MOCK_PROPERTIES</td><td>Form no sabe a qué agency va el lead</td></tr>
+        <tr><td><span class="severity P1">P1</span></td><td>Rate limit in-memory</td><td>Con auth real y multi-región, límite se diluye</td></tr>
+        <tr><td><span class="severity P1">P1</span></td><td>ADMIN_TOKEN coexistencia</td><td>Necesita plan de migración super-admin → Auth</td></tr>
+        <tr><td><span class="severity P1">P1</span></td><td><code>agent_name/phone</code> como strings sueltos</td><td>Duplicación cuando exista user real (decisión: denormalización deliberada)</td></tr>
+        <tr><td><span class="severity P1">P1</span></td><td>WhatsApp hardcoded</td><td>Mismo número para todas las agencies futuras</td></tr>
+        <tr><td><span class="severity P1">P1</span></td><td><code>NOTIFICATION_EMAIL</code> global</td><td>Notificación va al super-admin, no a la agency dueña del lead</td></tr>
+        <tr><td><span class="severity P1">P1</span></td><td>Middleware admin guard no per-agency</td><td>Cualquier user logueado entra a cualquier <code>/admin/*</code></td></tr>
+        <tr><td><span class="severity P2">P2</span></td><td>Branding Valterra hardcoded</td><td>Acepta modelo marketplace single-brand</td></tr>
+        <tr><td><span class="severity P2">P2</span></td><td>OG image branded Valterra</td><td>Idem</td></tr>
+        <tr><td><span class="severity P2">P2</span></td><td>Image pipeline / Supabase Storage</td><td>Sprint 11</td></tr>
+        <tr><td><span class="severity P2">P2</span></td><td>Ruta <code>/propiedades</code> listado</td><td>Sprint 11</td></tr>
+        <tr><td><span class="severity P2">P2</span></td><td>Tests E2E</td><td>Sprint 13</td></tr>
+        <tr><td><span class="severity P2">P2</span></td><td>Tabla <code>agents</code> separada</td><td>Sprint 11 cuando entre profile management</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>5. Decisión ejecutiva</h2>
+
+    <div class="decision-box">
+      <div class="stamp">Recomendación CTO</div>
+      <div class="verdict">Opción B · Ejecutar 3 micro-hardenings operacionales (~17 min) ANTES de arrancar Sprint 10.</div>
+      <div class="reason">
+        Los 3 ítems no son código, son operaciones. Pero si arrancás Sprint 10 sin ellos, vas a estar volando ciego cuando algo se rompa. Sprint 10 toca DB + auth + middleware: es el momento más sensible del proyecto. Tenés que entrar con red de seguridad.
+      </div>
+      <div class="actions">
+        <h4>Los 3 micro-hardenings previos</h4>
+        <ol>
+          <li><b>CSP enforce switch</b> (5 min) · cambiar <code>Content-Security-Policy-Report-Only</code> → <code>Content-Security-Policy</code> en <code>next.config.ts</code>. Pasaron las 48h de observación post Sprint 9.5. Sin el switch, CSP no protege.</li>
+          <li><b>UptimeRobot monitor</b> (10 min) · alta de cuenta free + monitor cada 5 min apuntado a <code>/api/health</code> con alerta a tu email si <code>status != ok</code>. Sprint 10 puede romper auth en producción y querés enterarte vos antes que un usuario.</li>
+          <li><b>Git tag pre-Sprint-10</b> (2 min) · <code>git tag v0.3.0-pre-sprint-10 && git push --tags</code>. Punto de rollback total atómico. Un solo comando para volver al estado actual si algo sale mal.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>6. Sprint 10 roadmap · 6 micro-fases</h2>
+    <p class="lead">Tema: <b>Multi-Tenant Foundation</b>. Total estimado: ~14 días de trabajo, 3 semanas calendario con review y testing. Cada micro-fase es deployable y reversible individualmente.</p>
+
+    <div class="roadmap-sprint">
+      <h3>MF1 · Agencies + Auth foundation <span><span class="stamp">~2 días</span> <span class="risk">RISK: LOW</span></span></h3>
+      <div class="objective">Crear tablas <code>agencies</code> + <code>agency_members</code>. Integrar Supabase Auth con <code>@supabase/ssr</code>. ADMIN_TOKEN sigue coexistiendo para super-admin.</div>
+    </div>
+
+    <div class="roadmap-sprint">
+      <h3>MF2 · Seed Valterra + FK + RLS policies <span><span class="stamp">~2 días</span> <span class="risk">RISK: MEDIUM</span></span></h3>
+      <div class="objective">INSERT agency "Grupo Valterra" + super-admin user. Backfill <code>properties.agency_id</code> y <code>leads.agency_id</code>. ALTER FK + NOT NULL. RLS policies anon/authenticated básicas.</div>
+    </div>
+
+    <div class="roadmap-sprint">
+      <h3>MF3 · Login Supabase Auth + middleware refresh <span><span class="stamp">~3 días</span> <span class="risk">RISK: MEDIUM</span></span></h3>
+      <div class="objective"><code>/admin/login</code> soporta magic link + mantiene fallback ADMIN_TOKEN. Middleware refresh de session. Helper <code>getCurrentUser()</code> server-side.</div>
+    </div>
+
+    <div class="roadmap-sprint">
+      <h3>MF4 · Per-agency admin scoping <span><span class="stamp">~3 días</span> <span class="risk">RISK: MEDIUM</span></span></h3>
+      <div class="objective"><code>/admin/leads</code> y nuevo <code>/admin/properties</code> filtran por agency. AgencySwitcher si user tiene varias memberships.</div>
+    </div>
+
+    <div class="roadmap-sprint">
+      <h3>MF5 · Lead → agency wiring + notification per-agency <span><span class="stamp">~1 día</span> <span class="risk">RISK: LOW</span></span></h3>
+      <div class="objective"><code>/api/contact</code> infiere <code>agency_id</code> desde <code>propertySlug</code>. Notification Resend va al email de la agency dueña del lead.</div>
+    </div>
+
+    <div class="roadmap-sprint">
+      <h3>MF6 · Onboarding agency + invites <span><span class="stamp">~3 días</span> <span class="risk">RISK: LOW</span></span></h3>
+      <div class="objective"><code>/super-admin/agencies</code> (crear + invitar owners). <code>/admin/[agency]/members</code> (owners invitan members). Emails de invitación via Resend.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>7. Próximos pasos en orden</h2>
+    <ol style="font-size:15px;line-height:1.85;color:var(--text);">
+      <li>Aprobar este review en sesión CTO/CEO.</li>
+      <li>Ejecutar los 3 micro-hardenings previos (~17 min).</li>
+      <li>Crear branch <code>feature/sprint-10-mf1</code> y arrancar MF1.</li>
+      <li>Cada MF: code + smoke test local + PR a main + deploy + post-deploy validation.</li>
+      <li>Revisión arquitectónica intermedia post-MF3 (después del login auth real).</li>
+      <li>Cierre Sprint 10 al completar MF6: implementation report + decisión Sprint 11.</li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="left">© 2026 Grupo Valterra · Pre-Sprint 10 · Architecture Review</div>
+    <div class="right">Soluciones Inmobiliarias del Litoral</div>
+  </div>
+</footer>
+
+</body>
+</html>
