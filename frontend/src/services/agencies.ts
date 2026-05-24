@@ -174,3 +174,200 @@ export async function getAgencyContactById(agencyId: string): Promise<string | n
     return null;
   }
 }
+
+// ============================================================
+// MF6: CRUD agencies + members (super-admin only · llama desde server actions)
+// SERVICE_ROLE bypass RLS - controlamos auth en el caller.
+// ============================================================
+
+export type AgencyRole = "owner" | "admin" | "agent" | "viewer";
+
+export interface AgencyFull {
+  id: string;
+  slug: string;
+  name: string;
+  legal_name: string | null;
+  cuit: string | null;
+  matricula: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  whatsapp: string | null;
+  city: string | null;
+  province: string | null;
+  created_at: string;
+}
+
+export interface AgencyMemberLite {
+  user_id: string;
+  role: AgencyRole;
+  joined_at: string | null;
+  invited_at: string | null;
+  created_at: string;
+}
+
+export interface CreateAgencyInput {
+  slug: string;
+  name: string;
+  contact_email?: string;
+  contact_phone?: string;
+  whatsapp?: string;
+  city?: string;
+  province?: string;
+}
+
+export interface CreateAgencyResult {
+  ok: boolean;
+  id?: string;
+  error?: string;
+}
+
+const SLUG_RX = /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/;
+
+/** Lista todas las agencies. Para super-admin dashboard. */
+export async function listAgencies(): Promise<AgencyFull[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("agencies")
+        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, city, province, created_at")
+        .order("created_at", { ascending: false }),
+      6000,
+      "agencies.list",
+    );
+    if (error) {
+      log.error("agencies", "list error", { message: error.message });
+      return [];
+    }
+    return (data as AgencyFull[] | null) ?? [];
+  } catch (err) {
+    log.error("agencies", "list exception", err instanceof Error ? err : { err: String(err) });
+    return [];
+  }
+}
+
+export async function getAgencyBySlug(slug: string): Promise<AgencyFull | null> {
+  if (!slug || !isSupabaseConfigured()) return null;
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("agencies")
+        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, city, province, created_at")
+        .eq("slug", slug)
+        .maybeSingle(),
+      4000,
+      "agencies.bySlug",
+    );
+    if (error) {
+      log.warn("agencies", "bySlug error", { slug, message: error.message });
+      return null;
+    }
+    return (data as AgencyFull | null) ?? null;
+  } catch (err) {
+    log.error("agencies", "bySlug exception", err instanceof Error ? err : { err: String(err) });
+    return null;
+  }
+}
+
+export async function createAgency(input: CreateAgencyInput): Promise<CreateAgencyResult> {
+  const slug = input.slug.trim().toLowerCase();
+  const name = input.name.trim();
+  if (!SLUG_RX.test(slug)) return { ok: false, error: "Slug invalido (a-z, 0-9, -, 2-80 chars)" };
+  if (name.length < 2 || name.length > 200) return { ok: false, error: "Nombre invalido (2-200 chars)" };
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("agencies")
+        .insert({
+          slug,
+          name,
+          contact_email: input.contact_email?.trim() || null,
+          contact_phone: input.contact_phone?.trim() || null,
+          whatsapp: input.whatsapp?.trim() || null,
+          city: input.city?.trim() || null,
+          province: input.province?.trim() || null,
+        })
+        .select("id")
+        .single(),
+      6000,
+      "agencies.create",
+    );
+    if (error) {
+      const msg = error.message.includes("duplicate") ? "Ya existe una agency con ese slug" : error.message;
+      log.warn("agencies", "create error", { slug, message: error.message });
+      return { ok: false, error: msg };
+    }
+    log.info("agencies", "agency creada", { id: data.id, slug });
+    return { ok: true, id: data.id as string };
+  } catch (err) {
+    log.error("agencies", "create exception", err instanceof Error ? err : { err: String(err) });
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+  }
+}
+
+/** Lista members de una agency. */
+export async function listAgencyMembers(agencyId: string): Promise<AgencyMemberLite[]> {
+  if (!agencyId || !isSupabaseConfigured()) return [];
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("agency_members")
+        .select("user_id, role, joined_at, invited_at, created_at")
+        .eq("agency_id", agencyId)
+        .order("created_at", { ascending: true }),
+      4000,
+      "agency_members.list",
+    );
+    if (error) {
+      log.warn("agency_members", "list error", { agencyId, message: error.message });
+      return [];
+    }
+    return (data as AgencyMemberLite[] | null) ?? [];
+  } catch (err) {
+    log.error("agency_members", "list exception", err instanceof Error ? err : { err: String(err) });
+    return [];
+  }
+}
+
+/** INSERT membership idempotente (PK compuesta agency_id+user_id). */
+export async function addAgencyMembership(args: {
+  agencyId: string;
+  userId: string;
+  role: AgencyRole;
+  fromInvite?: boolean;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+  try {
+    const supabase = getSupabaseAdmin();
+    const now = new Date().toISOString();
+    const { error } = await withTimeout(
+      supabase.from("agency_members").upsert(
+        {
+          agency_id: args.agencyId,
+          user_id: args.userId,
+          role: args.role,
+          invited_at: args.fromInvite ? now : null,
+          joined_at: now,
+        },
+        { onConflict: "agency_id,user_id" },
+      ),
+      6000,
+      "agency_members.upsert",
+    );
+    if (error) {
+      log.error("agency_members", "upsert error", { ...args, message: error.message });
+      return { ok: false, error: error.message };
+    }
+    log.info("agency_members", "membership ok", args);
+    return { ok: true };
+  } catch (err) {
+    log.error("agency_members", "upsert exception", err instanceof Error ? err : { err: String(err) });
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+  }
+}
