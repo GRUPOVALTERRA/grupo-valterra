@@ -24,6 +24,21 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Auto-close mobile menu cuando el viewport cruza a desktop (lg = 1024px).
+  // Previene scroll-lock pegado + overlay state desincronizado al resize.
+  useEffect(() => {
+    if (!open) return;
+    const LG_BREAKPOINT = 1024;
+    const onResize = () => {
+      if (window.innerWidth >= LG_BREAKPOINT) {
+        setOpen(false);
+      }
+    };
+    onResize();
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => window.removeEventListener("resize", onResize);
+  }, [open]);
+
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
