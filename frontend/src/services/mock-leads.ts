@@ -149,22 +149,31 @@ function warnMemoryMode() {
 
 /* ---------- API pública ---------- */
 
-export async function getAllLeads(): Promise<Lead[]> {
+export interface LeadFilters {
+  /** Sprint 10 MF4: scoping per-agency. Si undefined -> sin filtro (super-admin Valterra puede usarlo asi). */
+  agencyId?: string;
+}
+
+export async function getAllLeads(filters: LeadFilters = {}): Promise<Lead[]> {
   if (!isSupabaseConfigured()) {
     warnMemoryMode();
+    // En modo memoria los seeds no tienen agency_id - no scopeamos.
+    // OK: memory mode es solo dev local; en prod siempre va por Supabase.
     return memorySnapshot();
   }
 
   try {
     const supabase = getSupabaseAdmin();
-    const { data, error } = await withTimeout(
-      supabase
-        .from("leads")
-        .select("id,created_at,name,phone,email,message,property_slug,property_title,agent_name,source,status")
-        .order("created_at", { ascending: false }),
-      8000,
-      "leads.select",
-    );
+    let query = supabase
+      .from("leads")
+      .select("id,created_at,name,phone,email,message,property_slug,property_title,agent_name,source,status")
+      .order("created_at", { ascending: false });
+
+    if (filters.agencyId) {
+      query = query.eq("agency_id", filters.agencyId);
+    }
+
+    const { data, error } = await withTimeout(query, 8000, "leads.select");
 
     if (error) {
       log.error("leads", "supabase select error", { message: error.message, code: error.code });

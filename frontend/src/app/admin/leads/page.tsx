@@ -2,33 +2,57 @@ import { LeadsDashboard } from "@/components/admin/leads/LeadsDashboard";
 import { getAllLeads, computeStats, type Lead } from "@/services/mock-leads";
 import { log } from "@/lib/logger";
 import { LogoutButton } from "./LogoutButton";
+import { getAdminContext } from "@/lib/admin-context";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Leads · Valterra Admin",
+  title: "Leads - Valterra Admin",
   robots: { index: false, follow: false },
 };
 
 export default async function AdminLeadsPage() {
+  const ctx = await getAdminContext();
+
   let leads: Lead[] = [];
   let dbError: string | null = null;
 
+  // Scoping: si hay agency resoluble, filtrar; si no, dejar pasar (caso edge dev local).
+  // Sprint 10 MF4: super-admin via ADMIN_TOKEN -> Valterra; user via Supabase -> primera membership.
   try {
-    leads = await getAllLeads();
+    leads = await getAllLeads(
+      ctx.scopedAgencyId ? { agencyId: ctx.scopedAgencyId } : {},
+    );
   } catch (err) {
     dbError = err instanceof Error ? err.message : String(err);
     log.error("admin/leads", "error cargando leads", err instanceof Error ? err : { err: String(err) });
   }
 
   const stats = computeStats(leads);
+  const scopeLabel = ctx.scopedAgencyName ?? "Sin agency";
+  const scopeRoleTag = ctx.isSuperAdmin
+    ? "Super-admin"
+    : ctx.userEmail
+      ? ctx.userEmail
+      : "Sin auth";
 
   return (
     <>
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#D8D8D8] bg-white/95 px-4 py-2 backdrop-blur lg:px-8">
-        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
-          Admin · Sesión activa
-        </span>
+      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-[#D8D8D8] bg-white/95 px-4 py-2 backdrop-blur lg:px-8">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
+            Admin
+          </span>
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#0A2342] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white"
+            title={ctx.isSuperAdmin ? "Acceso super-admin Valterra" : `Membership: ${ctx.memberships[0]?.role ?? "?"}`}
+          >
+            <span className="text-[#C9A86A]">Scope:</span> {scopeLabel}
+          </span>
+          <span className="hidden text-[11px] text-slate-500 sm:inline">
+            {scopeRoleTag}
+          </span>
+        </div>
         <LogoutButton />
       </div>
 
