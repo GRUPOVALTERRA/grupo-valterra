@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { log } from "@/lib/logger";
 import type { Lead } from "@/services/mock-leads";
+import { getAgencyContactById } from "@/services/agencies";
 
 /**
  * Notifications layer - Sprint 9.5.
@@ -56,11 +57,37 @@ export async function notifyNewLead(lead: Lead): Promise<NotifyResult> {
     return { ok: false, skipped: "no-api-key" };
   }
 
-  const recipients = parseRecipients(process.env.NOTIFICATION_EMAIL);
+  // Sprint 10 MF5 - resolver recipient per-agency.
+  // Prioridad:
+  //   1. lead.agencyId -> agency.contact_email
+  //   2. Fallback canonico: NOTIFICATION_EMAIL env (CSV)
+  let recipients: string[] = [];
+  let recipientSource: "agency" | "env-fallback" | "none" = "none";
+
+  if (lead.agencyId) {
+    const agencyEmail = await getAgencyContactById(lead.agencyId);
+    if (agencyEmail && agencyEmail.includes("@")) {
+      recipients = [agencyEmail];
+      recipientSource = "agency";
+    }
+  }
+
   if (recipients.length === 0) {
-    log.warn("notifications", "NOTIFICATION_EMAIL vacio - email skipped", { leadId: lead.id });
+    recipients = parseRecipients(process.env.NOTIFICATION_EMAIL);
+    if (recipients.length > 0) recipientSource = "env-fallback";
+  }
+
+  if (recipients.length === 0) {
+    log.warn("notifications", "sin recipient resoluble (agency + env vacios)", { leadId: lead.id, agencyId: lead.agencyId });
     return { ok: false, skipped: "no-recipients" };
   }
+
+  log.info("notifications", "recipient resuelto", {
+    leadId: lead.id,
+    agencyId: lead.agencyId ?? null,
+    recipientSource,
+    recipientCount: recipients.length,
+  });
 
   const subject = lead.propertyTitle
     ? `Nueva consulta - ${lead.propertyTitle}`

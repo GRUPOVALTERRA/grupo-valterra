@@ -4,6 +4,7 @@ import { addLead, getAllLeads, computeStats } from "@/services/mock-leads";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { log } from "@/lib/logger";
 import { notifyNewLead } from "@/lib/notifications";
+import { getAgencyContactByPropertySlug, getValterraAgencyId } from "@/services/agencies";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,7 +14,7 @@ type ContactResponse =
   | { ok: false; error: "validation"; details: Record<string, string> }
   | { ok: false; error: "spam" | "rate-limit" | "server"; retryAfterSec?: number };
 
-const RATE_LIMIT = { limit: 5, windowMs: 60_000 }; // 5 leads/min por IP
+const RATE_LIMIT = { limit: 5, windowMs: 60_000 };
 
 export async function POST(request: NextRequest): Promise<NextResponse<ContactResponse>> {
   const ip = getClientIp(request.headers);
@@ -64,6 +65,36 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactRe
     );
   }
 
+  // ============================================================
+  // Sprint 10 MF5 - resolver agency_id del lead
+  //
+  // Prioridad:
+  //  1. propertySlug presente -> lookup properties.agency_id (JOIN)
+  //  2. Fallback canonico -> Valterra.id (consultas generales / property no encontrada)
+  //  3. Si todo falla -> null (lead queda huerfano, igual se persiste)
+  // ============================================================
+  let resolvedAgencyId: string | null = null;
+  let resolution: "property" | "fallback" | "none" = "none";
+
+  if (result.data.propertySlug) {
+    const ac = await getAgencyContactByPropertySlug(result.data.propertySlug);
+    if (ac?.agencyId) {
+      resolvedAgencyId = ac.agencyId;
+      resolution = "property";
+    }
+  }
+
+  if (!resolvedAgencyId) {
+    resolvedAgencyId = await getValterraAgencyId();
+    if (resolvedAgencyId) resolution = "fallback";
+  }
+
+  log.info("lead_agency_resolution", "resolved", {
+    propertySlug: result.data.propertySlug ?? null,
+    agencyId: resolvedAgencyId,
+    resolution,
+  });
+
   // Persistencia
   try {
     const lead = await addLead({
@@ -73,12 +104,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactRe
       message: result.data.message,
       propertyTitle: result.data.propertyTitle,
       propertySlug: result.data.propertySlug,
+      agencyId: resolvedAgencyId ?? undefined,
       source: "contact-form",
     });
-    log.info("api/contact", "lead creado", { id: lead.id, ip, propertySlug: lead.propertySlug });
+    log.info("api/contact", "lead creado", {
+      id: lead.id, ip, propertySlug: lead.propertySlug, agencyId: lead.agencyId, resolution,
+    });
 
-    // Fire-and-forget notificacion al equipo. Si Resend falla, NO afecta la
-    // respuesta al usuario - el lead ya esta persistido en DB.
+    // Fire-and-forget notification - resuelve recipient desde agency.contact_email
     notifyNewLead(lead).catch((err) => {
       log.error("api/contact", "notifyNewLead unexpected throw", err instanceof Error ? err : { err: String(err) });
     });

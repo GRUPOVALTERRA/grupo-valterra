@@ -17,6 +17,7 @@ export interface Lead {
   propertyTitle?: string;
   propertySlug?: string;
   agentName?: string;
+  agencyId?: string;
   source: LeadSource;
   status: LeadStatus;
   message: string;
@@ -31,6 +32,7 @@ export interface NewLeadInput {
   propertyTitle?: string;
   propertySlug?: string;
   agentName?: string;
+  agencyId?: string;
   source?: LeadSource;
 }
 
@@ -55,6 +57,7 @@ interface LeadRow {
   property_slug: string | null;
   property_title: string | null;
   agent_name: string | null;
+  agency_id: string | null;
   source: LeadSource;
   status: LeadStatus;
 }
@@ -69,6 +72,7 @@ function rowToLead(row: LeadRow): Lead {
     propertyTitle: row.property_title ?? undefined,
     propertySlug: row.property_slug ?? undefined,
     agentName: row.agent_name ?? undefined,
+    agencyId: row.agency_id ?? undefined,
     source: row.source,
     status: row.status,
     createdAt: row.created_at,
@@ -166,7 +170,7 @@ export async function getAllLeads(filters: LeadFilters = {}): Promise<Lead[]> {
     const supabase = getSupabaseAdmin();
     let query = supabase
       .from("leads")
-      .select("id,created_at,name,phone,email,message,property_slug,property_title,agent_name,source,status")
+      .select("id,created_at,name,phone,email,message,property_slug,property_title,agent_name,agency_id,source,status")
       .order("created_at", { ascending: false });
 
     if (filters.agencyId) {
@@ -198,6 +202,7 @@ export async function addLead(input: NewLeadInput): Promise<Lead> {
     propertyTitle: input.propertyTitle,
     propertySlug: input.propertySlug,
     agentName: input.agentName,
+    agencyId: input.agencyId,
     source: input.source ?? "contact-form",
     status: "new",
     createdAt: now,
@@ -222,6 +227,7 @@ export async function addLead(input: NewLeadInput): Promise<Lead> {
         property_slug: lead.propertySlug ?? null,
         property_title: lead.propertyTitle ?? null,
         agent_name: lead.agentName ?? null,
+        agency_id: lead.agencyId ?? null,
         source: lead.source,
         status: lead.status,
       }).select().single(),
