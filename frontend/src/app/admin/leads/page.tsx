@@ -1,6 +1,7 @@
 import { LeadsDashboard } from "@/components/admin/leads/LeadsDashboard";
 import { getAllLeads, computeStats, type Lead } from "@/services/mock-leads";
 import { log } from "@/lib/logger";
+import Link from "next/link";
 import { LogoutButton } from "./LogoutButton";
 import { getAdminContext } from "@/lib/admin-context";
 
@@ -53,7 +54,17 @@ export default async function AdminLeadsPage() {
             {scopeRoleTag}
           </span>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          {ctx.isSuperAdmin && (
+            <Link
+              href="/admin/agencies"
+              className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] transition-colors hover:bg-[#F8F7F4]"
+            >
+              Agencies
+            </Link>
+          )}
+          <LogoutButton />
+        </div>
       </div>
 
       {dbError && (

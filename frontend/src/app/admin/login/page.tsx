@@ -1,9 +1,9 @@
 import Image from "next/image";
 import { LoginForm } from "./LoginForm";
-import { loginAction } from "./actions";
+import { loginAction, requestMagicLink } from "./actions";
 
 export const metadata = {
-  title: "Admin · Login · Valterra",
+  title: "Admin - Login - Valterra",
   robots: { index: false, follow: false },
 };
 
@@ -27,7 +27,7 @@ export default async function LoginPage({
           />
           <div className="leading-tight">
             <div className="text-base font-extrabold tracking-[0.04em] text-[#0A2342]" style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}>
-              GRUPO VALTERRA · ADMIN
+              GRUPO VALTERRA - ADMIN
             </div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-[#C9A86A]">
               Acceso restringido
@@ -36,20 +36,21 @@ export default async function LoginPage({
         </div>
 
         <h1 className="mt-6 text-2xl font-bold text-[#0A2342]" style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}>
-          Iniciar sesión
+          Iniciar sesion
         </h1>
         <p className="mt-1 text-sm text-[#4A5568]">
-          Ingresá la contraseña de administrador para acceder al panel.
+          Elegi tu metodo de acceso.
         </p>
 
         <LoginForm
-          action={loginAction}
+          legacyAction={loginAction}
+          magicAction={requestMagicLink}
           nextPath={sp.next ?? "/admin/leads"}
           initialError={sp.error}
         />
 
         <p className="mt-6 text-center text-[11px] text-slate-400">
-          ¿Olvidaste la contraseña? Contactar al administrador del sistema.
+          Sprint 10 MF3 - magic link + legacy super-admin coexisten.
         </p>
       </div>
     </div>
