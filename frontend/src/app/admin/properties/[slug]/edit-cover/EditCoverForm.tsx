@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 type Action = (formData: FormData) => Promise<{ ok: boolean; error?: string; publicUrl?: string }>;
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function EditCoverForm({ action, slug }: Props) {
+  const router = useRouter();
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; msg: string; url?: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const [fileName, setFileName] = useState<string>("");
@@ -23,6 +25,7 @@ export function EditCoverForm({ action, slug }: Props) {
           const r = await action(fd);
           if (r.ok) {
             setFeedback({ kind: "ok", msg: "Cover actualizada", url: r.publicUrl });
+            router.refresh();
           } else {
             setFeedback({ kind: "err", msg: r.error ?? "Error desconocido" });
           }
