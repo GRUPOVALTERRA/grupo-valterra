@@ -55,6 +55,14 @@ export default async function AdminLeadsPage() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {(ctx.scopedAgencyId || ctx.isSuperAdmin) && (
+            <Link
+              href="/admin/properties"
+              className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] transition-colors hover:bg-[#F8F7F4]"
+            >
+              Properties
+            </Link>
+          )}
           {ctx.isSuperAdmin && (
             <Link
               href="/admin/agencies"

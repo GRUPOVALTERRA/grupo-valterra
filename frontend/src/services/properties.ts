@@ -1,6 +1,7 @@
 import { getSupabaseAdmin, isSupabaseConfigured, withTimeout } from "@/lib/supabase";
 import { log } from "@/lib/logger";
 import { MOCK_PROPERTIES, type Property, type PropertyOperation, type PropertyType } from "./mock-properties";
+import { getPropertyImageUrl } from "./properties-storage";
 
 /**
  * Service properties - patron hybrid Supabase + fallback memoria.
@@ -64,6 +65,28 @@ function toNumberOrUndefined(v: number | string | null | undefined): number | un
   return Number.isFinite(n) ? n : undefined;
 }
 
+/**
+ * Sprint 11 MF2 · Dual-mode cover_image resolution.
+ *
+ * properties.cover_image historicamente guarda URLs absolutas (Unsplash seeds).
+ * Desde MF2 tambien puede guardar Storage paths relativos (e.g. <agency>/<id>/cover.webp).
+ * Esta funcion preserva el comportamiento legacy + resuelve los paths nuevos.
+ *
+ * Detection order (strict):
+ *   1. null/empty       -> null
+ *   2. http(s)://       -> absolute URL legacy (Unsplash, Cloudinary, etc.)
+ *   3. /                -> public local asset (defensive)
+ *   4. data:            -> data URL (defensive)
+ *   5. default          -> Supabase Storage path, resuelto via getPropertyImageUrl
+ */
+function resolveCoverImageUrl(value: string | null): string | null {
+  if (!value) return null;
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.startsWith("/")) return value;
+  if (value.startsWith("data:")) return value;
+  return getPropertyImageUrl(value);
+}
+
 function rowToProperty(row: PropertyRow): Property {
   return {
     id: row.id,
@@ -83,10 +106,11 @@ function rowToProperty(row: PropertyRow): Property {
     coveredArea: toNumberOrUndefined(row.covered_area_m2),
     totalArea: toNumberOrUndefined(row.total_area_m2),
     badges: row.badges && row.badges.length > 0 ? row.badges : undefined,
-    image: row.cover_image ?? "",
+    image: resolveCoverImageUrl(row.cover_image) ?? "",
     featured: row.featured ? true : undefined,
     agentName: row.agent_name ?? undefined,
     agentPhone: row.agent_phone ?? undefined,
+    agencyId: row.agency_id ?? undefined,
     lat: toNumberOrUndefined(row.lat),
     lng: toNumberOrUndefined(row.lng),
   };
@@ -112,6 +136,9 @@ export interface PropertyFilters {
   city?: string;
   operationType?: PropertyOperation;
   propertyType?: PropertyType;
+  agencyId?: string;
+  /** Sprint 11 MF2: include unpublished properties. Admin path only. Default false. */
+  includeDraft?: boolean;
   limit?: number;
 }
 
@@ -138,15 +165,18 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
     let query = supabase
       .from("properties")
       .select(COLUMNS)
-      .eq("published", true)
       .order("featured", { ascending: false })
       .order("featured_order", { ascending: true })
       .order("created_at", { ascending: false });
+
+    // Sprint 11 MF2: default behavior published=true. Admin can request drafts.
+    if (!filters.includeDraft) query = query.eq("published", true);
 
     if (filters.featured === true) query = query.eq("featured", true);
     if (filters.city) query = query.eq("city", filters.city);
     if (filters.operationType) query = query.eq("operation_type", filters.operationType);
     if (filters.propertyType) query = query.eq("property_type", filters.propertyType);
+    if (filters.agencyId) query = query.eq("agency_id", filters.agencyId);
     if (filters.limit && filters.limit > 0) query = query.limit(filters.limit);
 
     const { data, error } = await withTimeout(query, 8000, "properties.select");
@@ -175,7 +205,15 @@ export async function getFeaturedProperties(limit = 6): Promise<Property[]> {
   return getAllProperties({ featured: true, limit });
 }
 
-export async function getPropertyBySlug(slug: string): Promise<Property | null> {
+export interface GetPropertyBySlugOptions {
+  /** Sprint 11 MF2: include unpublished. Admin/owner path only. Default false. */
+  includeDraft?: boolean;
+}
+
+export async function getPropertyBySlug(
+  slug: string,
+  options: GetPropertyBySlugOptions = {},
+): Promise<Property | null> {
   if (!slug) return null;
 
   if (!isSupabaseConfigured()) {
@@ -184,13 +222,10 @@ export async function getPropertyBySlug(slug: string): Promise<Property | null> 
 
   try {
     const supabase = getSupabaseAdmin();
+    let q = supabase.from("properties").select(COLUMNS).eq("slug", slug);
+    if (!options.includeDraft) q = q.eq("published", true);
     const { data, error } = await withTimeout(
-      supabase
-        .from("properties")
-        .select(COLUMNS)
-        .eq("slug", slug)
-        .eq("published", true)
-        .maybeSingle(),
+      q.maybeSingle(),
       4000,
       "properties.bySlug",
     );
@@ -211,5 +246,63 @@ export async function getPropertyBySlug(slug: string): Promise<Property | null> 
   } catch (err) {
     log.error("properties", "getPropertyBySlug fallo", err instanceof Error ? err : { err: String(err) });
     return memorySnapshot().find((p) => p.slug === slug) ?? null;
+  }
+}
+
+/* ---------- Sprint 11 MF2 · update ---------- */
+
+/**
+ * Patch shape: DB column names (snake_case). Only fields explicitly listed.
+ * Defense-in-depth: WHERE agency_id = agencyId asegura que el caller no puede
+ * actualizar properties de otra agency aunque RLS este abierto.
+ */
+export interface PropertyUpdatePatch {
+  cover_image?: string | null;
+  published?: boolean;
+  featured?: boolean;
+  featured_order?: number;
+  title?: string;
+  description?: string;
+  price?: number;
+  currency?: "USD" | "ARS";
+  badges?: string[];
+}
+
+export async function updateProperty(args: {
+  id: string;
+  agencyId: string;
+  patch: PropertyUpdatePatch;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!args.id || !args.agencyId) {
+    return { ok: false, error: "id y agencyId son requeridos" };
+  }
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "Supabase no configurado" };
+  }
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await withTimeout(
+      supabase
+        .from("properties")
+        .update(args.patch)
+        .eq("id", args.id)
+        .eq("agency_id", args.agencyId),
+      6000,
+      "properties.update",
+    );
+    if (error) {
+      log.error("properties", "update error", {
+        id: args.id,
+        agencyId: args.agencyId,
+        message: error.message,
+        code: error.code,
+      });
+      return { ok: false, error: error.message };
+    }
+    log.info("properties", "property actualizada", { id: args.id, agencyId: args.agencyId });
+    return { ok: true };
+  } catch (err) {
+    log.error("properties", "update exception", err instanceof Error ? err : { err: String(err) });
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
   }
 }

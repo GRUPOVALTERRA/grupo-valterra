@@ -32,6 +32,8 @@ export interface Property {
   /** Asignacion - opcional - usado en pagina de detalle */
   agentName?: string;
   agentPhone?: string;
+  /** Multi-tenant ownership - usado en admin scoping desde Sprint 10 MF5 */
+  agencyId?: string;
   /** Geo - opcional - activado en Sprint 11 (mapa Mapbox) */
   lat?: number;
   lng?: number;
