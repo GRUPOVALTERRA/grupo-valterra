@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition, type ChangeEvent } from "react";
 
 type Action = (formData: FormData) => Promise<{ ok: boolean; error?: string; publicUrl?: string }>;
 
@@ -11,10 +10,37 @@ interface Props {
 }
 
 export function EditCoverForm({ action, slug }: Props) {
-  const router = useRouter();
-  const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; msg: string; url?: string } | null>(null);
+  const [feedback, setFeedback] = useState<
+    { kind: "ok" | "err"; msg: string; url?: string } | null
+  >(null);
   const [pending, startTransition] = useTransition();
   const [fileName, setFileName] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploaded, setUploaded] = useState<boolean>(false);
+
+  // Limpiar blob URL al desmontar o al reemplazar
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+
+    const file = e.target.files?.[0];
+    if (!file) {
+      setFileName("");
+      setPreviewUrl(null);
+      setUploaded(false);
+      setFeedback(null);
+      return;
+    }
+    setFileName(file.name);
+    setPreviewUrl(URL.createObjectURL(file));
+    setUploaded(false);
+    setFeedback(null);
+  }
 
   return (
     <form
@@ -23,10 +49,10 @@ export function EditCoverForm({ action, slug }: Props) {
         fd.set("slug", slug);
         startTransition(async () => {
           const r = await action(fd);
-          if (r.ok) {
+          if (r && r.ok) {
             setFeedback({ kind: "ok", msg: "Cover actualizada", url: r.publicUrl });
-            router.refresh();
-          } else {
+            setUploaded(true);
+          } else if (r && !r.ok) {
             setFeedback({ kind: "err", msg: r.error ?? "Error desconocido" });
           }
         });
@@ -44,11 +70,25 @@ export function EditCoverForm({ action, slug }: Props) {
           accept="image/jpeg,image/png,image/webp"
           required
           disabled={pending}
-          onChange={(e) => setFileName(e.target.files?.[0]?.name ?? "")}
+          onChange={handleFileChange}
           className="mt-1 block w-full text-xs text-[#0A2342] file:mr-3 file:rounded-md file:border-0 file:bg-[#0A2342] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-[#071A32]"
         />
         {fileName && <p className="mt-1 text-[11px] text-slate-500">{fileName}</p>}
       </div>
+
+      {previewUrl && (
+        <div className="overflow-hidden rounded-lg border border-[#C9A86A]/40 bg-[#F8F7F4]/40">
+          {/* eslint-disable-next-line @next/next/no-img-element -- blob URL preview local */}
+          <img
+            src={previewUrl}
+            alt="Vista previa de la imagen seleccionada"
+            className="block aspect-[16/10] w-full object-cover"
+          />
+          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#C9A86A]">
+            {uploaded ? "✓ Esta imagen fue subida" : "Vista previa local (aún no subida)"}
+          </p>
+        </div>
+      )}
 
       {feedback && (
         <div
@@ -63,7 +103,7 @@ export function EditCoverForm({ action, slug }: Props) {
           {feedback.msg}
           {feedback.url && (
             <a href={feedback.url} target="_blank" rel="noreferrer" className="ml-2 underline">
-              ver
+              ver en Storage
             </a>
           )}
         </div>
@@ -71,14 +111,14 @@ export function EditCoverForm({ action, slug }: Props) {
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || !previewUrl || uploaded}
         className="inline-flex h-10 w-full items-center justify-center rounded-md bg-[#0A2342] text-xs font-bold text-white hover:bg-[#071A32] disabled:opacity-60"
       >
-        {pending ? "Subiendo..." : "Subir cover"}
+        {pending ? "Subiendo..." : uploaded ? "Subido · seleccioná otra para reemplazar" : "Subir cover"}
       </button>
 
       <p className="text-[10px] text-slate-500">
-        El path se persiste en properties.cover_image. Render se actualiza automaticamente (revalidate).
+        Preview local instantánea · al subir, el archivo se publica en Storage y queda como portada. El &quot;ver&quot; abre la URL pública verificable.
       </p>
     </form>
   );
