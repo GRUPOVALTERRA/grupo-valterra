@@ -24,7 +24,6 @@ export default async function AdminPropertiesPage() {
   const properties = await getAllProperties(filters);
 
   const scopeLabel = ctx.scopedAgencyName ?? "Sin agency";
-  const draftCount = properties.filter((p) => !p.featured).length; // proxy visible
   const total = properties.length;
 
   return (
@@ -58,7 +57,7 @@ export default async function AdminPropertiesPage() {
             {total} {total === 1 ? "property visible" : "properties visibles"} · scope: {scopeLabel}
           </p>
           <p className="mt-1 text-[11px] text-slate-400">
-            MF2 MVP: cover image upload disponible por property. Edit completo y gallery en futuras MF.
+            Sprint 11 MF2 (cover) + MF3 (datos). Gallery + map en futuras MF.
           </p>
         </header>
 
@@ -73,9 +72,9 @@ export default async function AdminPropertiesPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="truncate font-semibold text-[#0A2342]">{p.title}</span>
-                    {!p.featured && (
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-600">
-                        no featured
+                    {p.published === false && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-800">
+                        borrador
                       </span>
                     )}
                   </div>
@@ -83,19 +82,27 @@ export default async function AdminPropertiesPage() {
                     /{p.slug} · {p.city ?? "-"} · {p.operation} · {p.type}
                   </div>
                 </div>
-                <Link
-                  href={`/admin/properties/${p.slug}/edit-cover`}
-                  className="inline-flex h-8 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
-                >
-                  Editar imagen →
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/admin/properties/${p.slug}/edit`}
+                    className="inline-flex h-8 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
+                  >
+                    Editar datos
+                  </Link>
+                  <Link
+                    href={`/admin/properties/${p.slug}/edit-cover`}
+                    className="inline-flex h-8 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
+                  >
+                    Editar imagen
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
         )}
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          Sprint 11 MF2 · cover upload · usa MF1 storage primitives. {draftCount > 0 ? `(${draftCount} sin featured)` : null}
+          Sprint 11 MF3 · property full edit + publish toggle.
         </p>
       </div>
     </>

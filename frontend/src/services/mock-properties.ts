@@ -34,6 +34,9 @@ export interface Property {
   agentPhone?: string;
   /** Multi-tenant ownership - usado en admin scoping desde Sprint 10 MF5 */
   agencyId?: string;
+  /** Sprint 11 MF3 - admin edit form needs initial values from DB */
+  description?: string;
+  published?: boolean;
   /** Geo - opcional - activado en Sprint 11 (mapa Mapbox) */
   lat?: number;
   lng?: number;
