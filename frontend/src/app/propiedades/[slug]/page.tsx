@@ -102,7 +102,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
           <ol className="flex flex-wrap items-center gap-2">
             <li><Link href="/" className="hover:text-[#0A2342]">Inicio</Link></li>
             <li aria-hidden>›</li>
-            <li><Link href="/#propiedades" className="hover:text-[#0A2342]">Propiedades</Link></li>
+            <li><Link href="/propiedades" className="hover:text-[#0A2342]">Propiedades</Link></li>
             <li aria-hidden>›</li>
             <li className="truncate text-[#0A2342] font-medium">{property.title}</li>
           </ol>
