@@ -9,10 +9,30 @@ import type { PropertyOperation, PropertyType } from "@/services/mock-properties
 
 export const revalidate = 60;
 
+const LISTING_TITLE = "Propiedades en Venta y Alquiler";
+const LISTING_DESCRIPTION =
+  "Encontrá tu propiedad ideal en el NEA. Casas, departamentos, locales y terrenos en venta y alquiler en Entre Ríos, Corrientes, Chaco y Misiones.";
+const OG_IMAGE = "/brand/og-default.jpg";
+
 export const metadata: Metadata = {
-  title: "Propiedades en Venta y Alquiler",
-  description:
-    "Encontrá tu propiedad ideal en el NEA. Casas, departamentos, locales y terrenos en venta y alquiler en Entre Ríos, Corrientes, Chaco y Misiones.",
+  title: LISTING_TITLE,
+  description: LISTING_DESCRIPTION,
+  alternates: { canonical: "/propiedades" },
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    url: "/propiedades",
+    siteName: "Grupo Valterra",
+    title: LISTING_TITLE,
+    description: LISTING_DESCRIPTION,
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Propiedades Grupo Valterra" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: LISTING_TITLE,
+    description: LISTING_DESCRIPTION,
+    images: [OG_IMAGE],
+  },
 };
 
 /* ---------- Validation helpers ---------- */
