@@ -209,7 +209,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
         </section>
 
         {/* Reusa el formulario de contacto · el ContactSection ya detecta #contacto-<slug> */}
-        <ContactSection />
+        <ContactSection propertySlug={property.slug} propertyTitle={property.title} />
       </main>
 
       <Footer />

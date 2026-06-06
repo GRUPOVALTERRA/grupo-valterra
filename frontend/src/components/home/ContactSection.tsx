@@ -12,14 +12,23 @@ interface ContactResponse {
   details?: Record<string, string>;
 }
 
-export function ContactSection() {
+interface ContactSectionProps {
+  /** Slug de la propiedad consultada. Si se provee, bypasea el hash/mock lookup. */
+  propertySlug?: string;
+  /** Título de la propiedad. Usado directamente en el payload si se provee. */
+  propertyTitle?: string;
+}
+
+export function ContactSection({ propertySlug: propSlug, propertyTitle: propTitle }: ContactSectionProps = {}) {
   const [status, setStatus] = useState<Status>("idle");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [leadId, setLeadId] = useState<string | null>(null);
-  const [propertySlug, setPropertySlug] = useState("");
+  const [propertySlug, setPropertySlug] = useState(propSlug ?? "");
 
   useEffect(() => {
+    // Si el slug viene por prop (página de detalle), no leer el hash.
+    if (propSlug) return;
     if (typeof window === "undefined") return;
     const hash = window.location.hash.replace(/^#/, "");
     if (hash.startsWith("contacto-")) {
@@ -27,7 +36,7 @@ export function ContactSection() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hash read on mount
       if (MOCK_PROPERTIES.some((p) => p.slug === slug)) setPropertySlug(slug);
     }
-  }, []);
+  }, [propSlug]);
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,7 +50,7 @@ export function ContactSection() {
     setGeneralError(null);
 
     const slug = String(fd.get("propertySlug") ?? "");
-    const propertyTitle = MOCK_PROPERTIES.find((p) => p.slug === slug)?.title;
+    const propertyTitle = propTitle ?? MOCK_PROPERTIES.find((p) => p.slug === slug)?.title;
 
     const payload = {
       name: String(fd.get("name") ?? ""),
@@ -135,30 +144,36 @@ export function ContactSection() {
                   <Field name="phone" type="tel" label="Teléfono" placeholder="+54 9 343 ..." required autoComplete="tel" disabled={isSubmitting} error={fieldErrors.phone} />
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Propiedad consultada (opcional)
-                  </label>
-                  <div className="relative mt-1">
-                    <select
-                      name="propertySlug"
-                      value={propertySlug}
-                      onChange={(e) => setPropertySlug(e.target.value)}
-                      disabled={isSubmitting}
-                      className="h-11 w-full appearance-none rounded-lg border border-[#D8D8D8] bg-white px-3 pr-9 text-sm text-[#0A2342] focus:border-[#0A2342] focus:outline-none disabled:opacity-60"
-                    >
-                      <option value="">Consulta general</option>
-                      {MOCK_PROPERTIES.map((p) => (
-                        <option key={p.slug} value={p.slug}>
-                          {p.title} · {p.city}
-                        </option>
-                      ))}
-                    </select>
-                    <svg aria-hidden className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                {propSlug ? (
+                  /* Página de detalle: slug viene por prop — no mostrar select */
+                  <input type="hidden" name="propertySlug" value={propSlug} />
+                ) : (
+                  /* Home / consulta general: select con opciones mock */
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                      Propiedad consultada (opcional)
+                    </label>
+                    <div className="relative mt-1">
+                      <select
+                        name="propertySlug"
+                        value={propertySlug}
+                        onChange={(e) => setPropertySlug(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-11 w-full appearance-none rounded-lg border border-[#D8D8D8] bg-white px-3 pr-9 text-sm text-[#0A2342] focus:border-[#0A2342] focus:outline-none disabled:opacity-60"
+                      >
+                        <option value="">Consulta general</option>
+                        {MOCK_PROPERTIES.map((p) => (
+                          <option key={p.slug} value={p.slug}>
+                            {p.title} · {p.city}
+                          </option>
+                        ))}
+                      </select>
+                      <svg aria-hidden className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div>
                   <label htmlFor="contact-message" className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
