@@ -97,10 +97,9 @@ export async function requestMagicLink(
     return { ok: false, error: `Demasiadas solicitudes. Reintenta en ${rl.retryAfterSec}s.` };
   }
 
-  // Resolver origen del request para el emailRedirectTo
-  const proto = hdrs.get("x-forwarded-proto") ?? "https";
-  const host = hdrs.get("host") ?? "grupo-valterra.vercel.app";
-  const origin = `${proto}://${host}`;
+  // Usar URL canónica configurada para evitar invalid-link en magic link emails
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://grupo-valterra.vercel.app";
+  const origin = siteUrl.replace(/\/$/, "");
   const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`;
 
   const cookieStore = await cookies();
