@@ -71,7 +71,8 @@ export async function middleware(request: NextRequest) {
 
     const hasLegacyAccess = Boolean(adminToken && tokenCookie === adminToken);
     const hasSupabaseAccess = Boolean(supabaseUserId);
-    const noAuthConfigured = !adminToken && !url; // dev mode permisivo
+    // Bypass solo en dev cuando no hay vars configuradas. En production, bloquear siempre.
+    const noAuthConfigured = process.env.NODE_ENV !== "production" && !adminToken && !url;
 
     if (!hasLegacyAccess && !hasSupabaseAccess && !noAuthConfigured) {
       const loginUrl = new URL("/admin/login", request.url);
