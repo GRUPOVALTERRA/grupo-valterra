@@ -147,3 +147,52 @@ export async function ownerInviteMemberAction(
     note: result.error,
   };
 }
+
+/* ---------------------------------------------------------- */
+/* Owner-scoped invite: solo el owner invita a SU agency      */
+/* ---------------------------------------------------------- */
+export async function ownerInviteMemberAction(
+  formData: FormData,
+): Promise<{ ok: true; emailSent: boolean; note?: string } | { ok: false; error: string }> {
+  const ctx = await getAdminContext();
+
+  if (!ctx.scopedAgencyId) {
+    return { ok: false, error: "Sin agency asignada. Acceso denegado." };
+  }
+
+  const isOwner = ctx.memberships.some(
+    (m) => m.agencyId === ctx.scopedAgencyId && m.role === "owner",
+  );
+  if (!isOwner) {
+    return { ok: false, error: "Solo el owner puede invitar miembros." };
+  }
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const role = String(formData.get("role") ?? "agent") as AgencyRole;
+
+  if (!email) return { ok: false, error: "Email requerido" };
+  if (!VALID_ROLES.has(role)) return { ok: false, error: "Rol invalido" };
+
+  const origin = await originFromHeaders();
+
+  const result = await inviteUserToAgency({
+    email,
+    agencyId: ctx.scopedAgencyId,
+    agencyName: ctx.scopedAgencyName ?? "Agency",
+    agencySlug: ctx.scopedAgencySlug ?? "",
+    role,
+    inviterEmail: ctx.userEmail,
+    origin,
+  });
+
+  if (!result.ok) {
+    return { ok: false, error: result.error ?? "Invitacion fallo" };
+  }
+
+  if (ctx.scopedAgencySlug) revalidatePath(`/admin/agencies/${ctx.scopedAgencySlug}`);
+  return {
+    ok: true,
+    emailSent: Boolean(result.emailSent),
+    note: result.error,
+  };
+}

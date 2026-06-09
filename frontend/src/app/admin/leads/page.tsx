@@ -4,7 +4,9 @@ import { getAllLeads, computeStats, type Lead } from "@/services/mock-leads";
 import { log } from "@/lib/logger";
 import Link from "next/link";
 import { LogoutButton } from "./LogoutButton";
+import { OwnerInviteSection } from "./OwnerInviteSection";
 import { getAdminContext } from "@/lib/admin-context";
+import { ownerInviteMemberAction } from "@/app/admin/agencies/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,9 @@ export default async function AdminLeadsPage() {
 
   const stats = computeStats(leads);
   const scopeLabel = ctx.scopedAgencyName ?? "Sin agency";
+  const isOwner = ctx.memberships.some(
+    (m) => m.agencyId === ctx.scopedAgencyId && m.role === "owner",
+  );
   const scopeRoleTag = ctx.isSuperAdmin
     ? "Super-admin"
     : ctx.userEmail
@@ -75,10 +80,17 @@ export default async function AdminLeadsPage() {
         </div>
       </div>
 
-      {dbError && (
+      {dbError !== null && (
         <div className="bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          ⚠️ No pudimos cargar leads desde la base ({dbError}). Mostrando vista vacía.
+          Error cargando leads: {dbError}
         </div>
+      )}
+
+      {isOwner && (
+        <OwnerInviteSection
+          action={ownerInviteMemberAction}
+          agencyName={scopeLabel}
+        />
       )}
 
       <LeadsDashboard leads={leads} stats={stats} />
