@@ -34,6 +34,7 @@ export async function createAgencyAction(
   formData: FormData,
 ): Promise<{ ok: false; error: string } | void> {
   await assertSuperAdmin();
+  const ctx = await getAdminContext();
 
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
   const name = String(formData.get("name") ?? "").trim();
@@ -41,6 +42,7 @@ export async function createAgencyAction(
   const contact_phone = String(formData.get("contact_phone") ?? "").trim();
   const city = String(formData.get("city") ?? "").trim();
   const province = String(formData.get("province") ?? "").trim();
+  const ownerEmail = String(formData.get("ownerEmail") ?? "").trim().toLowerCase();
 
   const result = await createAgency({
     slug,
@@ -57,6 +59,36 @@ export async function createAgencyAction(
 
   log.info("admin/agencies", "agency creada", { slug, id: result.id });
   revalidatePath("/admin/agencies");
+
+  // Invite owner automatically if email provided
+  if (ownerEmail && result.id) {
+    const origin = await originFromHeaders();
+    const inviteResult = await inviteUserToAgency({
+      email: ownerEmail,
+      agencyId: result.id,
+      agencyName: name,
+      agencySlug: slug,
+      role: "owner",
+      inviterEmail: ctx.userEmail,
+      origin,
+    });
+
+    if (!inviteResult.ok) {
+      log.warn("admin/agencies", "agency creada pero invite owner fallo", {
+        slug,
+        ownerEmail,
+        error: inviteResult.error,
+      });
+      redirect(`/admin/agencies/${slug}?invite_failed=1`);
+    }
+
+    log.info("admin/agencies", "owner invitado", {
+      slug,
+      ownerEmail,
+      emailSent: inviteResult.emailSent,
+    });
+  }
+
   redirect(`/admin/agencies/${slug}`);
 }
 

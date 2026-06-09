@@ -21,10 +21,18 @@ export function CreateAgencyForm({ action }: Props) {
       }}
       className="mt-3 space-y-3 rounded-lg border border-[#D8D8D8] bg-white p-4"
     >
-      <Field name="slug" label="Slug (URL)" placeholder="inmobiliaria-x" required />
       <Field name="name" label="Nombre" placeholder="Inmobiliaria X" required />
+      <Field name="slug" label="Slug (URL)" placeholder="inmobiliaria-x" required />
+      <Field
+        name="ownerEmail"
+        label="Email del owner"
+        placeholder="owner@inmobiliaria.com"
+        type="email"
+        required
+        helper="Recibirá el enlace de acceso por Magic Link"
+      />
       <Field name="contact_email" label="Email de contacto" placeholder="contacto@..." type="email" />
-      <Field name="contact_phone" label="Telefono" placeholder="+54 9 ..." />
+      <Field name="contact_phone" label="Teléfono / WhatsApp" placeholder="+54 9 ..." />
       <div className="grid grid-cols-2 gap-3">
         <Field name="city" label="Ciudad" placeholder="Corrientes" />
         <Field name="province" label="Provincia" placeholder="Corrientes" />
@@ -41,15 +49,15 @@ export function CreateAgencyForm({ action }: Props) {
         disabled={pending}
         className="inline-flex h-10 w-full items-center justify-center rounded-md bg-[#0A2342] text-xs font-bold text-white transition-colors hover:bg-[#071A32] disabled:opacity-60"
       >
-        {pending ? "Creando..." : "Crear agency"}
+        {pending ? "Creando agency..." : "Crear agency e invitar owner"}
       </button>
     </form>
   );
 }
 
 function Field({
-  name, label, placeholder, type = "text", required,
-}: { name: string; label: string; placeholder?: string; type?: string; required?: boolean }) {
+  name, label, placeholder, type = "text", required, helper,
+}: { name: string; label: string; placeholder?: string; type?: string; required?: boolean; helper?: string }) {
   return (
     <div>
       <label htmlFor={`f-${name}`} className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -64,6 +72,7 @@ function Field({
         placeholder={placeholder}
         className="mt-1 h-9 w-full rounded-md border border-[#D8D8D8] bg-white px-2.5 text-xs text-[#0A2342] focus:border-[#0A2342] focus:outline-none"
       />
+      {helper && <p className="mt-1 text-[10px] text-slate-400">{helper}</p>}
     </div>
   );
 }
