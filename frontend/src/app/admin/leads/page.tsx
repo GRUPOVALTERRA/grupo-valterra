@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { LeadsDashboard } from "@/components/admin/leads/LeadsDashboard";
 import { getAllLeads, computeStats, type Lead } from "@/services/mock-leads";
 import { log } from "@/lib/logger";
@@ -14,12 +15,11 @@ export const metadata = {
 
 export default async function AdminLeadsPage() {
   const ctx = await getAdminContext();
+  if (!ctx.scopedAgencyId && !ctx.isSuperAdmin) notFound();
 
   let leads: Lead[] = [];
   let dbError: string | null = null;
 
-  // Scoping: si hay agency resoluble, filtrar; si no, dejar pasar (caso edge dev local).
-  // Sprint 10 MF4: super-admin via ADMIN_TOKEN -> Valterra; user via Supabase -> primera membership.
   try {
     leads = await getAllLeads(
       ctx.scopedAgencyId ? { agencyId: ctx.scopedAgencyId } : {},
