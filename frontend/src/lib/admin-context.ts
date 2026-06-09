@@ -76,6 +76,26 @@ export async function getAdminContext(): Promise<AdminContext> {
   // ============================================================
   const user = await getCurrentUser();
   if (user) {
+    // Super-admin por email (SUPER_ADMIN_EMAILS env, comma-separated)
+    const superAdminEmails = (process.env.SUPER_ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (user.email && superAdminEmails.includes(user.email.toLowerCase())) {
+      log.info("admin-context", "super-admin via SUPER_ADMIN_EMAILS", { email: user.email });
+      const valterra: AgencyLite | null = await getValterraAgency();
+      return {
+        isSuperAdmin: true,
+        userId: user.id,
+        userEmail: user.email,
+        memberships: [],
+        scopedAgencyId: valterra?.id ?? null,
+        scopedAgencyName: valterra?.name ?? "Grupo Valterra",
+        scopedAgencySlug: valterra?.slug ?? "valterra",
+      };
+    }
+
     const memberships = await getCurrentMemberships();
     const first = memberships[0] ?? null;
     return {
