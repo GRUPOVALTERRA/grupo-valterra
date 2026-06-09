@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getCurrentUser, getCurrentMemberships, type Membership } from "@/lib/auth";
 import { getValterraAgency, type AgencyLite } from "@/services/agencies";
+import { log } from "@/lib/logger";
 
 /**
  * Admin context resolver - Sprint 10 MF4.
@@ -56,6 +57,7 @@ export async function getAdminContext(): Promise<AdminContext> {
     const tokenCookie = cookieStore.get(ADMIN_COOKIE)?.value;
 
     if (tokenCookie && tokenCookie === adminToken) {
+      log.warn("admin-context", "⚠ ADMIN_TOKEN legacy activo — emergency fallback en uso");
       const valterra: AgencyLite | null = await getValterraAgency();
       return {
         isSuperAdmin: true,

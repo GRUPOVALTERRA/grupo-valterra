@@ -19,7 +19,7 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit";
  */
 
 const COOKIE_NAME = "valterra-admin-session";
-const COOKIE_MAX_AGE = 60 * 60 * 24; // 24h
+const COOKIE_MAX_AGE = 60 * 60; // 1h — emergency fallback only
 
 /* ---------------------------------------------------------- */
 /* Legacy: password + ADMIN_TOKEN cookie (super-admin path)   */
@@ -63,7 +63,7 @@ export async function loginAction(formData: FormData): Promise<{ ok: false; erro
     maxAge: COOKIE_MAX_AGE,
   });
 
-  log.info("admin/login", "login OK (legacy)", { ip });
+  log.warn("admin/login", "⚠ ADMIN_TOKEN legacy usado — emergency fallback activo", { ip });
   redirect(safeNext);
 }
 

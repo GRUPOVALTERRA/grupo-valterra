@@ -62,10 +62,10 @@ export function LoginForm({ legacyAction, magicAction, nextPath, initialError }:
           type="button"
           onClick={() => { setTab("legacy"); setError(null); setMagicSent(false); }}
           className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
-            tab === "legacy" ? "bg-white text-[#0A2342] shadow-sm" : "text-[#4A5568] hover:text-[#0A2342]"
+            tab === "legacy" ? "bg-white text-amber-700 shadow-sm" : "text-slate-400 hover:text-slate-600"
           }`}
         >
-          Super-admin
+          Emergencia
         </button>
       </div>
 
@@ -153,8 +153,8 @@ export function LoginForm({ legacyAction, magicAction, nextPath, initialError }:
             {pending ? "Verificando..." : "Entrar al panel"}
           </button>
 
-          <p className="text-[11px] text-slate-500">
-            Acceso reservado para el equipo Valterra.
+          <p className="text-[11px] text-amber-600">
+            ⚠ Uso de emergencia. Preferir Magic Link para acceso normal.
           </p>
         </form>
       )}
