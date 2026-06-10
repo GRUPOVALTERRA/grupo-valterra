@@ -5,8 +5,10 @@ import { log } from "@/lib/logger";
 import Link from "next/link";
 import { LogoutButton } from "./LogoutButton";
 import { OwnerInviteSection } from "./OwnerInviteSection";
+import { MembersSection } from "./MembersSection";
 import { getAdminContext } from "@/lib/admin-context";
-import { ownerInviteMemberAction } from "@/app/admin/agencies/actions";
+import { ownerInviteMemberAction, updateMemberRoleAction, removeMemberAction } from "@/app/admin/agencies/actions";
+import { listAgencyMembers, type AgencyMemberLite } from "@/services/agencies";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,15 @@ export default async function AdminLeadsPage() {
   const isOwner = ctx.memberships.some(
     (m) => m.agencyId === ctx.scopedAgencyId && m.role === "owner",
   );
+
+  let members: AgencyMemberLite[] = [];
+  if (isOwner && ctx.scopedAgencyId) {
+    try {
+      members = await listAgencyMembers(ctx.scopedAgencyId);
+    } catch {
+      // non-blocking: members quedará vacío
+    }
+  }
   const scopeRoleTag = ctx.isSuperAdmin
     ? "Super-admin"
     : ctx.userEmail
@@ -84,6 +95,15 @@ export default async function AdminLeadsPage() {
         <div className="bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Error cargando leads: {dbError}
         </div>
+      )}
+
+      {isOwner && (
+        <MembersSection
+          members={members}
+          currentUserId={ctx.userId}
+          updateAction={updateMemberRoleAction}
+          removeAction={removeMemberAction}
+        />
       )}
 
       {isOwner && (
