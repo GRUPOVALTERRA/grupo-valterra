@@ -371,3 +371,116 @@ export async function addAgencyMembership(args: {
     return { ok: false, error: err instanceof Error ? err.message : "unknown" };
   }
 }
+
+/** Obtiene un member específico de una agency. Retorna null si no existe. */
+export async function getAgencyMember(
+  agencyId: string,
+  userId: string,
+): Promise<AgencyMemberLite | null> {
+  if (!agencyId || !userId || !isSupabaseConfigured()) return null;
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await withTimeout(
+      supabase
+        .from("agency_members")
+        .select("user_id, role, joined_at, invited_at, created_at")
+        .eq("agency_id", agencyId)
+        .eq("user_id", userId)
+        .maybeSingle(),
+      4000,
+      "agency_members.getSingle",
+    );
+    if (error) {
+      log.warn("agency_members", "getSingle error", { agencyId, userId, message: error.message });
+      return null;
+    }
+    return (data as AgencyMemberLite | null) ?? null;
+  } catch (err) {
+    log.error("agency_members", "getSingle exception", err instanceof Error ? err : { err: String(err) });
+    return null;
+  }
+}
+
+/** Cuenta owners activos en una agency. Usado para guard "ultimo owner". */
+export async function countAgencyOwners(agencyId: string): Promise<number> {
+  if (!agencyId || !isSupabaseConfigured()) return 0;
+  try {
+    const supabase = getSupabaseAdmin();
+    const { count, error } = await withTimeout(
+      supabase
+        .from("agency_members")
+        .select("user_id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("role", "owner"),
+      4000,
+      "agency_members.countOwners",
+    );
+    if (error) {
+      log.warn("agency_members", "countOwners error", { agencyId, message: error.message });
+      return 0;
+    }
+    return count ?? 0;
+  } catch (err) {
+    log.error("agency_members", "countOwners exception", err instanceof Error ? err : { err: String(err) });
+    return 0;
+  }
+}
+
+/** Actualiza el rol de un member existente. */
+export async function updateMemberRole(
+  agencyId: string,
+  userId: string,
+  role: AgencyRole,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await withTimeout(
+      supabase
+        .from("agency_members")
+        .update({ role })
+        .eq("agency_id", agencyId)
+        .eq("user_id", userId),
+      4000,
+      "agency_members.updateRole",
+    );
+    if (error) {
+      log.error("agency_members", "updateRole error", { agencyId, userId, role, message: error.message });
+      return { ok: false, error: error.message };
+    }
+    log.info("agency_members", "role updated", { agencyId, userId, role });
+    return { ok: true };
+  } catch (err) {
+    log.error("agency_members", "updateRole exception", err instanceof Error ? err : { err: String(err) });
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+  }
+}
+
+/** Elimina un member de una agency. */
+export async function removeAgencyMember(
+  agencyId: string,
+  userId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await withTimeout(
+      supabase
+        .from("agency_members")
+        .delete()
+        .eq("agency_id", agencyId)
+        .eq("user_id", userId),
+      4000,
+      "agency_members.remove",
+    );
+    if (error) {
+      log.error("agency_members", "remove error", { agencyId, userId, message: error.message });
+      return { ok: false, error: error.message };
+    }
+    log.info("agency_members", "member removed", { agencyId, userId });
+    return { ok: true };
+  } catch (err) {
+    log.error("agency_members", "remove exception", err instanceof Error ? err : { err: String(err) });
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+  }
+}

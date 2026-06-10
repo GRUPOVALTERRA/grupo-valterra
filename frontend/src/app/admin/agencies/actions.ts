@@ -5,7 +5,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { log } from "@/lib/logger";
 import { getAdminContext } from "@/lib/admin-context";
-import { createAgency, getAgencyBySlug, type AgencyRole } from "@/services/agencies";
+import {
+  createAgency,
+  getAgencyBySlug,
+  getAgencyMember,
+  updateMemberRole,
+  removeAgencyMember,
+  countAgencyOwners,
+  type AgencyRole,
+} from "@/services/agencies";
 import { inviteUserToAgency } from "@/services/agency-invites";
 
 /**
@@ -129,6 +137,86 @@ export async function inviteMemberAction(
     emailSent: Boolean(result.emailSent),
     note: result.error,
   };
+}
+
+/* ---------------------------------------------------------- */
+/* Owner member management: update role                       */
+/* ---------------------------------------------------------- */
+export async function updateMemberRoleAction(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const ctx = await getAdminContext();
+
+  if (!ctx.scopedAgencyId) return { ok: false, error: "Sin agency asignada." };
+
+  const isOwner = ctx.memberships.some(
+    (m) => m.agencyId === ctx.scopedAgencyId && m.role === "owner",
+  );
+  if (!isOwner) return { ok: false, error: "Solo el owner puede cambiar roles." };
+
+  const targetUserId = String(formData.get("userId") ?? "").trim();
+  const role = String(formData.get("role") ?? "") as AgencyRole;
+
+  if (!targetUserId) return { ok: false, error: "userId requerido" };
+  if (!VALID_ROLES.has(role)) return { ok: false, error: "Rol invalido" };
+
+  const targetMember = await getAgencyMember(ctx.scopedAgencyId, targetUserId);
+  if (!targetMember) return { ok: false, error: "Miembro no encontrado" };
+
+  // Bloquear solo si el target ES owner y lo degradamos siendo el último
+  if (targetMember.role === "owner" && role !== "owner") {
+    const currentOwners = await countAgencyOwners(ctx.scopedAgencyId);
+    if (currentOwners <= 1) {
+      return { ok: false, error: "No se puede degradar al único owner de la agency." };
+    }
+  }
+
+  const result = await updateMemberRole(ctx.scopedAgencyId, targetUserId, role);
+  if (!result.ok) return { ok: false, error: result.error ?? "Error actualizando rol" };
+
+  revalidatePath("/admin/leads");
+  return { ok: true };
+}
+
+/* ---------------------------------------------------------- */
+/* Owner member management: remove member                     */
+/* ---------------------------------------------------------- */
+export async function removeMemberAction(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const ctx = await getAdminContext();
+
+  if (!ctx.scopedAgencyId) return { ok: false, error: "Sin agency asignada." };
+
+  const isOwner = ctx.memberships.some(
+    (m) => m.agencyId === ctx.scopedAgencyId && m.role === "owner",
+  );
+  if (!isOwner) return { ok: false, error: "Solo el owner puede remover miembros." };
+
+  const targetUserId = String(formData.get("userId") ?? "").trim();
+  if (!targetUserId) return { ok: false, error: "userId requerido" };
+
+  // No permitir auto-remocion
+  if (ctx.userId && targetUserId === ctx.userId) {
+    return { ok: false, error: "No puedes removerte a ti mismo." };
+  }
+
+  const targetMember = await getAgencyMember(ctx.scopedAgencyId, targetUserId);
+  if (!targetMember) return { ok: false, error: "Miembro no encontrado" };
+
+  // Bloquear solo si el target ES owner y es el último
+  if (targetMember.role === "owner") {
+    const currentOwners = await countAgencyOwners(ctx.scopedAgencyId);
+    if (currentOwners <= 1) {
+      return { ok: false, error: "No se puede remover al único owner de la agency." };
+    }
+  }
+
+  const result = await removeAgencyMember(ctx.scopedAgencyId, targetUserId);
+  if (!result.ok) return { ok: false, error: result.error ?? "Error removiendo member" };
+
+  revalidatePath("/admin/leads");
+  return { ok: true };
 }
 
 /* ---------------------------------------------------------- */
