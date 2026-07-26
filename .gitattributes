@@ -1,0 +1,20 @@
+# Normalización de fin de línea: LF canónico en el repo (fin del ruido CRLF).
+* text=auto eol=lf
+
+# Binarios: no tocar.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.svg  text
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
+
+# Scripts y SQL: siempre LF.
+*.sh  text eol=lf
+*.sql text eol=lf
