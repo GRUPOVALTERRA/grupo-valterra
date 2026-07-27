@@ -17,6 +17,7 @@ export function LoginForm({ legacyAction, magicAction, nextPath, initialError }:
     switch (initialError) {
       case "missing-code": return "Link incompleto. Solicitá uno nuevo.";
       case "invalid-link": return "El link expiró o ya fue usado.";
+      case "too-many": return "Demasiados intentos. Esperá unos minutos.";
       case "server-config": return "Error de configuración del servidor.";
       case undefined: return null;
       default: return initialError;

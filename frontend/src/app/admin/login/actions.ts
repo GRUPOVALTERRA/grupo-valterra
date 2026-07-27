@@ -97,7 +97,14 @@ export async function requestMagicLink(
     return { ok: false, error: `Demasiadas solicitudes. Reintenta en ${rl.retryAfterSec}s.` };
   }
 
-  // Usar URL canónica configurada para evitar invalid-link en magic link emails
+  // Migración token_hash en DOS FASES (sin ventana de rotura):
+  //  - FASE CÓDIGO (esta): emailRedirectTo sigue apuntando a /auth/callback → el
+  //    magic link PKCE actual queda 100% funcional. /auth/confirm se agrega pero
+  //    permanece dormido hasta la fase de configuración.
+  //  - FASE CONFIG (posterior al deploy, sin deploy de código): se cambia SOLO el
+  //    template "Magic link or OTP" a token_hash apuntando a {{ .SiteURL }}/auth/confirm
+  //    (ver docs/auth/magic-link.token-hash.proposed.html). El template usa SiteURL
+  //    (mismo sitio) → NO requiere nueva Redirect URL. Rollback = revertir el template.
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://grupo-valterra.vercel.app";
   const origin = siteUrl.replace(/\/$/, "");
   const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(safeNext)}`;
