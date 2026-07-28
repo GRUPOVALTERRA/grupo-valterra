@@ -49,11 +49,11 @@ test.describe("token_hash /auth/confirm — requiere build con feature (E2E_CONF
     await expect(page.getByRole("button", { name: /Ingresar/i })).toHaveCount(0);
   });
 
-  test("escenario 7 — type distinto de 'email' (magiclink, foo) → página 'inválido'", async ({ page }) => {
-    for (const type of ["magiclink", "foo", "invite"]) {
+  test("escenario 7 — type fuera de la allowlist (magiclink, recovery, foo) → página 'inválido'", async ({ page }) => {
+    for (const type of ["magiclink", "recovery", "signup", "email_change", "foo"]) {
       await page.goto(`/auth/confirm?token_hash=fake_hash_123&type=${type}`);
       await expect(page.getByText(/Link inv[aá]lido o incompleto/i)).toBeVisible();
-      await expect(page.getByRole("button", { name: /Ingresar/i })).toHaveCount(0);
+      await expect(page.getByRole("button")).toHaveCount(0);
     }
   });
 
@@ -76,6 +76,86 @@ test.describe("token_hash /auth/confirm — requiere build con feature (E2E_CONF
     // El form debe postear (POST-only) y preservar el next válido.
     await expect(page.locator("form")).toHaveCount(1);
     expect(await page.locator('input[name="next"]').inputValue()).toBe("/admin/properties");
+  });
+
+  /* ---------------- Sprint 13 · C2 — invitaciones (flujo dormido) ---------------- */
+
+  const VALID_INVITE_ID = "74d0dfa9-c3b4-49f6-aeac-7da8a5fbe3be";
+
+  test("invite 1 — type=invite SIN invite_id → página 'inválido', sin botón", async ({ page }) => {
+    await page.goto("/auth/confirm?token_hash=fake_hash_123&type=invite");
+    await expect(page.getByText(/Link inv[aá]lido o incompleto/i)).toBeVisible();
+    await expect(page.getByRole("button")).toHaveCount(0);
+  });
+
+  test("invite 2 — invite_id mal formado → página 'inválido'", async ({ page }) => {
+    for (const bad of [
+      "no-es-uuid",
+      "eb18a3f5-8636-1cd6-8622-e766575b9922", // v1, no v4
+      "eb18a3f5-8636-4cd6-8622-e766575b992", // corto
+      "' or '1'='1",
+    ]) {
+      await page.goto(
+        `/auth/confirm?token_hash=fake_hash_123&type=invite&invite_id=${encodeURIComponent(bad)}`,
+      );
+      await expect(page.getByText(/Link inv[aá]lido o incompleto/i)).toBeVisible();
+      await expect(page.getByRole("button")).toHaveCount(0);
+    }
+  });
+
+  test("invite 3 — GET válido muestra el botón, NO verifica y NO crea sesión", async ({ page }) => {
+    const resp = await page.goto(
+      `/auth/confirm?token_hash=fake_hash_123&type=invite&invite_id=${VALID_INVITE_ID}`,
+    );
+    expect(resp?.status()).toBe(200);
+    await expect(page.getByRole("button", { name: /Aceptar invitaci[oó]n/i })).toBeVisible();
+    await expect(page).toHaveURL(/\/auth\/confirm/);
+    const cookies = await page.context().cookies();
+    expect(cookies.some((c) => /sb-.*-auth-token/.test(c.name))).toBe(false);
+  });
+
+  test("invite 4 — el formulario propaga invite_id y NO lleva agency_id ni role", async ({ page }) => {
+    await page.goto(
+      `/auth/confirm?token_hash=fake_hash_123&type=invite&invite_id=${VALID_INVITE_ID}&next=/admin/properties`,
+    );
+    expect(await page.locator('input[name="invite_id"]').inputValue()).toBe(VALID_INVITE_ID);
+    expect(await page.locator('input[name="type"]').inputValue()).toBe("invite");
+    expect(await page.locator('input[name="next"]').inputValue()).toBe("/admin/properties");
+    // Ningún dato de autorización viaja por el formulario.
+    await expect(page.locator('input[name="agency_id"]')).toHaveCount(0);
+    await expect(page.locator('input[name="role"]')).toHaveCount(0);
+    await expect(page.locator('input[name="email"]')).toHaveCount(0);
+    await expect(page.locator('input[name="user_id"]')).toHaveCount(0);
+    // Un único formulario, con exactamente los 4 hidden esperados.
+    await expect(page.locator("form")).toHaveCount(1);
+    await expect(page.locator('form input[type="hidden"]')).toHaveCount(4);
+  });
+
+  test("invite 5 — el GET no revela agencia, rol ni email del invitado", async ({ page }) => {
+    await page.goto(
+      `/auth/confirm?token_hash=fake_hash_123&type=invite&invite_id=${VALID_INVITE_ID}`,
+    );
+    const body = (await page.locator("body").innerText()).toLowerCase();
+    // Copy genérico: nada de agencia concreta, rol ni dirección de correo.
+    expect(body).not.toMatch(/owner|admin|agent|viewer/);
+    expect(body).not.toMatch(/@/);
+    expect(body).toMatch(/invitaci[oó]n/);
+  });
+
+  test("invite 6 — next externo se sanea también en el flujo de invitación", async ({ page }) => {
+    await page.goto(
+      `/auth/confirm?token_hash=fake_hash_123&type=invite&invite_id=${VALID_INVITE_ID}&next=https://evil.com/admin`,
+    );
+    expect(await page.locator('input[name="next"]').inputValue()).toBe("/admin/leads");
+  });
+
+  test("invite 7 — headers de seguridad también con type=invite", async ({ request }) => {
+    const r = await request.get(
+      `/auth/confirm?token_hash=x&type=invite&invite_id=${VALID_INVITE_ID}`,
+    );
+    expect((r.headers()["cache-control"] ?? "").toLowerCase()).toContain("no-store");
+    expect((r.headers()["referrer-policy"] ?? "").toLowerCase()).toContain("no-referrer");
+    expect((r.headers()["x-robots-tag"] ?? "").toLowerCase()).toContain("noindex");
   });
 
   test("hardening — headers no-store / no-referrer / noindex en /auth/confirm", async ({ request }) => {
