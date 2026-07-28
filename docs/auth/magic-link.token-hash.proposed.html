@@ -1,0 +1,52 @@
+<!--
+  PROPUESTA de template Supabase → Authentication → Emails → "Magic link or OTP".
+  Sprint 13 · C1 — migración a token_hash (multi-dispositivo, anti-prefetch).
+
+  ⚠️ NO APLICADO. Propuesta exacta para revisión del Director/dueño.
+     Se aplica SOLO en la FASE DE CONFIGURACIÓN posterior al deploy de código
+     (ver S13_MAGICLINK_TOKENHASH_DESIGN_v4.md). Migración en dos fases: el código
+     ya está desplegado y /auth/confirm activo, pero el magic link sigue en PKCE
+     hasta que se aplica este template → sin ventana de rotura.
+
+  Subject sugerido:  Tu acceso a Grupo Valterra
+
+  Sintaxis confirmada con la doc oficial de Supabase (Passwordless email logins):
+    template:   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email
+    verifyOtp:  supabase.auth.verifyOtp({ token_hash, type: 'email' })
+
+  Enlace final (con destino fijo /admin/leads):
+    {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/admin/leads
+
+  - Usa {{ .SiteURL }} → mismo sitio → NO requiere agregar una Redirect URL nueva
+    (no hay parámetro redirect_to; el link va directo a /auth/confirm).
+  - El link abre la PÁGINA INTERMEDIA (GET, no verifica). Recién el botón "Ingresar"
+    (POST) llama verifyOtp → sesión. Un escáner de email hace GET, no POST: NO consume
+    el token. verifyOtp(token_hash, type:'email') NO usa code_verifier → funciona en
+    cualquier navegador/dispositivo.
+
+  Rollback inmediato (sin deploy de código): volver este template a
+    <p><a href="{{ .ConfirmationURL }}">Sign in</a></p>
+  (restaura el flujo PKCE por /auth/callback, que sigue existiendo).
+-->
+<h2 style="margin:0 0 8px 0;font-family:Arial,Helvetica,sans-serif;color:#0A2342;">Tu acceso a Grupo Valterra</h2>
+
+<p style="font-family:Arial,Helvetica,sans-serif;color:#4A5568;font-size:14px;line-height:1.6;">
+  Tocá el botón para ingresar al panel. El link es de un solo uso y podés abrirlo en
+  cualquier dispositivo.
+</p>
+
+<p style="margin:24px 0;">
+  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/admin/leads"
+     style="display:inline-block;background:#0A2342;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:14px;">
+    Ingresar
+  </a>
+</p>
+
+<p style="font-family:Arial,Helvetica,sans-serif;color:#94A3B8;font-size:12px;line-height:1.6;word-break:break-all;">
+  Si el botón no funciona, copiá y pegá este enlace en tu navegador:<br/>
+  {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/admin/leads
+</p>
+
+<p style="font-family:Arial,Helvetica,sans-serif;color:#C9A86A;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;margin-top:20px;">
+  Grupo Valterra · Soluciones Inmobiliarias del Litoral
+</p>
