@@ -4,13 +4,16 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+// Se importa el NÚCLEO PURO, no el repositorio: éste lleva `import "server-only"`
+// y arrastraría el cliente admin. Los helpers son exactamente los mismos objetos
+// (el repositorio los re-exporta desde acá), así que no hay riesgo de testear una copia.
 import {
   normalizeInviteEmail,
   isValidInviteRole,
   canGrantRole,
   buildInviteIdempotencyKey,
   INVITE_ROLES,
-} from "../src/services/agency-invites-repo";
+} from "../src/lib/agency-invites-core";
 
 /**
  * Sprint 13 · C2 — cobertura del flujo de invitaciones.
@@ -21,13 +24,21 @@ import {
  *
  *  2. INTEGRACIÓN SQL contra PostgreSQL — ejercita de verdad la migración 0007
  *     y la RPC de 0008. Requiere:
- *        INVITES_TEST_DB = cadena de conexión libpq a una base VACÍA y DESECHABLE
- *        (ej. postgres://postgres@/valterra_test?host=/tmp/pgsock&port=5433)
+ *        INVITES_TEST_DB          = cadena libpq a una base VACÍA y DESECHABLE
+ *                                   (ej. postgres://postgres@/valterra_test?host=/tmp/pgsock&port=5433)
+ *        INVITES_TEST_DESTRUCTIVE = YES   (confirmación explícita)
  *     y el binario `psql` en el PATH.
- *     El grupo se OMITE (skip) si falta la variable; nunca se marca verde sin correr.
+ *     Sin INVITES_TEST_DB el grupo se OMITE (skip) explicando qué falta; nunca se
+ *     marca verde sin correr.
  *
- * ⚠️ La suite CREA Y DESTRUYE objetos en esa base. Jamás apuntarla a producción:
- *     hay una guarda explícita que aborta si la URL parece de Supabase.
+ * ⚠️ La suite CREA Y DESTRUYE objetos. La guarda es una ALLOWLIST, no una lista
+ *    negra: sólo se aceptan loopback o socket Unix local, con un nombre de base
+ *    terminado en _test/_tmp/_scratch, y la base debe estar vacía de tablas de la
+ *    aplicación. Cualquier host remoto —Supabase, Neon, Railway, RDS, un VPS—
+ *    aborta. Ver inspectInviteTestDbUrl() y su batería de pruebas puras.
+ *
+ * Los comandos se ejecutan con execFile (sin shell) y ni la URL ni las
+ * credenciales se imprimen jamás.
  */
 
 /* ================================================================== */
@@ -108,7 +119,7 @@ test.describe("repositorio de invitaciones — helpers puros", () => {
     const k3 = buildInviteIdempotencyKey("ag-1", "a@test.local", "n2");
     expect(k1).toBe(k2); // mismo input → misma clave
     expect(k1).not.toBe(k3); // el nonce permite reemisión tras revocar
-    expect(k1).toContain("ag-1");
+    expect(k1).toMatch(/^invite:[0-9a-f]{64}$/); // derivada por SHA-256, no concatenada
     expect(k1.length).toBeLessThanOrEqual(200); // CHECK de 0007
     expect(k1).not.toMatch(/token|secret|key=|eyJ/i);
   });
@@ -116,6 +127,133 @@ test.describe("repositorio de invitaciones — helpers puros", () => {
   test("la clave respeta el límite del CHECK con entradas largas", () => {
     const k = buildInviteIdempotencyKey("x".repeat(300), `${"y".repeat(200)}@test.local`, "z".repeat(100));
     expect(k.length).toBeLessThanOrEqual(200);
+  });
+
+  test("el nonce NUNCA desaparece, ni con el email máximo de 320 caracteres", () => {
+    // Regresión del hallazgo C2A5-B: la versión anterior concatenaba y truncaba
+    // a 200, de modo que un email largo se comía el nonce y dos emisiones
+    // distintas colisionaban en la misma clave.
+    const maxEmail = `${"a".repeat(310)}@x.co`; // 316 caracteres
+    expect(maxEmail.length).toBeLessThanOrEqual(320);
+    const agency = "b1b8b5e3-7d7f-47f0-b5d8-a135fb562fc9";
+    const k1 = buildInviteIdempotencyKey(agency, maxEmail, "nonce-1");
+    const k2 = buildInviteIdempotencyKey(agency, maxEmail, "nonce-2");
+    expect(k1).not.toBe(k2);
+    expect(k1.length).toBe(71);
+    expect(k2.length).toBe(71);
+  });
+
+  test("distinta agencia o distinto email producen claves distintas", () => {
+    const base = buildInviteIdempotencyKey("ag-1", "a@test.local", "n");
+    expect(buildInviteIdempotencyKey("ag-2", "a@test.local", "n")).not.toBe(base);
+    expect(buildInviteIdempotencyKey("ag-1", "b@test.local", "n")).not.toBe(base);
+  });
+
+  test("la codificación es inyectiva: no colisiona por reagrupar separadores", () => {
+    // Con una concatenación ingenua "a:b"+"c" y "a"+"b:c" darían el mismo material.
+    expect(buildInviteIdempotencyKey("a:b", "c@t.co", "n")).not.toBe(
+      buildInviteIdempotencyKey("a", "b:c@t.co", "n"),
+    );
+    expect(buildInviteIdempotencyKey("a", "b@t.co", "c|d")).not.toBe(
+      buildInviteIdempotencyKey("a", "b@t.co|c", "d"),
+    );
+  });
+
+  test("la clave no expone PII: ni el email ni la agencia aparecen en claro", () => {
+    const k = buildInviteIdempotencyKey("b1b8b5e3-7d7f-47f0", "gustavo@valterra.com.ar", "n1");
+    expect(k).not.toContain("gustavo");
+    expect(k).not.toContain("valterra");
+    expect(k).not.toContain("b1b8b5e3");
+    expect(k).toMatch(/^invite:[0-9a-f]{64}$/);
+  });
+});
+
+test.describe("guarda de base desechable — inspectInviteTestDbUrl", () => {
+  const ok = (u: string) => inspectInviteTestDbUrl(u);
+
+  test("acepta loopback con base descartable", () => {
+    expect(ok("postgres://postgres@localhost:5432/valterra_test").ok).toBe(true);
+    expect(ok("postgres://u:p@127.0.0.1:5433/algo_tmp").ok).toBe(true);
+    expect(ok("postgresql://postgres@[::1]:5432/x_scratch").ok).toBe(true);
+  });
+
+  test("acepta socket Unix local", () => {
+    expect(ok("postgres://postgres@/valterra_test?host=/tmp/pgsock&port=5433").ok).toBe(true);
+    expect(ok("postgres://postgres@/x_tmp?host=/var/run/postgresql").ok).toBe(true);
+  });
+
+  test("rechaza Supabase, Neon, Railway, RDS y cualquier host remoto", () => {
+    for (const u of [
+      "postgres://u:p@db.rbjfvhtpytspaekvefng.supabase.co:5432/postgres_test",
+      "postgres://u:p@ep-cool-1234.eu-central-1.aws.neon.tech/neondb_test",
+      "postgres://u:p@containers-us-west-1.railway.app:6543/railway_test",
+      "postgres://u:p@mydb.abc123.us-east-1.rds.amazonaws.com:5432/app_test",
+      "postgres://u:p@10.0.0.5:5432/app_test",
+      "postgres://u:p@192.168.1.20:5432/app_test",
+      "postgres://u:p@db.interno.valterra.ar:5432/app_test",
+    ]) {
+      const v = ok(u);
+      expect(v.ok).toBe(false);
+      if (!v.ok) expect(v.reason).toMatch(/host no loopback/);
+    }
+  });
+
+  test("rechaza un socket fuera de rutas locales permitidas", () => {
+    const v = ok("postgres://postgres@/x_test?host=/mnt/remoto/pg");
+    expect(v.ok).toBe(false);
+    if (!v.ok) expect(v.reason).toMatch(/ruta local permitida/);
+  });
+
+  test("rechaza la forma sin host y sin socket", () => {
+    const v = ok("postgres://postgres@/x_test");
+    expect(v.ok).toBe(false);
+    if (!v.ok) expect(v.reason).toMatch(/no declara host ni socket local/);
+  });
+
+  test("rechaza socket local combinado con host TCP remoto", () => {
+    const v = ok("postgres://u:p@db.remoto.com:5432/x_test?host=/tmp/pgsock");
+    expect(v.ok).toBe(false);
+    if (!v.ok) expect(v.reason).toMatch(/host no loopback/);
+  });
+
+  test("rechaza traversal en la ruta del socket", () => {
+    const v = ok("postgres://postgres@/x_test?host=/tmp/../etc/pg");
+    expect(v.ok).toBe(false);
+  });
+
+  test("rechaza nombres de base productivos aunque el host sea local", () => {
+    for (const db of ["postgres", "valterra", "produccion", "main", "app"]) {
+      const v = ok(`postgres://postgres@localhost:5432/${db}`);
+      expect(v.ok).toBe(false);
+      if (!v.ok) expect(v.reason).toMatch(/no termina en/);
+    }
+  });
+
+  test("rechaza entradas vacías, no-URL y protocolos ajenos", () => {
+    expect(ok("").ok).toBe(false);
+    expect(ok("   ").ok).toBe(false);
+    expect(ok("no-es-una-url").ok).toBe(false);
+    expect(ok("mysql://root@localhost/x_test").ok).toBe(false);
+    expect(ok("postgres://postgres@localhost:5432/").ok).toBe(false);
+  });
+
+  test("el motivo del rechazo nunca incluye credenciales", () => {
+    const v = ok("postgres://usuario:SUPERSECRETO@db.remoto.com:5432/app_test");
+    expect(v.ok).toBe(false);
+    if (!v.ok) {
+      expect(v.reason).not.toContain("SUPERSECRETO");
+      expect(v.reason).not.toContain("usuario");
+    }
+  });
+
+  test("la lista de tablas de aplicación cubre todo el esquema propio", () => {
+    expect([...APP_TABLES].sort()).toEqual([
+      "agencies",
+      "agency_invites",
+      "agency_members",
+      "leads",
+      "properties",
+    ]);
   });
 });
 
@@ -125,7 +263,101 @@ test.describe("repositorio de invitaciones — helpers puros", () => {
 
 const PG_URL = process.env.INVITES_TEST_DB ?? "";
 const HAS_PG = PG_URL.length > 0;
+const DESTRUCTIVE_OK = process.env.INVITES_TEST_DESTRUCTIVE === "YES";
 const execFileAsync = promisify(execFile);
+
+/* ---------------- Guarda de base desechable (hallazgo C2A5-C) ---------------- */
+
+export type DbGuardVerdict = { ok: true; database: string } | { ok: false; reason: string };
+
+/** Hosts aceptados: sólo loopback demostrable. */
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]", "0:0:0:0:0:0:0:1"]);
+/** Sufijos obligatorios del nombre de base. */
+const DISPOSABLE_SUFFIXES = ["_test", "_tmp", "_scratch"];
+/** Rutas locales admitidas para sockets Unix. */
+const LOCAL_SOCKET_PREFIXES = ["/tmp/", "/var/run/postgresql", "/run/postgresql", "/private/tmp/"];
+
+/**
+ * Valida —de forma PURA— que una cadena libpq apunte a una base local y desechable.
+ *
+ * No basta con rechazar Supabase: cualquier host remoto (Neon, Railway, RDS, un VPS)
+ * podría contener datos reales. La política es allowlist, no denylist: se acepta
+ * únicamente loopback o socket Unix local, y el nombre de la base debe declarar
+ * explícitamente que es descartable.
+ *
+ * Nunca devuelve la URL ni credenciales en el motivo del rechazo.
+ */
+/** Marcador interno para la forma con socket Unix, que no declara host. */
+const SOCKET_PLACEHOLDER = "unix.invalid";
+
+/**
+ * `new URL()` (WHATWG) RECHAZA la forma libpq de socket Unix
+ * `postgres://usuario@/base?host=/tmp/sock`: hay userinfo pero la autoridad no
+ * declara host. Se inserta un host marcador sólo para poder parsear, y se
+ * recuerda que la autoridad venía sin host.
+ */
+function toParseableUrl(raw: string): { url: string; authorityHadNoHost: boolean } {
+  const m = raw.match(/^([a-zA-Z][a-zA-Z0-9+.-]*:\/\/)([^/?#]*)(\/[\s\S]*)?$/);
+  if (!m) return { url: raw, authorityHadNoHost: false };
+  const [, scheme, authority, rest = ""] = m;
+  const hostPart = authority.includes("@")
+    ? authority.slice(authority.lastIndexOf("@") + 1)
+    : authority;
+  if (hostPart === "") {
+    return { url: `${scheme}${authority}${SOCKET_PLACEHOLDER}${rest}`, authorityHadNoHost: true };
+  }
+  return { url: raw, authorityHadNoHost: false };
+}
+
+export function inspectInviteTestDbUrl(raw: string): DbGuardVerdict {
+  if (typeof raw !== "string" || raw.trim() === "") {
+    return { ok: false, reason: "INVITES_TEST_DB vacía" };
+  }
+  const { url: parseable, authorityHadNoHost } = toParseableUrl(raw.trim());
+  let u: URL;
+  try {
+    u = new URL(parseable);
+  } catch {
+    return { ok: false, reason: "INVITES_TEST_DB no es una URL válida" };
+  }
+  if (!/^postgres(ql)?:$/.test(u.protocol)) {
+    return { ok: false, reason: `protocolo no soportado: ${u.protocol}` };
+  }
+
+  // Socket Unix: libpq lo expresa como ?host=/ruta, con la autoridad sin host.
+  const socketHost = u.searchParams.get("host");
+  if (socketHost) {
+    if (!socketHost.startsWith("/") || socketHost.includes("..")) {
+      return { ok: false, reason: "el socket no es una ruta local absoluta" };
+    }
+    if (!LOCAL_SOCKET_PREFIXES.some((p) => socketHost.startsWith(p))) {
+      return { ok: false, reason: "el socket no está en una ruta local permitida" };
+    }
+    // Si además se declaró un host TCP, debe ser loopback.
+    if (!authorityHadNoHost && !LOCAL_HOSTS.has(u.hostname)) {
+      return { ok: false, reason: `socket local pero host no loopback: ${u.hostname}` };
+    }
+  } else if (authorityHadNoHost) {
+    // Sin host en la autoridad y sin ?host=: no se puede demostrar que sea local.
+    return { ok: false, reason: "la URL no declara host ni socket local" };
+  } else if (!LOCAL_HOSTS.has(u.hostname)) {
+    // Cualquier host que no sea loopback queda fuera, sin importar el proveedor.
+    return { ok: false, reason: `host no loopback: ${u.hostname || "(vacío)"}` };
+  }
+
+  const database = decodeURIComponent(u.pathname.replace(/^\//, ""));
+  if (!database) return { ok: false, reason: "la URL no indica base de datos" };
+  if (!DISPOSABLE_SUFFIXES.some((s) => database.endsWith(s))) {
+    return {
+      ok: false,
+      reason: `el nombre de base "${database}" no termina en ${DISPOSABLE_SUFFIXES.join(" / ")}`,
+    };
+  }
+  return { ok: true, database };
+}
+
+/** Tablas de la aplicación: si alguna existe, la base NO está vacía. */
+const APP_TABLES = ["leads", "properties", "agencies", "agency_members", "agency_invites"];
 
 /** Emulación mínima de Supabase + migraciones reales del repo. */
 function buildSchemaSql(): string {
@@ -198,16 +430,31 @@ test.describe("integración SQL — agency_invites + accept_agency_invite", () =
 
   test.beforeAll(() => {
     if (!HAS_PG) return;
-    // Guarda dura: jamás contra Supabase / producción.
-    if (/supabase\.co|supabase\.com/i.test(PG_URL)) {
-      throw new Error("INVITES_TEST_DB apunta a Supabase. Esta suite destruye datos: abortada.");
+
+    // ---- Guarda de base desechable, ANTES de cualquier DDL ----
+    // 1. Confirmación destructiva explícita.
+    if (!DESTRUCTIVE_OK) {
+      throw new Error(
+        "Falta INVITES_TEST_DESTRUCTIVE=YES. Esta suite crea y destruye objetos: abortada.",
+      );
     }
-    // Idempotencia del setup: si el esquema ya está construido, no se re-aplica
-    // (0003 contiene un RENAME que no es re-ejecutable).
-    const already = psql(
-      "select count(*) from pg_tables where schemaname='public' and tablename='agency_invites';",
+    // 2. La URL debe ser demostrablemente local y de una base descartable.
+    const verdict = inspectInviteTestDbUrl(PG_URL);
+    if (!verdict.ok) {
+      throw new Error(`INVITES_TEST_DB rechazada: ${verdict.reason}. Abortada.`);
+    }
+    // 3. La base debe estar VACÍA de tablas de la aplicación. Si alguna existe,
+    //    se aborta ruidosamente — nunca un return silencioso que siga usándola.
+    const existing = psql(
+      `select coalesce(string_agg(tablename, ','), '') from pg_tables ` +
+        `where schemaname='public' and tablename in (${APP_TABLES.map((t) => `'${t}'`).join(",")});`,
     ).trim();
-    if (already === "1") return;
+    if (existing !== "") {
+      throw new Error(
+        `La base "${verdict.database}" ya contiene tablas de la aplicación (${existing}). ` +
+          "Se exige una base VACÍA y desechable: abortada.",
+      );
+    }
 
     const root = join(process.cwd(), "supabase");
     psqlFile(buildSchemaSql());
@@ -327,6 +574,42 @@ update public.agency_invites set status='revoked', revoked_at=now() where idempo
       `select count(*) from public.agency_members where user_id='10000000-0000-4000-8000-000000000001';`,
     ).trim();
     expect(count).toBe("1");
+  });
+
+  test("membership eliminada tras aceptar → membership_missing, sin recrearla", () => {
+    // Hallazgo C2A5-A: el invitado conserva el invite_id. Si un owner lo expulsa
+    // y vuelve a invocar la RPC, devolver already_accepted sería un falso éxito
+    // (ok=true con role=null) y reinsertar sería revertir la expulsión.
+    psqlFile(`insert into public.agency_invites (agency_id,email_normalized,role,idempotency_key)
+      select a.id,'expuls@inv.local','agent','it-kick' from public.agencies a where a.slug='inv-b';`);
+    psqlFile(`insert into auth.users (id,email) values
+      ('10000000-0000-4000-8000-00000000000f','expuls@inv.local') on conflict (id) do nothing;`);
+    const id = inviteId("it-kick");
+    const uid = "10000000-0000-4000-8000-00000000000f";
+
+    // 1. acepta
+    const first = acceptAs(uid, id);
+    expect(first.ok).toBe(true);
+    expect(first.reason).toBe("accepted");
+    expect(memberRole("inv-b", uid)).toBe("agent");
+
+    // 2. un owner elimina la membership
+    psqlFile(`delete from public.agency_members where user_id='${uid}';`);
+    expect(memberRole("inv-b", uid)).toBe("");
+
+    // 3. el invitado reutiliza el invite_id
+    const again = acceptAs(uid, id);
+    expect(again.ok).toBe(false);
+    expect(again.reason).toBe("membership_missing");
+    // 4. no se inventa rol ni agencia
+    expect(again.role).toBeUndefined();
+    expect(again.agency_id).toBeUndefined();
+    // 5. la membership sigue ausente: la expulsión no se revierte
+    expect(memberRole("inv-b", uid)).toBe("");
+    // 6. la invitación permanece accepted, sin modificarse
+    expect(
+      psql(`select status from public.agency_invites where idempotency_key='it-kick';`).trim(),
+    ).toBe("accepted");
   });
 
   test("user_metadata y app_metadata manipuladas NO otorgan agencia ni rol", () => {

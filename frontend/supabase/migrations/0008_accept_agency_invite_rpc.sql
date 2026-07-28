@@ -101,13 +101,27 @@ begin
   end if;
 
   -- ------------------------------------------------------
-  -- 4. Reentrada idempotente del MISMO usuario
+  -- 4. Reentrada del MISMO usuario sobre una invitación ya aceptada
+  --
+  --    Idempotente SÓLO si la membership sigue existiendo. Si un owner
+  --    la eliminó deliberadamente después, el invitado conserva el
+  --    invite_id y podría reinvocar la RPC: devolver 'already_accepted'
+  --    ahí sería un FALSO ÉXITO (ok=true con role=null) y volver a
+  --    insertar sería revertir una expulsión.
+  --    Se responde 'membership_missing' sin recrear nada y sin tocar
+  --    la invitación, que permanece 'accepted'. Recuperar el acceso
+  --    exige una invitación nueva.
   -- ------------------------------------------------------
   if v_inv.status = 'accepted' then
     if v_inv.accepted_by is not distinct from v_uid then
       select m.role into v_role_effective
         from public.agency_members m
        where m.agency_id = v_inv.agency_id and m.user_id = v_uid;
+
+      if v_role_effective is null then
+        return jsonb_build_object('ok', false, 'reason', 'membership_missing');
+      end if;
+
       return jsonb_build_object(
         'ok', true, 'reason', 'already_accepted',
         'agency_id', v_inv.agency_id,
@@ -222,7 +236,11 @@ grant execute on function public.accept_agency_invite(uuid) to authenticated;
 --  ok=false · agency_missing          la agencia ya no existe
 --  ok=false · invalid_role            rol fuera de la allowlist
 --  ok=false · membership_not_created  relectura sin membership → aborta seguro
---  ok=true  · already_accepted        reentrada del mismo usuario
+--  ok=false · membership_missing      ya aceptada por este usuario pero la
+--                                     membership fue eliminada después: NO se
+--                                     recrea (sería revertir una expulsión) y
+--                                     la invitación sigue 'accepted'
+--  ok=true  · already_accepted        reentrada del mismo usuario, membership viva
 --  ok=true  · accepted                camino feliz
 --
 -- En los casos ok=true se devuelven además: agency_id, role (rol
