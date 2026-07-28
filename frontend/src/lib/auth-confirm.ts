@@ -10,16 +10,19 @@
  */
 
 /**
- * Tipo de OTP aceptado por esta ruta: EXCLUSIVAMENTE 'email' (login por email).
+ * Tipos de OTP aceptados por esta ruta: EXCLUSIVAMENTE 'email' e 'invite'.
  *
- * Es el valor que la doc oficial de Supabase indica para magic link vía token_hash
- * (template `type=email` + `verifyOtp({ token_hash, type: 'email' })`).
+ *  · 'email'  → login por magic link (Sprint 13 · C1, activo en producción).
+ *  · 'invite' → aceptación de invitación de agencia (Sprint 13 · C2, DORMIDO:
+ *               nadie emite todavía links con este tipo).
  *
  * /auth/confirm NO es una ruta genérica: se excluyen a propósito
- * magiclink · recovery · signup · email_change · invite.
- * Las invitaciones permanecen en /auth/callback sin cambios.
+ * magiclink · recovery · signup · email_change.
+ *
+ * Ambos valores están tipados como EmailOtpType en @supabase/auth-js 2.105.4
+ * (verificado sobre la versión instalada, no sobre documentación).
  */
-export const ALLOWED_OTP_TYPES = ["email"] as const;
+export const ALLOWED_OTP_TYPES = ["email", "invite"] as const;
 
 export type AllowedOtpType = (typeof ALLOWED_OTP_TYPES)[number];
 
@@ -32,6 +35,25 @@ export const DEFAULT_NEXT = "/admin/leads";
  */
 export function isAllowedOtpType(type: unknown): type is AllowedOtpType {
   return typeof type === "string" && (ALLOWED_OTP_TYPES as readonly string[]).includes(type);
+}
+
+/** UUID v4 canónico (el que produce gen_random_uuid() en Postgres). */
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Valida el `invite_id` que viaja en el link de invitación (Sprint 13 · C2).
+ *
+ * Acepta ÚNICAMENTE un UUID v4 bien formado. Rechaza vacío, no-string, UUID de
+ * otra versión, y cualquier intento de inyección (comillas, espacios, SQL,
+ * caracteres de control): al no matchear la regex nunca llega a la base.
+ *
+ * SEGURIDAD — `invite_id` NO es una credencial. Por sí solo no otorga nada:
+ * la RPC public.accept_agency_invite() exige además sesión válida (auth.uid())
+ * y que el email autenticado coincida con el de la invitación. Por eso puede
+ * viajar en claro y no necesita firma.
+ */
+export function isValidInviteId(inviteId: unknown): inviteId is string {
+  return typeof inviteId === "string" && UUID_V4.test(inviteId);
 }
 
 /**
