@@ -1,16 +1,25 @@
 import Link from "next/link";
 import { confirmMagicLink } from "./actions";
-import { isAllowedOtpType, sanitizeNext } from "@/lib/auth-confirm";
+import { isAllowedOtpType, isValidInviteId, sanitizeNext } from "@/lib/auth-confirm";
 
 /**
- * /auth/confirm — página intermedia del flujo token_hash (Sprint 13 · C1).
+ * /auth/confirm — página intermedia del flujo token_hash (Sprint 13 · C1 y C2).
  *
  * VARIANTE B (anti-prefetch): el GET NO verifica el token. Solo muestra un botón
- * "Ingresar" que dispara un POST (server action confirmMagicLink). Los escáneres
- * de email hacen GET, no POST → no consumen el token de un solo uso.
+ * que dispara un POST (server action confirmMagicLink). Los escáneres de email
+ * hacen GET, no POST → no consumen el token de un solo uso.
  *
  * A diferencia de PKCE, este flujo NO depende de la cookie code_verifier del
  * navegador de origen → el link funciona en cualquier navegador/dispositivo.
+ *
+ * Sprint 13 · C2 (DORMIDO): soporta además `type=invite` con un `invite_id`.
+ *
+ * SEGURIDAD DEL GET — el GET es deliberadamente ciego:
+ *   · no llama verifyOtp
+ *   · NO consulta public.agency_invites
+ *   · no revela agencia, rol ni email del invitado
+ * Quien tenga el link sólo ve un texto genérico. Los datos concretos recién
+ * existen del lado del servidor, después de verificar la identidad en el POST.
  */
 
 export const dynamic = "force-dynamic";
@@ -26,17 +35,28 @@ const NAVY = "#0A2342";
 export default async function ConfirmPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token_hash?: string; type?: string; next?: string }>;
+  searchParams: Promise<{
+    token_hash?: string;
+    type?: string;
+    next?: string;
+    invite_id?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const tokenHash = sp.token_hash ?? "";
   const type = sp.type ?? "";
+  const inviteIdRaw = sp.invite_id ?? "";
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://grupo-valterra.vercel.app";
   const origin = siteUrl.replace(/\/$/, "");
   const safeNext = sanitizeNext(sp.next, origin);
 
-  const paramsValid = Boolean(tokenHash) && isAllowedOtpType(type);
+  const isInvite = type === "invite";
+  // Para invitaciones el invite_id es obligatorio y debe ser un UUID v4.
+  const inviteId = isValidInviteId(inviteIdRaw) ? inviteIdRaw : "";
+
+  const paramsValid =
+    Boolean(tokenHash) && isAllowedOtpType(type) && (!isInvite || Boolean(inviteId));
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0A2342] p-4">
@@ -60,10 +80,13 @@ export default async function ConfirmPage({
 
         {paramsValid ? (
           <>
-            <h1 className="mt-6 text-2xl font-bold text-[#0A2342]">Confirmá tu ingreso</h1>
+            <h1 className="mt-6 text-2xl font-bold text-[#0A2342]">
+              {isInvite ? "Aceptá tu invitación" : "Confirmá tu ingreso"}
+            </h1>
             <p className="mt-1 text-sm text-[#4A5568]">
-              Por seguridad, tu sesión se inicia recién cuando tocás el botón. El link es de un
-              solo uso.
+              {isInvite
+                ? "Te invitaron a sumarte a una agencia en Grupo Valterra. Tu acceso se crea recién cuando tocás el botón. El link es de un solo uso."
+                : "Por seguridad, tu sesión se inicia recién cuando tocás el botón. El link es de un solo uso."}
             </p>
 
             {/* POST-only: el GET (prefetch/escáner) no verifica ni consume el token. */}
@@ -71,11 +94,12 @@ export default async function ConfirmPage({
               <input type="hidden" name="token_hash" value={tokenHash} />
               <input type="hidden" name="type" value={type} />
               <input type="hidden" name="next" value={safeNext} />
+              {isInvite ? <input type="hidden" name="invite_id" value={inviteId} /> : null}
               <button
                 type="submit"
                 className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0A2342] text-sm font-bold text-white transition-all hover:bg-[#071A32]"
               >
-                Ingresar
+                {isInvite ? "Aceptar invitación e ingresar" : "Ingresar"}
               </button>
             </form>
 
