@@ -346,3 +346,101 @@ export async function markInviteRevoked(
     return fail({ kind: "database_error", message: err instanceof Error ? err.message : "unknown" });
   }
 }
+
+/* ---------------------------------------------------------- */
+/* Renovación y registro de fallo de email — C2D2             */
+/* ---------------------------------------------------------- */
+
+const RENEW_DEFAULT_DAYS = 7;
+
+export interface RenewInviteOptions {
+  /** Días de vigencia desde AHORA (server-side). Default 7, alineado con 0007. */
+  days?: number;
+  /** Limpia last_error al renovar (default true: la renovación es un reintento sano). */
+  clearLastError?: boolean;
+}
+
+/**
+ * Renueva el vencimiento de una invitación `pending` (reenvío controlado).
+ *
+ * La nueva expiración se calcula SIEMPRE server-side; el cliente no puede
+ * fijar fechas, estados ni ningún otro campo. Sólo afecta filas `pending`:
+ * una invitación accepted/revoked/expired/failed NUNCA se renueva (se crea
+ * una nueva). La autorización del actor ocurre ANTES, en el issuer — este
+ * repositorio no re-implementa permisos.
+ */
+export async function renewPendingInviteExpiry(
+  inviteId: string,
+  options?: RenewInviteOptions,
+): Promise<RepoResult<AgencyInviteRow>> {
+  if (!isSupabaseConfigured()) return fail({ kind: "not_configured" });
+  if (!inviteId || typeof inviteId !== "string") {
+    return fail({ kind: "invalid_input", field: "inviteId", message: "inviteId requerido" });
+  }
+  const days = options?.days ?? RENEW_DEFAULT_DAYS;
+  if (!Number.isFinite(days) || days <= 0 || days > 30) {
+    return fail({ kind: "invalid_input", field: "days", message: "days fuera de rango" });
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const patch: Record<string, unknown> = {
+      expires_at: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    if (options?.clearLastError !== false) patch.last_error = null;
+
+    const { data, error } = await withTimeout(
+      supabase
+        .from(TABLE)
+        .update(patch)
+        .eq("id", inviteId)
+        .eq("status", "pending")
+        .select(COLUMNS)
+        .maybeSingle(),
+      5000,
+      "agency_invites.renewExpiry",
+    );
+    if (error) return fail({ kind: "database_error", message: error.message });
+    if (!data) return fail({ kind: "not_found" });
+    log.info("agency_invites", "invitacion renovada", { inviteId, days });
+    return ok(data as unknown as AgencyInviteRow);
+  } catch (err) {
+    return fail({ kind: "database_error", message: err instanceof Error ? err.message : "unknown" });
+  }
+}
+
+/**
+ * Registra un fallo de ENTREGA de email sin cambiar el estado: la fila queda
+ * `pending` con `last_error`, habilitando el reenvío posterior (diseño C2D1
+ * §15-16: el email se envía último; su fallo no invalida la invitación).
+ * `reason` se trunca y NUNCA debe contener tokens ni secretos.
+ */
+export async function recordInviteEmailFailure(
+  inviteId: string,
+  reason: string,
+): Promise<RepoResult<AgencyInviteRow>> {
+  if (!isSupabaseConfigured()) return fail({ kind: "not_configured" });
+  if (!inviteId || typeof inviteId !== "string") {
+    return fail({ kind: "invalid_input", field: "inviteId", message: "inviteId requerido" });
+  }
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await withTimeout(
+      supabase
+        .from(TABLE)
+        .update({ last_error: String(reason ?? "").slice(0, 500) })
+        .eq("id", inviteId)
+        .eq("status", "pending")
+        .select(COLUMNS)
+        .maybeSingle(),
+      5000,
+      "agency_invites.recordEmailFailure",
+    );
+    if (error) return fail({ kind: "database_error", message: error.message });
+    if (!data) return fail({ kind: "not_found" });
+    log.warn("agency_invites", "email de invitacion fallo", { inviteId });
+    return ok(data as unknown as AgencyInviteRow);
+  } catch (err) {
+    return fail({ kind: "database_error", message: err instanceof Error ? err.message : "unknown" });
+  }
+}
