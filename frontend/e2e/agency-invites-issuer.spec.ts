@@ -390,22 +390,29 @@ test.describe("dormancia", () => {
     expect(typeof issuerMod.createDefaultIssuerDeps).toBe("function");
   });
 
-  test("ningún archivo productivo importa el issuer (cero call sites)", async () => {
+  test("el issuer tiene EXACTAMENTE un call site productivo (admin/agencies/actions.ts)", async () => {
     const { readdirSync, readFileSync, statSync } = await import("node:fs");
-    const { join } = await import("node:path");
-    const roots = [join(__dirname, "../src/app"), join(__dirname, "../src/services"), join(__dirname, "../src/lib")];
-    const offenders: string[] = [];
+    const { join, relative, sep } = await import("node:path");
+    const root = join(__dirname, "..");
+    const roots = [join(root, "src/app"), join(root, "src/services"), join(root, "src/lib")];
+    const consumers: string[] = [];
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {
         const p = join(dir, name);
         if (statSync(p).isDirectory()) { walk(p); continue; }
         if (!/\.(ts|tsx)$/.test(p)) continue;
         if (p.includes("agency-invites-issuer")) continue;
-        if (readFileSync(p, "utf8").includes("agency-invites-issuer")) offenders.push(p);
+        if (readFileSync(p, "utf8").includes("agency-invites-issuer")) {
+          consumers.push(relative(root, p).split(sep).join("/"));
+        }
       }
     };
     roots.forEach(walk);
-    expect(offenders).toEqual([]);
+    // C2D4: el issuer dejó de estar dormido, pero su superficie de consumo
+    // sigue siendo UNA sola. La igualdad exacta falla en los dos sentidos:
+    // si aparece otro consumidor (cutover que se desparrama) y si desaparece
+    // éste (regresión silenciosa al emisor viejo).
+    expect(consumers.sort()).toEqual(["src/app/admin/agencies/actions.ts"]);
   });
 
   test("los helpers del core siguen siendo los mismos objetos re-exportados", () => {
