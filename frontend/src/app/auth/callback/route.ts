@@ -1,8 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
 import { log } from "@/lib/logger";
-import { addAgencyMembership, type AgencyRole } from "@/services/agencies";
+import { sanitizeNext } from "@/lib/auth-confirm";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -10,18 +9,29 @@ export const runtime = "nodejs";
 /**
  * GET /auth/callback?code=xxx&next=/admin/leads
  *
- * 1. Exchange code → Supabase session (set cookies)
- * 2. Sprint 10 MF6: si user_metadata.pending_agency_id presente
- *    → INSERT agency_members (SERVICE_ROLE) + clear metadata
- * 3. Redirect a safeNext
+ * ÚNICA responsabilidad: intercambiar el `code` PKCE por una sesión y redirigir
+ * a una ruta interna segura.
+ *
+ * Sprint 13 · C2D6 — RETIRADA DEL FLUJO LEGADO. Esta ruta ya NO:
+ *   · lee user_metadata (pending_agency_id / pending_role);
+ *   · crea ni modifica public.agency_members;
+ *   · escribe metadata como parte de una autorización;
+ *   · usa el SERVICE_ROLE.
+ *
+ * La ÚNICA vía para otorgar una membership por invitación es ahora:
+ *   public.agency_invites → /auth/confirm → verifyOtp →
+ *   public.accept_agency_invite(p_invite_id)
+ * donde la agencia y el rol salen de una fila server-controlled y jamás de
+ * datos que el usuario pueda escribir con la clave ANON.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const nextRaw = searchParams.get("next") ?? "/admin/leads";
-  const safeNext = nextRaw.startsWith("/admin") && !nextRaw.startsWith("/admin/login")
-    ? nextRaw
-    : "/admin/leads";
+
+  // Mismo saneamiento anti open-redirect que /auth/confirm (helper compartido).
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? origin;
+  const canonicalOrigin = siteUrl.replace(/\/$/, "");
+  const safeNext = sanitizeNext(searchParams.get("next"), canonicalOrigin);
 
   if (!code) return NextResponse.redirect(`${origin}/admin/login?error=missing-code`);
 
@@ -44,60 +54,14 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
+    // Fallo de intercambio: NO se concede acceso ni se crea sesión.
     log.warn("auth/callback", "exchange failed", { message: error.message });
     return NextResponse.redirect(`${origin}/admin/login?error=invalid-link`);
   }
 
-  // ============================================================
-  // Sprint 10 MF6: process pending invite metadata (si aplica)
-  // ============================================================
-  const user = data.user;
-  const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
-  const pendingAgencyId = typeof meta.pending_agency_id === "string" ? meta.pending_agency_id : null;
-  const pendingRoleRaw = typeof meta.pending_role === "string" ? meta.pending_role : null;
-  const validRoles: AgencyRole[] = ["owner", "admin", "agent", "viewer"];
-  const pendingRole = pendingRoleRaw && validRoles.includes(pendingRoleRaw as AgencyRole)
-    ? (pendingRoleRaw as AgencyRole) : null;
-
-  if (user && pendingAgencyId && pendingRole) {
-    log.info("auth/callback", "pending invite detected", { userId: user.id, agencyId: pendingAgencyId, role: pendingRole });
-
-    const memRes = await addAgencyMembership({
-      agencyId: pendingAgencyId,
-      userId: user.id,
-      role: pendingRole,
-      fromInvite: true,
-    });
-
-    if (memRes.ok) {
-      // Clear pending metadata via admin API (NO bloquea redirect si falla)
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (serviceKey) {
-        try {
-          const admin = createClient(url, serviceKey, {
-            auth: { persistSession: false, autoRefreshToken: false },
-          });
-          await admin.auth.admin.updateUserById(user.id, {
-            user_metadata: {
-              ...meta,
-              pending_agency_id: null,
-              pending_role: null,
-              joined_agency_id: pendingAgencyId,
-              joined_at: new Date().toISOString(),
-            },
-          });
-        } catch (err) {
-          log.warn("auth/callback", "clear metadata failed (non-blocking)", err instanceof Error ? { message: err.message } : { err: String(err) });
-        }
-      }
-      log.info("auth/callback", "membership created from invite", { userId: user.id, agencyId: pendingAgencyId });
-    } else {
-      log.error("auth/callback", "membership insert failed", { userId: user.id, agencyId: pendingAgencyId, error: memRes.error });
-    }
-  }
-
-  log.info("auth/callback", "session established", { redirect: safeNext, userId: user?.id });
+  // Sin userId ni datos personales en logs.
+  log.info("auth/callback", "session established", { redirect: safeNext });
   return response;
 }
