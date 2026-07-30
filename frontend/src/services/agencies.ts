@@ -335,42 +335,17 @@ export async function listAgencyMembers(agencyId: string): Promise<AgencyMemberL
   }
 }
 
-/** INSERT membership idempotente (PK compuesta agency_id+user_id). */
-export async function addAgencyMembership(args: {
-  agencyId: string;
-  userId: string;
-  role: AgencyRole;
-  fromInvite?: boolean;
-}): Promise<{ ok: boolean; error?: string }> {
-  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
-  try {
-    const supabase = getSupabaseAdmin();
-    const now = new Date().toISOString();
-    const { error } = await withTimeout(
-      supabase.from("agency_members").upsert(
-        {
-          agency_id: args.agencyId,
-          user_id: args.userId,
-          role: args.role,
-          invited_at: args.fromInvite ? now : null,
-          joined_at: now,
-        },
-        { onConflict: "agency_id,user_id" },
-      ),
-      6000,
-      "agency_members.upsert",
-    );
-    if (error) {
-      log.error("agency_members", "upsert error", { ...args, message: error.message });
-      return { ok: false, error: error.message };
-    }
-    log.info("agency_members", "membership ok", args);
-    return { ok: true };
-  } catch (err) {
-    log.error("agency_members", "upsert exception", err instanceof Error ? err : { err: String(err) });
-    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
-  }
-}
+/**
+ * Sprint 13 · C2D6 — `addAgencyMembership()` fue ELIMINADA.
+ *
+ * Era un UPSERT con `onConflict: agency_id,user_id` que SOBRESCRIBÍA el rol de
+ * una membership existente, y su único consumidor era el flujo legado de
+ * /auth/callback basado en `user_metadata` (pending_agency_id / pending_role).
+ *
+ * La única vía para crear una membership por invitación es ahora la RPC
+ * `public.accept_agency_invite(p_invite_id)` (migración 0008), que usa
+ * `ON CONFLICT DO NOTHING` y JAMÁS actualiza un rol existente.
+ */
 
 /** Obtiene un member específico de una agency. Retorna null si no existe. */
 export async function getAgencyMember(
