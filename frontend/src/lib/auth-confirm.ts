@@ -104,3 +104,48 @@ export function sanitizeNext(next: unknown, origin: string): string {
   // Devolver ruta relativa (path + query), descartando el origin.
   return path + resolved.search;
 }
+
+
+export type ConfirmDecision =
+  | { kind: "invalid" }
+  | { kind: "login"; otpType: "email" }
+  | { kind: "invite"; otpType: AllowedOtpType; inviteId: string };
+
+/**
+ * Clasifica un request de /auth/confirm SIN tocar Supabase (helper puro).
+ * Fuente ÚNICA de verdad para page.tsx (render) y el server action (POST):
+ *
+ *   type=invite + invite_id válido  → invite (otpType 'invite')
+ *   type=email  + invite_id válido  → invite (otpType 'email')   ← usuario existente
+ *   type=email  sin invite_id       → login  (magic link común)
+ *   type=invite sin invite_id       → invalid
+ *   invite_id presente pero no UUID → invalid
+ *   token vacío / type no permitido → invalid
+ *
+ * El flujo de invitación depende de la PRESENCIA de un invite_id válido, no del
+ * tipo OTP (hotfix C2D5-H1): así el POST dispara accept_agency_invite también
+ * para usuarios Auth EXISTENTES, que reciben el link como magic link (type=email).
+ * verifyOtp conserva su semántica: se usa el `type` recibido tal cual.
+ */
+export function classifyConfirmRequest(input: {
+  tokenHash: unknown;
+  type: unknown;
+  inviteId: unknown;
+}): ConfirmDecision {
+  const { tokenHash, type, inviteId } = input;
+  if (typeof tokenHash !== "string" || tokenHash.length === 0) return { kind: "invalid" };
+  if (!isAllowedOtpType(type)) return { kind: "invalid" };
+
+  const inviteParamPresent = typeof inviteId === "string" && inviteId.length > 0;
+  const inviteIdValid = isValidInviteId(inviteId);
+
+  // invite_id presente pero mal formado → inválido (no se ignora en silencio).
+  if (inviteParamPresent && !inviteIdValid) return { kind: "invalid" };
+  // type=invite SIEMPRE exige invite_id válido.
+  if (type === "invite" && !inviteIdValid) return { kind: "invalid" };
+
+  if (inviteIdValid) {
+    return { kind: "invite", otpType: type, inviteId };
+  }
+  return { kind: "login", otpType: "email" };
+}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { confirmMagicLink } from "./actions";
-import { isAllowedOtpType, isValidInviteId, sanitizeNext } from "@/lib/auth-confirm";
+import { classifyConfirmRequest, sanitizeNext } from "@/lib/auth-confirm";
 
 /**
  * /auth/confirm — página intermedia del flujo token_hash (Sprint 13 · C1 y C2).
@@ -51,12 +51,11 @@ export default async function ConfirmPage({
   const origin = siteUrl.replace(/\/$/, "");
   const safeNext = sanitizeNext(sp.next, origin);
 
-  const isInvite = type === "invite";
-  // Para invitaciones el invite_id es obligatorio y debe ser un UUID v4.
-  const inviteId = isValidInviteId(inviteIdRaw) ? inviteIdRaw : "";
-
-  const paramsValid =
-    Boolean(tokenHash) && isAllowedOtpType(type) && (!isInvite || Boolean(inviteId));
+  // Clasificación ÚNICA (helper puro, mismo criterio que el server action).
+  const decision = classifyConfirmRequest({ tokenHash, type, inviteId: inviteIdRaw });
+  const paramsValid = decision.kind !== "invalid";
+  const isAgencyInviteFlow = decision.kind === "invite";
+  const inviteId = decision.kind === "invite" ? decision.inviteId : "";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0A2342] p-4">
@@ -81,10 +80,10 @@ export default async function ConfirmPage({
         {paramsValid ? (
           <>
             <h1 className="mt-6 text-2xl font-bold text-[#0A2342]">
-              {isInvite ? "Aceptá tu invitación" : "Confirmá tu ingreso"}
+              {isAgencyInviteFlow ? "Aceptá tu invitación" : "Confirmá tu ingreso"}
             </h1>
             <p className="mt-1 text-sm text-[#4A5568]">
-              {isInvite
+              {isAgencyInviteFlow
                 ? "Te invitaron a sumarte a una agencia en Grupo Valterra. Tu acceso se crea recién cuando tocás el botón. El link es de un solo uso."
                 : "Por seguridad, tu sesión se inicia recién cuando tocás el botón. El link es de un solo uso."}
             </p>
@@ -94,12 +93,12 @@ export default async function ConfirmPage({
               <input type="hidden" name="token_hash" value={tokenHash} />
               <input type="hidden" name="type" value={type} />
               <input type="hidden" name="next" value={safeNext} />
-              {isInvite ? <input type="hidden" name="invite_id" value={inviteId} /> : null}
+              {isAgencyInviteFlow ? <input type="hidden" name="invite_id" value={inviteId} /> : null}
               <button
                 type="submit"
                 className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#0A2342] text-sm font-bold text-white transition-all hover:bg-[#071A32]"
               >
-                {isInvite ? "Aceptar invitación e ingresar" : "Ingresar"}
+                {isAgencyInviteFlow ? "Aceptar invitación e ingresar" : "Ingresar"}
               </button>
             </form>
 

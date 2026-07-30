@@ -6,7 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { log } from "@/lib/logger";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
-import { sanitizeNext, isAllowedOtpType, isValidInviteId, DEFAULT_NEXT } from "@/lib/auth-confirm";
+import { sanitizeNext, classifyConfirmRequest, DEFAULT_NEXT } from "@/lib/auth-confirm";
 
 /**
  * Server action del flujo token_hash (Sprint 13 · C1 y C2).
@@ -48,26 +48,22 @@ export async function confirmMagicLink(formData: FormData): Promise<void> {
   const origin = siteUrl.replace(/\/$/, "");
   const safeNext = sanitizeNext(nextRaw, origin);
 
-  // Validaciones (sin exponer el token). Sólo 'email' e 'invite'.
-  if (!tokenHash || !isAllowedOtpType(typeRaw)) {
+  // Clasificación ÚNICA del request (helper puro, testeable). Define si es
+  // login común, flujo de invitación (type=email o invite + invite_id válido)
+  // o inválido. Mismo criterio que la página. Ver @/lib/auth-confirm.
+  const decision = classifyConfirmRequest({ tokenHash, type: typeRaw, inviteId: inviteIdRaw });
+  if (decision.kind === "invalid") {
     log.warn("auth/confirm", "invalid params", { hasToken: Boolean(tokenHash), type: typeRaw });
     redirect("/admin/login?error=invalid-link");
   }
 
-  const isInvite = typeRaw === "invite";
-
-  // El invite_id es obligatorio para invitaciones y debe ser un UUID v4.
-  // Se valida ANTES de tocar Supabase: un valor mal formado nunca llega a la base.
-  if (isInvite && !isValidInviteId(inviteIdRaw)) {
-    log.warn("auth/confirm", "invite sin invite_id valido", { hasInviteId: Boolean(inviteIdRaw) });
-    redirect("/admin/login?error=invalid-link");
-  }
-  const inviteId = isInvite ? inviteIdRaw : "";
+  const isAgencyInviteFlow = decision.kind === "invite";
+  const inviteId = decision.kind === "invite" ? decision.inviteId : "";
   // Referencia corta para logs: nunca el invite_id completo.
-  const inviteRef = isInvite ? inviteId.slice(0, 8) : "";
+  const inviteRef = isAgencyInviteFlow ? inviteId.slice(0, 8) : "";
 
-  // Tipo restringido a la allowlist ya validada.
-  const type: EmailOtpType = isInvite ? "invite" : "email";
+  // verifyOtp CONSERVA su semántica: usa el tipo recibido ('invite' o 'email').
+  const type: EmailOtpType = decision.otpType;
 
   // Rate limit por IP (defensa ante fuerza bruta de token_hash).
   const hdrs = await nextHeaders();
@@ -109,7 +105,7 @@ export async function confirmMagicLink(formData: FormData): Promise<void> {
   // La identidad ya está verificada; la AUTORIZACIÓN la resuelve la RPC.
   // Se envía ÚNICAMENTE p_invite_id: ni agencia, ni rol, ni email, ni userId.
   // ------------------------------------------------------------------
-  if (isInvite) {
+  if (isAgencyInviteFlow) {
     let accepted = false;
     let reason = "unknown";
 
