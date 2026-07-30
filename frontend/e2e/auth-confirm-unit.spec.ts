@@ -3,6 +3,7 @@ import {
   sanitizeNext,
   isAllowedOtpType,
   isValidInviteId,
+  classifyConfirmRequest,
   ALLOWED_OTP_TYPES,
   DEFAULT_NEXT,
 } from "../src/lib/auth-confirm";
@@ -119,5 +120,56 @@ test.describe("isValidInviteId — sólo UUID v4", () => {
     ]) {
       expect(isValidInviteId(v)).toBe(false);
     }
+  });
+});
+
+
+/**
+ * Hotfix C2D5-H1: classifyConfirmRequest — fuente única de decisión del flujo
+ * /auth/confirm. El flujo de invitación depende de la PRESENCIA de un invite_id
+ * válido, NO del tipo OTP, para que el usuario Auth existente (magic link
+ * type=email) también dispare accept_agency_invite.
+ */
+test.describe("classifyConfirmRequest — decisión de flujo", () => {
+  const TOK = "pkce_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const UUID = "7d2d86a2-bfae-4777-ae73-0112ffbe2c59";
+
+  test("type=invite + invite_id válido → invite (otpType invite)", () => {
+    const d = classifyConfirmRequest({ tokenHash: TOK, type: "invite", inviteId: UUID });
+    expect(d).toEqual({ kind: "invite", otpType: "invite", inviteId: UUID });
+  });
+
+  test("type=email + invite_id válido → invite (otpType email) — usuario existente", () => {
+    const d = classifyConfirmRequest({ tokenHash: TOK, type: "email", inviteId: UUID });
+    expect(d).toEqual({ kind: "invite", otpType: "email", inviteId: UUID });
+  });
+
+  test("type=email sin invite_id → login común (magic link)", () => {
+    const d = classifyConfirmRequest({ tokenHash: TOK, type: "email", inviteId: "" });
+    expect(d).toEqual({ kind: "login", otpType: "email" });
+  });
+
+  test("type=invite sin invite_id → invalid", () => {
+    expect(classifyConfirmRequest({ tokenHash: TOK, type: "invite", inviteId: "" }).kind).toBe("invalid");
+  });
+
+  test("invite_id presente pero mal formado → invalid (email o invite)", () => {
+    expect(classifyConfirmRequest({ tokenHash: TOK, type: "email", inviteId: "no-es-uuid" }).kind).toBe("invalid");
+    expect(classifyConfirmRequest({ tokenHash: TOK, type: "invite", inviteId: "'; drop table" }).kind).toBe("invalid");
+    // UUID no-v4 tampoco
+    expect(classifyConfirmRequest({ tokenHash: TOK, type: "email", inviteId: "00000000-0000-1000-8000-000000000000" }).kind).toBe("invalid");
+  });
+
+  test("token vacío o type no permitido → invalid", () => {
+    expect(classifyConfirmRequest({ tokenHash: "", type: "email", inviteId: "" }).kind).toBe("invalid");
+    expect(classifyConfirmRequest({ tokenHash: TOK, type: "magiclink", inviteId: "" }).kind).toBe("invalid");
+    expect(classifyConfirmRequest({ tokenHash: TOK, type: "recovery", inviteId: UUID }).kind).toBe("invalid");
+    expect(classifyConfirmRequest({ tokenHash: null, type: "email", inviteId: "" }).kind).toBe("invalid");
+  });
+
+  test("un magic link común NUNCA se convierte en invitación", () => {
+    const d = classifyConfirmRequest({ tokenHash: TOK, type: "email", inviteId: "" });
+    expect(d.kind).toBe("login");
+    expect(d).not.toHaveProperty("inviteId");
   });
 });
