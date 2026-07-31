@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
 import { getAllProperties, type PropertyFilters } from "@/services/properties";
+import { STATUS_LABEL, effectiveStatus, type PropertyStatus } from "@/lib/property-status";
 import {
-  STATUS_LABEL,
-  effectiveStatus,
-  isPropertyStatus,
-  type PropertyStatus,
-} from "@/lib/property-status";
+  ADMIN_STATUS_FILTER_LABEL,
+  DEFAULT_STATUS_FILTER,
+  parseAdminStatusFilter,
+  statusesForFilter,
+} from "@/lib/admin-property-filter";
 import { normalizeSearchTerm } from "@/lib/property-search";
 import { PropertyStatusControls } from "./PropertyStatusControls";
 import { PropertyListFilters } from "./PropertyListFilters";
@@ -35,14 +36,21 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
   const ctx = await getAdminContext();
   if (!ctx.scopedAgencyId && !ctx.isSuperAdmin) notFound();
 
-  // Los filtros llegan por la URL y se validan acá: un `estado` que no sea del
-  // ciclo de vida se ignora en vez de viajar a la consulta.
+  // Los filtros llegan por la URL y se resuelven acá. Sin `?estado=`, o con uno
+  // que no entendemos, el panel muestra las activas: las archivadas se piden.
   const params = await searchParams;
-  const status = isPropertyStatus(params.estado) ? params.estado : undefined;
+  const statusFilter = parseAdminStatusFilter(params.estado);
   const search = normalizeSearchTerm(params.q);
-  const hasFilters = Boolean(status ?? search);
+  const hasFilters = statusFilter !== DEFAULT_STATUS_FILTER || Boolean(search);
 
-  const filters: PropertyFilters = { includeDraft: true, status, search };
+  const filters: PropertyFilters = {
+    includeDraft: true,
+    statuses: statusesForFilter(statusFilter),
+    search,
+    // El panel ofrece editar y publicar sobre cada fila: no puede listar
+    // propiedades de muestra sobre las que esas acciones no existen.
+    allowSampleFallback: false,
+  };
   if (!ctx.isSuperAdmin && ctx.scopedAgencyId) {
     filters.agencyId = ctx.scopedAgencyId;
   } else if (ctx.isSuperAdmin && ctx.scopedAgencyId) {
@@ -100,27 +108,45 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
             Properties
           </h1>
           <p className="mt-1 text-xs text-slate-500">
-            {total} {total === 1 ? "property visible" : "properties visibles"}
-            {hasFilters ? " con los filtros aplicados" : ""} · scope: {scopeLabel}
+            {total} {total === 1 ? "property visible" : "properties visibles"} ·{" "}
+            <span className="font-semibold text-[#0A2342]">
+              {ADMIN_STATUS_FILTER_LABEL[statusFilter]}
+            </span>
+            {search ? ` · "${search}"` : ""} · scope: {scopeLabel}
           </p>
           <p className="mt-1 text-[11px] text-slate-400">
-            Alta como borrador, publicacion y archivado. Galeria y mapa en proximas entregas.
+            {statusFilter === DEFAULT_STATUS_FILTER
+              ? "Las archivadas quedan fuera del listado operativo: se ven eligiendo Archivadas o Todas."
+              : "Alta como borrador, publicacion y archivado. Galeria y mapa en proximas entregas."}
           </p>
         </header>
 
-        <PropertyListFilters estado={status ?? ""} q={search ?? ""} resultCount={total} />
+        <PropertyListFilters estado={statusFilter} q={search ?? ""} resultCount={total} />
 
         {properties.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[#D8D8D8] bg-white px-6 py-10 text-center text-sm text-slate-500">
             {hasFilters ? (
               <>
                 <p>Ninguna property coincide con la busqueda o el estado elegido.</p>
-                <Link
-                  href="/admin/properties"
-                  className="mt-3 inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
-                >
-                  Ver todas
-                </Link>
+                <p className="mt-1 text-xs text-slate-400">
+                  {statusFilter === DEFAULT_STATUS_FILTER
+                    ? "Las archivadas no entran en este listado: probá con Archivadas o Todas."
+                    : "Probá con otro estado o limpiando la busqueda."}
+                </p>
+                <span className="mt-3 inline-flex flex-wrap justify-center gap-2">
+                  <Link
+                    href="/admin/properties"
+                    className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
+                  >
+                    Ver activas
+                  </Link>
+                  <Link
+                    href="/admin/properties?estado=all"
+                    className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
+                  >
+                    Ver todas, incluidas archivadas
+                  </Link>
+                </span>
               </>
             ) : (
               "Sin properties en este scope."

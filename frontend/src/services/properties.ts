@@ -151,16 +151,34 @@ export interface PropertyFilters {
   agencyId?: string;
   /** Sprint 11 MF2: include unpublished properties. Admin path only. Default false. */
   includeDraft?: boolean;
-  /** Sprint 15-B: estado del ciclo de vida. Admin path only. */
-  status?: PropertyStatus;
+  /**
+   * Sprint 15-B: estados del ciclo de vida admitidos. Admin path only.
+   * `undefined` es "sin restriccion"; el panel sólo lo manda al pedir "Todas".
+   */
+  statuses?: readonly PropertyStatus[];
   /** Sprint 15-B: texto libre sobre titulo/slug/ciudad/barrio. Admin path only. */
   search?: string;
+  /**
+   * Sprint 15-B: permitir el snapshot de muestra si no hay datos reales.
+   * El sitio publico lo quiere (nunca queda en blanco por un problema de
+   * infraestructura); el panel no, porque ofrece editar y publicar sobre cada
+   * fila y esas acciones no pueden apuntar a una propiedad inventada.
+   * Default true, que es el comportamiento historico.
+   */
+  allowSampleFallback?: boolean;
   limit?: number;
 }
 
-/** true si la consulta lleva filtros del panel que pueden no matchear nada. */
-function hasNarrowingFilters(filters: PropertyFilters): boolean {
-  return Boolean(filters.status || filters.search);
+/**
+ * ¿Se puede rellenar con el snapshot de muestra?
+ *
+ * No, si quien llama lo prohibió, y tampoco si la consulta llevaba un filtro de
+ * estado o una búsqueda: ahí cero filas es una respuesta legítima y no la señal
+ * de una base sin datos que el snapshot venía a cubrir.
+ */
+function sampleFallbackAllowed(filters: PropertyFilters): boolean {
+  if (filters.allowSampleFallback === false) return false;
+  return !(filters.statuses || filters.search);
 }
 
 function applyFiltersMemory(items: Property[], filters: PropertyFilters): Property[] {
@@ -169,7 +187,10 @@ function applyFiltersMemory(items: Property[], filters: PropertyFilters): Proper
   if (filters.city) result = result.filter((p) => p.city === filters.city);
   if (filters.operationType) result = result.filter((p) => p.operation === filters.operationType);
   if (filters.propertyType) result = result.filter((p) => p.type === filters.propertyType);
-  if (filters.status) result = result.filter((p) => effectiveStatus(p) === filters.status);
+  if (filters.statuses) {
+    const statuses = filters.statuses;
+    result = result.filter((p) => statuses.includes(effectiveStatus(p)));
+  }
   if (filters.search) {
     const term = filters.search;
     result = result.filter((p) => matchesSearch(p, term));
@@ -183,6 +204,7 @@ function applyFiltersMemory(items: Property[], filters: PropertyFilters): Proper
 export async function getAllProperties(filters: PropertyFilters = {}): Promise<Property[]> {
   if (!isSupabaseConfigured()) {
     warnMemoryMode("supabase no configurado");
+    if (!sampleFallbackAllowed(filters)) return [];
     return applyFiltersMemory(memorySnapshot(), filters);
   }
   try {
@@ -200,7 +222,7 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
     if (filters.operationType) query = query.eq("operation_type", filters.operationType);
     if (filters.propertyType) query = query.eq("property_type", filters.propertyType);
     if (filters.agencyId) query = query.eq("agency_id", filters.agencyId);
-    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.statuses) query = query.in("status", [...filters.statuses]);
     if (filters.search) query = query.or(buildSearchOrFilter(filters.search));
     if (filters.limit && filters.limit > 0) query = query.limit(filters.limit);
 
@@ -210,16 +232,22 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
       // Migración 0009 aún no aplicada: reintentar sin las columnas nuevas.
       log.warn("properties", "columnas de ciclo de vida ausentes; usando esquema previo");
 
-      // Sin columna `status`, el ciclo de vida se reduce al espejo `published`:
-      // sólo "borrador" y "publicada" son representables. Pedir un estado que
-      // todavía no puede existir devuelve vacío, no la lista entera.
-      if (filters.status === "unpublished" || filters.status === "archived") return [];
-
       let legacy = supabase.from("properties").select(COLUMNS_BASE);
       if (filters.agencyId) legacy = legacy.eq("agency_id", filters.agencyId);
       if (!filters.includeDraft) legacy = legacy.eq("published", true);
-      if (filters.status === "published") legacy = legacy.eq("published", true);
-      if (filters.status === "draft") legacy = legacy.eq("published", false);
+
+      // Sin columna `status`, el ciclo de vida se reduce al espejo `published`:
+      // sólo "borrador" y "publicada" son representables. Un filtro que pide
+      // únicamente estados que la migración 0009 introduce devuelve vacío, no
+      // la lista entera, que es lo que haría un filtro ignorado en silencio.
+      if (filters.statuses) {
+        const wantsPublished = filters.statuses.includes("published");
+        const wantsDraft = filters.statuses.includes("draft");
+        if (!wantsPublished && !wantsDraft) return [];
+        if (wantsPublished && !wantsDraft) legacy = legacy.eq("published", true);
+        if (wantsDraft && !wantsPublished) legacy = legacy.eq("published", false);
+      }
+
       if (filters.operationType) legacy = legacy.eq("operation_type", filters.operationType);
       if (filters.propertyType) legacy = legacy.eq("property_type", filters.propertyType);
       if (filters.city) legacy = legacy.ilike("city", `%${filters.city}%`);
@@ -233,14 +261,12 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
     if (error) {
       log.error("properties", "supabase select error", { message: error.message, code: error.code });
       warnMemoryMode("supabase select fallido");
+      if (!sampleFallbackAllowed(filters)) return [];
       return applyFiltersMemory(memorySnapshot(), filters);
     }
     const rows = ((data as unknown) as PropertyRow[] | null) ?? [];
     if (rows.length === 0) {
-      // Cero filas con un filtro de estado o una búsqueda activa es una
-      // respuesta, no una base sin datos: caer al snapshot mostraría
-      // propiedades de muestra como si fueran del operador.
-      if (hasNarrowingFilters(filters)) return [];
+      if (!sampleFallbackAllowed(filters)) return [];
       warnMemoryMode("tabla properties vacia");
       return applyFiltersMemory(memorySnapshot(), filters);
     }
@@ -248,6 +274,7 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
   } catch (err) {
     log.error("properties", "getAllProperties fallo", err instanceof Error ? err : { err: String(err) });
     warnMemoryMode("supabase exception");
+    if (!sampleFallbackAllowed(filters)) return [];
     return applyFiltersMemory(memorySnapshot(), filters);
   }
 }

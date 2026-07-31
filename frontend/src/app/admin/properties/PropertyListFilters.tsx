@@ -2,7 +2,12 @@
 
 import { useRef, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { PROPERTY_STATUSES, STATUS_LABEL, type PropertyStatus } from "@/lib/property-status";
+import {
+  ADMIN_STATUS_FILTERS,
+  ADMIN_STATUS_FILTER_LABEL,
+  DEFAULT_STATUS_FILTER,
+  type AdminStatusFilter,
+} from "@/lib/admin-property-filter";
 
 /**
  * Filtros del listado administrativo — Sprint 15-B.
@@ -14,18 +19,23 @@ import { PROPERTY_STATUSES, STATUS_LABEL, type PropertyStatus } from "@/lib/prop
  *  2. publicar o archivar dispara `router.refresh()`; con el filtro en la URL,
  *     el operador vuelve a la misma vista y no al listado completo;
  *  3. una vista filtrada se puede compartir o dejar abierta en una pestaña.
+ *
+ * El default ("Activas") no viaja en la URL: `/admin/properties` y
+ * `?estado=active` son la misma vista, y el select lo muestra seleccionado para
+ * que quede claro que el listado no está mostrando todo.
  */
 
 const BASE_PATH = "/admin/properties";
 
-const STATUS_OPTIONS: { value: "" | PropertyStatus; label: string }[] = [
-  { value: "", label: "Todos los estados" },
-  ...PROPERTY_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] })),
-];
+const STATUS_OPTIONS = ADMIN_STATUS_FILTERS.map((value) => ({
+  value,
+  label: ADMIN_STATUS_FILTER_LABEL[value],
+}));
 
 function buildUrl(next: { estado?: string; q?: string }): string {
   const params = new URLSearchParams();
-  if (next.estado) params.set("estado", next.estado);
+  // El default no se escribe: la URL canónica del listado no lleva `estado`.
+  if (next.estado && next.estado !== DEFAULT_STATUS_FILTER) params.set("estado", next.estado);
   const q = next.q?.trim();
   if (q) params.set("q", q);
   const qs = params.toString();
@@ -37,14 +47,14 @@ export function PropertyListFilters({
   q,
   resultCount,
 }: {
-  estado: PropertyStatus | "";
+  estado: AdminStatusFilter;
   q: string;
   resultCount: number;
 }) {
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const activeCount = [estado, q].filter(Boolean).length;
+  const activeCount = [estado !== DEFAULT_STATUS_FILTER, Boolean(q)].filter(Boolean).length;
 
   function handleStatusChange(e: ChangeEvent<HTMLSelectElement>) {
     router.push(buildUrl({ estado: e.target.value, q: searchRef.current?.value }));
