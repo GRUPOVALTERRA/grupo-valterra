@@ -1,4 +1,6 @@
 import { getSupabaseAdmin, isSupabaseConfigured, withTimeout } from "@/lib/supabase";
+import type { PropertyStatus } from "@/lib/property-status";
+import { slugify, resolveSlug } from "@/lib/property-slug";
 import { log } from "@/lib/logger";
 import { MOCK_PROPERTIES, type Property, type PropertyOperation, type PropertyType } from "./mock-properties";
 import { getPropertyImageUrl } from "./properties-storage";
@@ -40,6 +42,9 @@ interface PropertyRow {
   agent_phone: string | null;
   agency_id: string | null;
   published: boolean;
+  status?: string | null;
+  published_at?: string | null;
+  archived_at?: string | null;
   featured: boolean;
   featured_order: number;
   created_at: string;
@@ -51,7 +56,8 @@ const COLUMNS =
   "city,neighborhood,province,country,address,lat,lng," +
   "bedrooms,bathrooms,parking,covered_area_m2,total_area_m2," +
   "badges,cover_image,gallery,agent_name,agent_phone,agency_id," +
-  "published,featured,featured_order,created_at,updated_at";
+  "published,featured,featured_order,created_at,updated_at," +
+  "status,published_at,archived_at";
 
 function toNumberOrUndefined(v: number | string | null | undefined): number | undefined {
   if (v === null || v === undefined) return undefined;
@@ -98,6 +104,7 @@ function rowToProperty(row: PropertyRow): Property {
     agencyId: row.agency_id ?? undefined,
     description: row.description ?? undefined,
     published: row.published,
+    status: (row.status as PropertyStatus | undefined) ?? (row.published ? "published" : "draft"),
     lat: toNumberOrUndefined(row.lat),
     lng: toNumberOrUndefined(row.lng),
   };
@@ -290,6 +297,159 @@ export async function updateProperty(args: {
     return { ok: true };
   } catch (err) {
     log.error("properties", "update exception", err instanceof Error ? err : { err: String(err) });
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+  }
+}
+
+/* ==========================================================
+ * Sprint 15-A · Alta y ciclo de vida
+ * ========================================================== */
+
+/**
+ * Crea una propiedad como BORRADOR.
+ *
+ * `agencyId` lo resuelve el server desde la sesión (nunca llega del cliente),
+ * y el `slug` se deriva del título con resolución determinística de colisiones.
+ * El estado inicial es siempre `draft`: publicar es un paso explícito y aparte.
+ */
+export async function createProperty(args: {
+  agencyId: string;
+  createdBy?: string | null;
+  data: {
+    title: string;
+    description?: string | null;
+    price: number;
+    currency: string;
+    operationType: string;
+    propertyType: string;
+    city: string;
+    province: string;
+    neighborhood?: string | null;
+    address?: string | null;
+    bedrooms?: number | null;
+    bathrooms?: number | null;
+    parking?: number | null;
+    coveredAreaM2?: number | null;
+    totalAreaM2?: number | null;
+  };
+}): Promise<{ ok: boolean; slug?: string; id?: string; error?: string }> {
+  if (!args.agencyId) return { ok: false, error: "agencyId requerido" };
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+
+  const base = slugify(args.data.title);
+  if (!base) return { ok: false, error: "El titulo no permite generar un slug" };
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    // Slugs ya ocupados que comparten la base, para resolver colisión.
+    const { data: taken, error: takenErr } = await withTimeout(
+      supabase.from("properties").select("slug").like("slug", `${base}%`),
+      6000,
+      "properties.slugScan",
+    );
+    if (takenErr) {
+      log.error("properties", "slug scan error", { message: takenErr.message });
+      return { ok: false, error: takenErr.message };
+    }
+    const slug = resolveSlug(args.data.title, (taken ?? []).map((r) => r.slug as string));
+
+    const d = args.data;
+    const { data: inserted, error } = await withTimeout(
+      supabase
+        .from("properties")
+        .insert({
+          slug,
+          title: d.title,
+          description: d.description ?? null,
+          price: d.price,
+          currency: d.currency,
+          operation_type: d.operationType,
+          property_type: d.propertyType,
+          city: d.city,
+          province: d.province,
+          neighborhood: d.neighborhood ?? null,
+          address: d.address ?? null,
+          bedrooms: d.bedrooms ?? null,
+          bathrooms: d.bathrooms ?? null,
+          parking: d.parking ?? null,
+          covered_area_m2: d.coveredAreaM2 ?? null,
+          total_area_m2: d.totalAreaM2 ?? null,
+          agency_id: args.agencyId,
+          status: "draft",
+          created_by: args.createdBy ?? null,
+          updated_by: args.createdBy ?? null,
+        })
+        .select("id,slug")
+        .single(),
+      6000,
+      "properties.insert",
+    );
+
+    if (error) {
+      log.error("properties", "insert error", {
+        agencyId: args.agencyId,
+        message: error.message,
+        code: error.code,
+      });
+      return { ok: false, error: error.message };
+    }
+
+    log.info("properties", "property creada (draft)", {
+      id: inserted?.id,
+      slug: inserted?.slug,
+      agencyId: args.agencyId,
+    });
+    return { ok: true, id: inserted?.id as string, slug: inserted?.slug as string };
+  } catch (err) {
+    log.error("properties", "insert exception", err instanceof Error ? err : { err: String(err) });
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+  }
+}
+
+/**
+ * Cambia el estado de una propiedad.
+ *
+ * El filtro por `agency_id` es un segundo cerrojo además de la verificación de
+ * pertenencia que hace la server action: si la propiedad no es de esa agencia,
+ * el UPDATE no afecta ninguna fila.
+ */
+export async function setPropertyStatus(args: {
+  id: string;
+  agencyId: string;
+  status: string;
+  updatedBy?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!args.id || !args.agencyId) return { ok: false, error: "id y agencyId son requeridos" };
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await withTimeout(
+      supabase
+        .from("properties")
+        .update({ status: args.status, updated_by: args.updatedBy ?? null })
+        .eq("id", args.id)
+        .eq("agency_id", args.agencyId),
+      6000,
+      "properties.setStatus",
+    );
+    if (error) {
+      log.error("properties", "setStatus error", {
+        id: args.id,
+        agencyId: args.agencyId,
+        status: args.status,
+        message: error.message,
+      });
+      return { ok: false, error: error.message };
+    }
+    log.info("properties", "status actualizado", {
+      id: args.id,
+      agencyId: args.agencyId,
+      status: args.status,
+    });
+    return { ok: true };
+  } catch (err) {
+    log.error("properties", "setStatus exception", err instanceof Error ? err : { err: String(err) });
     return { ok: false, error: err instanceof Error ? err.message : "unknown" };
   }
 }
