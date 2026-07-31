@@ -4,7 +4,17 @@ import { headers as nextHeaders } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { log } from "@/lib/logger";
 import { getAdminContext } from "@/lib/admin-context";
-import { getPropertyBySlug, updateProperty } from "@/services/properties";
+import {
+  getPropertyBySlug,
+  updateProperty,
+  createProperty,
+  setPropertyStatus,
+} from "@/services/properties";
+import {
+  canTransition,
+  isPropertyStatus,
+  type PropertyStatus,
+} from "@/lib/property-status";
 import { uploadPropertyImage } from "@/services/properties-storage";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { validateProperty } from "@/lib/validateProperty";
@@ -221,4 +231,195 @@ export async function updatePropertyDetailsAction(
   revalidatePath("/");
 
   return { ok: true };
+}
+
+/* ==========================================================
+ * Sprint 15-A · Alta y ciclo de vida
+ * ========================================================== */
+
+/**
+ * Matriz de permisos derivada de la RLS vigente (migración 0005), sin inventar
+ * roles nuevos:
+ *   · insert/update de properties  → owner, admin, agent
+ *   · delete ("managers")          → owner, admin
+ * Publicar, despublicar y archivar cambian la visibilidad pública o retiran la
+ * propiedad de circulación, así que se reservan al mismo conjunto de managers
+ * que la política ya considera habilitado para las acciones destructivas.
+ */
+const EDITOR_ROLES = ["owner", "admin", "agent"] as const;
+const MANAGER_ROLES = ["owner", "admin"] as const;
+
+type AllowedRole = (typeof EDITOR_ROLES)[number];
+
+/**
+ * Resuelve agencia y permiso desde la sesión. El cliente nunca aporta
+ * `agency_id`: se deriva del contexto autenticado.
+ */
+async function requireAgencyPermission(
+  ctx: Awaited<ReturnType<typeof getAdminContext>>,
+  need: "edit" | "manage",
+  targetAgencyId?: string | null,
+): Promise<{ ok: true; agencyId: string; userId: string | null } | { ok: false; error: string }> {
+  const allowed = need === "manage" ? MANAGER_ROLES : EDITOR_ROLES;
+
+  if (ctx.isSuperAdmin) {
+    const agencyId = targetAgencyId ?? ctx.scopedAgencyId;
+    if (!agencyId) return { ok: false, error: "Sin agencia en contexto" };
+    return { ok: true, agencyId, userId: ctx.userId ?? null };
+  }
+
+  const agencyId = targetAgencyId ?? ctx.scopedAgencyId;
+  if (!agencyId) return { ok: false, error: "Sesion no autorizada" };
+
+  const membership = ctx.memberships.find((m) => m.agencyId === agencyId);
+  if (!membership) return { ok: false, error: "No pertenece a esta agencia" };
+  if (!(allowed as readonly string[]).includes(membership.role as AllowedRole)) {
+    return {
+      ok: false,
+      error:
+        need === "manage"
+          ? "Tu rol no puede publicar ni archivar propiedades"
+          : "Tu rol no puede editar propiedades",
+    };
+  }
+  return { ok: true, agencyId, userId: ctx.userId ?? null };
+}
+
+export interface CreatePropertyResult {
+  ok: boolean;
+  error?: string;
+  errors?: Record<string, string>;
+  slug?: string;
+}
+
+/** Alta de propiedad. Siempre nace como borrador. */
+export async function createPropertyAction(
+  formData: FormData,
+): Promise<CreatePropertyResult> {
+  const ctx = await getAdminContext();
+  const perm = await requireAgencyPermission(ctx, "edit");
+  if (!perm.ok) return { ok: false, error: perm.error };
+
+  const hdrs = await nextHeaders();
+  const rl = rateLimit(`property-create:${getClientIp(hdrs)}`, { limit: 10, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return { ok: false, error: `Demasiadas altas. Reintenta en ${rl.retryAfterSec}s.` };
+  }
+
+  const str = (k: string) => String(formData.get(k) ?? "").trim();
+  const num = (k: string) => {
+    const raw = str(k);
+    if (!raw) return null;
+    const n = Number(raw.replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const validation = validateProperty({
+    title: str("title"),
+    description: str("description") || undefined,
+    price: num("price") ?? undefined,
+    currency: str("currency") || undefined,
+    operation_type: str("operationType") || undefined,
+    property_type: str("propertyType") || undefined,
+    city: str("city") || undefined,
+    province: str("province") || undefined,
+  });
+  if (!validation.valid) {
+    return { ok: false, error: "Revisa los campos marcados", errors: validation.errors };
+  }
+
+  const res = await createProperty({
+    agencyId: perm.agencyId,
+    createdBy: perm.userId,
+    data: {
+      title: str("title"),
+      description: str("description") || null,
+      price: num("price") ?? 0,
+      currency: str("currency") || "USD",
+      operationType: str("operationType"),
+      propertyType: str("propertyType"),
+      city: str("city"),
+      province: str("province"),
+      neighborhood: str("neighborhood") || null,
+      address: str("address") || null,
+      bedrooms: num("bedrooms"),
+      bathrooms: num("bathrooms"),
+      parking: num("parking"),
+      coveredAreaM2: num("coveredAreaM2"),
+      totalAreaM2: num("totalAreaM2"),
+    },
+  });
+
+  if (!res.ok) return { ok: false, error: res.error ?? "No se pudo crear la propiedad" };
+
+  revalidatePath("/admin/properties");
+  return { ok: true, slug: res.slug };
+}
+
+export interface StatusResult {
+  ok: boolean;
+  error?: string;
+  status?: PropertyStatus;
+}
+
+/**
+ * Publicar / despublicar / archivar / restaurar.
+ *
+ * Publicar exige que la propiedad tenga los campos mínimos válidos: una ficha
+ * incompleta no puede llegar al sitio público.
+ */
+export async function setPropertyStatusAction(
+  formData: FormData,
+): Promise<StatusResult> {
+  const ctx = await getAdminContext();
+
+  const slug = String(formData.get("slug") ?? "").trim();
+  const next = String(formData.get("status") ?? "").trim();
+  if (!slug) return { ok: false, error: "slug requerido" };
+  if (!isPropertyStatus(next)) return { ok: false, error: "Estado invalido" };
+
+  const property = await getPropertyBySlug(slug, { includeDraft: true });
+  if (!property?.id) return { ok: false, error: "Property no encontrada" };
+
+  const perm = await requireAgencyPermission(ctx, "manage", property.agencyId ?? null);
+  if (!perm.ok) return { ok: false, error: perm.error };
+  if (property.agencyId && property.agencyId !== perm.agencyId) {
+    return { ok: false, error: "Property de otra agencia" };
+  }
+
+  const current: PropertyStatus = property.status ?? (property.published ? "published" : "draft");
+  if (current === next) return { ok: true, status: current };
+  if (!canTransition(current, next)) {
+    return { ok: false, error: `Transicion no permitida: ${current} → ${next}` };
+  }
+
+  if (next === "published") {
+    const validation = validateProperty({
+      title: property.title,
+      description: property.description ?? undefined,
+      price: property.price,
+      currency: property.currency,
+      operation_type: property.operation,
+      property_type: property.type,
+      city: property.city,
+      province: property.province,
+    });
+    if (!validation.valid) {
+      return { ok: false, error: "No se puede publicar: la ficha esta incompleta" };
+    }
+  }
+
+  const res = await setPropertyStatus({
+    id: property.id,
+    agencyId: perm.agencyId,
+    status: next,
+    updatedBy: perm.userId,
+  });
+  if (!res.ok) return { ok: false, error: res.error ?? "No se pudo cambiar el estado" };
+
+  revalidatePath("/admin/properties");
+  revalidatePath("/propiedades");
+  revalidatePath(`/propiedades/${slug}`);
+  revalidatePath("/");
+  return { ok: true, status: next };
 }
