@@ -37,6 +37,8 @@ export interface Property {
   /** Sprint 11 MF3 - admin edit form needs initial values from DB */
   description?: string;
   published?: boolean;
+  /** Sprint 15-A: estado del ciclo de vida. `published` es su espejo. */
+  status?: import("@/lib/property-status").PropertyStatus;
   /** Geo - opcional - activado en Sprint 11 (mapa Mapbox) */
   lat?: number;
   lng?: number;

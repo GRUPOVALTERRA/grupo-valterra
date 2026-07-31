@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { NewsletterForm } from "./NewsletterForm";
 
 /**
  * Enlaces del pie.
@@ -79,7 +78,7 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-3 lg:col-span-5">
+          <div className="grid gap-8 sm:grid-cols-2 lg:col-span-8">
             {COLUMNS.map((col) => (
               <div key={col.title}>
                 <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[#C9A86A]">
@@ -101,15 +100,12 @@ export function Footer() {
             ))}
           </div>
 
-          <div className="lg:col-span-3">
-            <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-[#C9A86A]">
-              Newsletter
-            </h4>
-            <p className="mt-4 text-sm text-white/70">
-              Recibí las mejores oportunidades del litoral antes que nadie.
-            </p>
-            <NewsletterForm />
-          </div>
+          {/*
+            Sprint 15-A — se retiró el bloque de newsletter. El formulario no
+            tenía endpoint: descartaba el email y aun así respondía "¡Gracias!
+            Te vamos a escribir pronto", una confirmación falsa. Se repone
+            cuando exista /api/newsletter con almacenamiento real.
+          */}
         </div>
 
         <div className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center">
