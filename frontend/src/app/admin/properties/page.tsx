@@ -2,8 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
 import { getAllProperties, type PropertyFilters } from "@/services/properties";
-import { STATUS_LABEL, type PropertyStatus } from "@/lib/property-status";
+import {
+  STATUS_LABEL,
+  effectiveStatus,
+  isPropertyStatus,
+  type PropertyStatus,
+} from "@/lib/property-status";
+import { normalizeSearchTerm } from "@/lib/property-search";
 import { PropertyStatusControls } from "./PropertyStatusControls";
+import { PropertyListFilters } from "./PropertyListFilters";
 
 const STATUS_STYLE: Record<PropertyStatus, string> = {
   draft: "bg-amber-100 text-amber-800",
@@ -11,11 +18,6 @@ const STATUS_STYLE: Record<PropertyStatus, string> = {
   unpublished: "bg-slate-200 text-slate-700",
   archived: "bg-red-100 text-red-800",
 };
-
-/** Estado efectivo: `status` si existe, si no se deriva de `published`. */
-function statusOf(p: { status?: PropertyStatus; published?: boolean }): PropertyStatus {
-  return p.status ?? (p.published ? "published" : "draft");
-}
 import { LogoutButton } from "@/app/admin/leads/LogoutButton";
 
 export const dynamic = "force-dynamic";
@@ -25,11 +27,22 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminPropertiesPage() {
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function AdminPropertiesPage({ searchParams }: PageProps) {
   const ctx = await getAdminContext();
   if (!ctx.scopedAgencyId && !ctx.isSuperAdmin) notFound();
 
-  const filters: PropertyFilters = { includeDraft: true };
+  // Los filtros llegan por la URL y se validan acá: un `estado` que no sea del
+  // ciclo de vida se ignora en vez de viajar a la consulta.
+  const params = await searchParams;
+  const status = isPropertyStatus(params.estado) ? params.estado : undefined;
+  const search = normalizeSearchTerm(params.q);
+  const hasFilters = Boolean(status ?? search);
+
+  const filters: PropertyFilters = { includeDraft: true, status, search };
   if (!ctx.isSuperAdmin && ctx.scopedAgencyId) {
     filters.agencyId = ctx.scopedAgencyId;
   } else if (ctx.isSuperAdmin && ctx.scopedAgencyId) {
@@ -87,16 +100,31 @@ export default async function AdminPropertiesPage() {
             Properties
           </h1>
           <p className="mt-1 text-xs text-slate-500">
-            {total} {total === 1 ? "property visible" : "properties visibles"} · scope: {scopeLabel}
+            {total} {total === 1 ? "property visible" : "properties visibles"}
+            {hasFilters ? " con los filtros aplicados" : ""} · scope: {scopeLabel}
           </p>
           <p className="mt-1 text-[11px] text-slate-400">
             Alta como borrador, publicacion y archivado. Galeria y mapa en proximas entregas.
           </p>
         </header>
 
+        <PropertyListFilters estado={status ?? ""} q={search ?? ""} resultCount={total} />
+
         {properties.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[#D8D8D8] bg-white px-6 py-10 text-center text-sm text-slate-500">
-            Sin properties en este scope.
+            {hasFilters ? (
+              <>
+                <p>Ninguna property coincide con la busqueda o el estado elegido.</p>
+                <Link
+                  href="/admin/properties"
+                  className="mt-3 inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
+                >
+                  Ver todas
+                </Link>
+              </>
+            ) : (
+              "Sin properties en este scope."
+            )}
           </div>
         ) : (
           <ul className="divide-y divide-[#D8D8D8] rounded-lg border border-[#D8D8D8] bg-white">
@@ -105,8 +133,8 @@ export default async function AdminPropertiesPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="truncate font-semibold text-[#0A2342]">{p.title}</span>
-                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${STATUS_STYLE[statusOf(p)]}`}>
-                      {STATUS_LABEL[statusOf(p)]}
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${STATUS_STYLE[effectiveStatus(p)]}`}>
+                      {STATUS_LABEL[effectiveStatus(p)]}
                     </span>
                   </div>
                   <div className="mt-0.5 truncate text-xs text-slate-500">
@@ -128,7 +156,7 @@ export default async function AdminPropertiesPage() {
                   </Link>
                   <PropertyStatusControls
                     slug={p.slug}
-                    status={statusOf(p)}
+                    status={effectiveStatus(p)}
                     canManage={canManage}
                   />
                 </div>
@@ -138,7 +166,7 @@ export default async function AdminPropertiesPage() {
         )}
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          Sprint 15-A · alta, ciclo de vida y permisos por agencia.
+          Sprint 15-B · filtro por estado y busqueda sobre el listado.
         </p>
       </div>
     </>

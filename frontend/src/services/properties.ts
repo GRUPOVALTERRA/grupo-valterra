@@ -1,5 +1,6 @@
 import { getSupabaseAdmin, isSupabaseConfigured, withTimeout } from "@/lib/supabase";
-import type { PropertyStatus } from "@/lib/property-status";
+import { effectiveStatus, type PropertyStatus } from "@/lib/property-status";
+import { buildSearchOrFilter, matchesSearch } from "@/lib/property-search";
 import { slugify, resolveSlug } from "@/lib/property-slug";
 import { log } from "@/lib/logger";
 import { MOCK_PROPERTIES, type Property, type PropertyOperation, type PropertyType } from "./mock-properties";
@@ -150,7 +151,16 @@ export interface PropertyFilters {
   agencyId?: string;
   /** Sprint 11 MF2: include unpublished properties. Admin path only. Default false. */
   includeDraft?: boolean;
+  /** Sprint 15-B: estado del ciclo de vida. Admin path only. */
+  status?: PropertyStatus;
+  /** Sprint 15-B: texto libre sobre titulo/slug/ciudad/barrio. Admin path only. */
+  search?: string;
   limit?: number;
+}
+
+/** true si la consulta lleva filtros del panel que pueden no matchear nada. */
+function hasNarrowingFilters(filters: PropertyFilters): boolean {
+  return Boolean(filters.status || filters.search);
 }
 
 function applyFiltersMemory(items: Property[], filters: PropertyFilters): Property[] {
@@ -159,6 +169,11 @@ function applyFiltersMemory(items: Property[], filters: PropertyFilters): Proper
   if (filters.city) result = result.filter((p) => p.city === filters.city);
   if (filters.operationType) result = result.filter((p) => p.operation === filters.operationType);
   if (filters.propertyType) result = result.filter((p) => p.type === filters.propertyType);
+  if (filters.status) result = result.filter((p) => effectiveStatus(p) === filters.status);
+  if (filters.search) {
+    const term = filters.search;
+    result = result.filter((p) => matchesSearch(p, term));
+  }
   if (filters.limit && filters.limit > 0) result = result.slice(0, filters.limit);
   return result;
 }
@@ -185,6 +200,8 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
     if (filters.operationType) query = query.eq("operation_type", filters.operationType);
     if (filters.propertyType) query = query.eq("property_type", filters.propertyType);
     if (filters.agencyId) query = query.eq("agency_id", filters.agencyId);
+    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.search) query = query.or(buildSearchOrFilter(filters.search));
     if (filters.limit && filters.limit > 0) query = query.limit(filters.limit);
 
     let { data, error } = await withTimeout(query, 8000, "properties.select");
@@ -192,12 +209,21 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
     if (isMissingColumn(error)) {
       // Migración 0009 aún no aplicada: reintentar sin las columnas nuevas.
       log.warn("properties", "columnas de ciclo de vida ausentes; usando esquema previo");
+
+      // Sin columna `status`, el ciclo de vida se reduce al espejo `published`:
+      // sólo "borrador" y "publicada" son representables. Pedir un estado que
+      // todavía no puede existir devuelve vacío, no la lista entera.
+      if (filters.status === "unpublished" || filters.status === "archived") return [];
+
       let legacy = supabase.from("properties").select(COLUMNS_BASE);
       if (filters.agencyId) legacy = legacy.eq("agency_id", filters.agencyId);
       if (!filters.includeDraft) legacy = legacy.eq("published", true);
+      if (filters.status === "published") legacy = legacy.eq("published", true);
+      if (filters.status === "draft") legacy = legacy.eq("published", false);
       if (filters.operationType) legacy = legacy.eq("operation_type", filters.operationType);
       if (filters.propertyType) legacy = legacy.eq("property_type", filters.propertyType);
       if (filters.city) legacy = legacy.ilike("city", `%${filters.city}%`);
+      if (filters.search) legacy = legacy.or(buildSearchOrFilter(filters.search));
       if (filters.limit) legacy = legacy.limit(filters.limit);
       const retry = await withTimeout(legacy, 8000, "properties.select.legacy");
       data = retry.data as typeof data;
@@ -211,6 +237,10 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
     }
     const rows = ((data as unknown) as PropertyRow[] | null) ?? [];
     if (rows.length === 0) {
+      // Cero filas con un filtro de estado o una búsqueda activa es una
+      // respuesta, no una base sin datos: caer al snapshot mostraría
+      // propiedades de muestra como si fueran del operador.
+      if (hasNarrowingFilters(filters)) return [];
       warnMemoryMode("tabla properties vacia");
       return applyFiltersMemory(memorySnapshot(), filters);
     }

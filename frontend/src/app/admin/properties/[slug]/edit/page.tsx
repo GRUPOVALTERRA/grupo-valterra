@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
 import { getPropertyBySlug } from "@/services/properties";
+import { effectiveStatus } from "@/lib/property-status";
 import { updatePropertyDetailsAction } from "../../actions";
 import { PropertyEditForm } from "./PropertyEditForm";
 
@@ -69,7 +70,7 @@ export default async function EditPropertyPage({ params }: PageProps) {
           action={updatePropertyDetailsAction}
           slug={property.slug}
           property={property}
-          status={property.status ?? (property.published ? "published" : "draft")}
+          status={effectiveStatus(property)}
           canManage={
             ctx.isSuperAdmin ||
             ctx.memberships.some(

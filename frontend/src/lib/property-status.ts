@@ -28,6 +28,18 @@ export function canTransition(from: PropertyStatus, to: PropertyStatus): boolean
   return TRANSITIONS[from]?.includes(to) ?? false;
 }
 
+/**
+ * Estado efectivo de una fila: `status` si existe, derivado de `published` si
+ * no. Las filas anteriores a la migración 0009 sólo tienen el booleano, y el
+ * panel necesita ubicarlas igual en el ciclo de vida.
+ */
+export function effectiveStatus(row: {
+  status?: PropertyStatus | null;
+  published?: boolean | null;
+}): PropertyStatus {
+  return row.status ?? (row.published ? "published" : "draft");
+}
+
 /** Estados visibles en el sitio público. */
 export function isPubliclyVisible(status: PropertyStatus): boolean {
   return status === "published";

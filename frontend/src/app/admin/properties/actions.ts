@@ -12,6 +12,7 @@ import {
 } from "@/services/properties";
 import {
   canTransition,
+  effectiveStatus,
   isPropertyStatus,
   type PropertyStatus,
 } from "@/lib/property-status";
@@ -389,7 +390,7 @@ export async function setPropertyStatusAction(
     return { ok: false, error: "Property de otra agencia" };
   }
 
-  const current: PropertyStatus = property.status ?? (property.published ? "published" : "draft");
+  const current: PropertyStatus = effectiveStatus(property);
   if (current === next) return { ok: true, status: current };
   if (!canTransition(current, next)) {
     return { ok: false, error: `Transicion no permitida: ${current} → ${next}` };
