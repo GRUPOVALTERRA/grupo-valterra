@@ -51,13 +51,30 @@ interface PropertyRow {
   updated_at: string;
 }
 
-const COLUMNS =
+const COLUMNS_BASE =
   "id,slug,title,description,price,currency,per_month,operation_type,property_type," +
   "city,neighborhood,province,country,address,lat,lng," +
   "bedrooms,bathrooms,parking,covered_area_m2,total_area_m2," +
   "badges,cover_image,gallery,agent_name,agent_phone,agency_id," +
-  "published,featured,featured_order,created_at,updated_at," +
-  "status,published_at,archived_at";
+  "published,featured,featured_order,created_at,updated_at";
+
+/**
+ * Columnas del ciclo de vida (migración 0009).
+ *
+ * Se piden aparte y con reintento: si el despliegue llega antes que la
+ * migración, el SELECT extendido falla por columna inexistente y, sin este
+ * fallback, el servicio caería al snapshot en memoria y el sitio público
+ * mostraría las propiedades de muestra en lugar de las reales. Con el
+ * reintento, el orden entre deploy y migración deja de importar.
+ */
+const COLUMNS = `${COLUMNS_BASE},status,published_at,archived_at`;
+
+/** true si el error corresponde a una columna que todavía no existe. */
+function isMissingColumn(err: { code?: string; message?: string } | null): boolean {
+  if (!err) return false;
+  // 42703 = undefined_column en PostgreSQL
+  return err.code === "42703" || /column .* does not exist/i.test(err.message ?? "");
+}
 
 function toNumberOrUndefined(v: number | string | null | undefined): number | undefined {
   if (v === null || v === undefined) return undefined;
@@ -170,7 +187,23 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
     if (filters.agencyId) query = query.eq("agency_id", filters.agencyId);
     if (filters.limit && filters.limit > 0) query = query.limit(filters.limit);
 
-    const { data, error } = await withTimeout(query, 8000, "properties.select");
+    let { data, error } = await withTimeout(query, 8000, "properties.select");
+
+    if (isMissingColumn(error)) {
+      // Migración 0009 aún no aplicada: reintentar sin las columnas nuevas.
+      log.warn("properties", "columnas de ciclo de vida ausentes; usando esquema previo");
+      let legacy = supabase.from("properties").select(COLUMNS_BASE);
+      if (filters.agencyId) legacy = legacy.eq("agency_id", filters.agencyId);
+      if (!filters.includeDraft) legacy = legacy.eq("published", true);
+      if (filters.operationType) legacy = legacy.eq("operation_type", filters.operationType);
+      if (filters.propertyType) legacy = legacy.eq("property_type", filters.propertyType);
+      if (filters.city) legacy = legacy.ilike("city", `%${filters.city}%`);
+      if (filters.limit) legacy = legacy.limit(filters.limit);
+      const retry = await withTimeout(legacy, 8000, "properties.select.legacy");
+      data = retry.data as typeof data;
+      error = retry.error;
+    }
+
     if (error) {
       log.error("properties", "supabase select error", { message: error.message, code: error.code });
       warnMemoryMode("supabase select fallido");
@@ -210,7 +243,17 @@ export async function getPropertyBySlug(
     const supabase = getSupabaseAdmin();
     let q = supabase.from("properties").select(COLUMNS).eq("slug", slug);
     if (!options.includeDraft) q = q.eq("published", true);
-    const { data, error } = await withTimeout(q.maybeSingle(), 4000, "properties.bySlug");
+    let { data, error } = await withTimeout(q.maybeSingle(), 4000, "properties.bySlug");
+
+    if (isMissingColumn(error)) {
+      // Migración 0009 aún no aplicada: reintentar con el esquema previo.
+      log.warn("properties", "columnas de ciclo de vida ausentes (bySlug); esquema previo");
+      let legacy = supabase.from("properties").select(COLUMNS_BASE).eq("slug", slug);
+      if (!options.includeDraft) legacy = legacy.eq("published", true);
+      const retry = await withTimeout(legacy.maybeSingle(), 4000, "properties.bySlug.legacy");
+      data = retry.data as typeof data;
+      error = retry.error;
+    }
     if (error) {
       log.error("properties", "supabase bySlug error", { slug, message: error.message, code: error.code });
       return memorySnapshot().find((p) => p.slug === slug) ?? null;

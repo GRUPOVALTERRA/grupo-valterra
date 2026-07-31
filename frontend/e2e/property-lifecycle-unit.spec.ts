@@ -167,3 +167,17 @@ test.describe("newsletter", () => {
     expect(footer).not.toContain("Newsletter");
   });
 });
+
+/* ---------- compatibilidad de despliegue ---------- */
+
+test.describe("orden deploy/migracion", () => {
+  test("el servicio tolera que la migracion 0009 aun no este aplicada", () => {
+    const svc = codeOf(read("services/properties.ts"));
+    // detecta columna inexistente (42703) y reintenta con el esquema previo
+    expect(svc).toContain("isMissingColumn");
+    expect(svc).toContain('"42703"');
+    expect(svc).toContain("COLUMNS_BASE");
+    expect(svc).toContain("properties.select.legacy");
+    expect(svc).toContain("properties.bySlug.legacy");
+  });
+});
