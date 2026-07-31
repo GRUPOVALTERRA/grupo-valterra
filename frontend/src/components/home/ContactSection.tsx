@@ -105,7 +105,7 @@ export function ContactSection({ propertySlug: propSlug, propertyTitle: propTitl
             <h2 className="mt-3 text-3xl font-bold text-[#0A2342] md:text-5xl">
               Enviá tu consulta.
               <br />
-              <span className="text-[#C9A86A]">Te respondemos en 24hs.</span>
+              <span className="text-[#C9A86A]">Te respondemos a la brevedad.</span>
             </h2>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-600">
               Completá el formulario y un asesor experto va a contactarte para asesorarte sobre
@@ -113,7 +113,7 @@ export function ContactSection({ propertySlug: propSlug, propertyTitle: propTitl
             </p>
             <ul className="mt-8 space-y-3">
               {[
-                { i: "⚡", t: "Respuesta en menos de 24hs hábiles" },
+                { i: "⚡", t: "Un asesor revisa cada consulta" },
                 { i: "🔒", t: "Tus datos están protegidos, cero compromiso" },
                 { i: "💬", t: "Asesoramiento personalizado y honesto" },
               ].map((b) => (
@@ -291,7 +291,7 @@ function SuccessPanel({ leadId, onReset }: { leadId: string | null; onReset: () 
       </span>
       <h3 className="mt-5 text-2xl font-semibold text-[#0A2342]">¡Consulta enviada!</h3>
       <p className="mt-2 max-w-sm text-sm text-slate-600">
-        Un asesor de Grupo Valterra te va a contactar en menos de 24 horas hábiles.
+        Un asesor de Grupo Valterra se va a poner en contacto con vos.
       </p>
       {leadId && <p className="mt-3 font-mono text-[11px] text-slate-400">Ref: {leadId}</p>}
       <button type="button" onClick={onReset} className="mt-6 text-sm font-medium text-[#0A2342] underline-offset-4 hover:underline">

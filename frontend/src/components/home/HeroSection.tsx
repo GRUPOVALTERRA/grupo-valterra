@@ -30,8 +30,8 @@ export function HeroSection() {
             en el <span className="text-[#C9A86A]">Litoral.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/85 md:text-lg">
-            Propiedades premium en Entre Ríos, Corrientes, Chaco y Misiones. Más de 20 años
-            asesorando a familias e inversionistas con resultados reales.
+            Propiedades premium en Entre Ríos, Corrientes, Chaco y Misiones.
+            Asesoramiento personalizado para familias e inversionistas.
           </p>
         </div>
 
@@ -39,42 +39,6 @@ export function HeroSection() {
           <SearchBar />
         </div>
 
-        {/* Mini stats inline */}
-        <ul className="mt-12 grid max-w-3xl gap-6 border-t border-white/15 pt-8 sm:grid-cols-3">
-          <li className="flex items-center gap-3 text-white">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#C9A86A]/20 ring-1 ring-[#C9A86A]/40 text-[#C9A86A]">
-              🏠
-            </span>
-            <div>
-              <div className="text-xl font-semibold">+1.200</div>
-              <div className="text-xs uppercase tracking-[0.12em] text-white/70">
-                Propiedades publicadas
-              </div>
-            </div>
-          </li>
-          <li className="flex items-center gap-3 text-white">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#C9A86A]/20 ring-1 ring-[#C9A86A]/40 text-[#C9A86A]">
-              👨‍👩‍👧
-            </span>
-            <div>
-              <div className="text-xl font-semibold">+8.500</div>
-              <div className="text-xs uppercase tracking-[0.12em] text-white/70">
-                Familias asesoradas
-              </div>
-            </div>
-          </li>
-          <li className="flex items-center gap-3 text-white">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#C9A86A]/20 ring-1 ring-[#C9A86A]/40 text-[#C9A86A]">
-              ⭐
-            </span>
-            <div>
-              <div className="text-xl font-semibold">20 años</div>
-              <div className="text-xs uppercase tracking-[0.12em] text-white/70">
-                En el litoral argentino
-              </div>
-            </div>
-          </li>
-        </ul>
       </div>
     </section>
   );

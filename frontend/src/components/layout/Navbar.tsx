@@ -4,13 +4,21 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
+/**
+ * Navegación pública.
+ *
+ * Sprint 14-B — antes todos los enlaces eran anclas inexistentes (#comprar,
+ * #alquilar, #emprendimientos, #servicios, #nosotros): no desplazaban a
+ * ninguna sección. Ahora cada uno va a una ruta o a un id real.
+ *
+ * Se retiraron "Emprendimientos", "Servicios" y "Nosotros" porque no existe
+ * contenido detrás: prometían páginas inexistentes.
+ */
 const LINKS = [
-  { href: "#comprar", label: "Comprar" },
-  { href: "#alquilar", label: "Alquilar" },
-  { href: "#emprendimientos", label: "Emprendimientos" },
-  { href: "#servicios", label: "Servicios" },
-  { href: "#nosotros", label: "Nosotros" },
-  { href: "#contacto", label: "Contacto" },
+  { href: "/propiedades?operationType=venta", label: "Comprar" },
+  { href: "/propiedades?operationType=alquiler", label: "Alquilar" },
+  { href: "/propiedades", label: "Propiedades" },
+  { href: "/#contacto", label: "Contacto" },
 ];
 
 export function Navbar() {
@@ -85,7 +93,7 @@ export function Navbar() {
           <ul className="hidden items-center gap-1 lg:flex">
             {LINKS.map((l) => (
               <li key={l.href}>
-                <a
+                <Link
                   href={l.href}
                   className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                     onDark
@@ -94,18 +102,18 @@ export function Navbar() {
                   }`}
                 >
                   {l.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <a
-              href="#publicar"
+            <Link
+              href="/#contacto"
               className="inline-flex h-10 items-center rounded-full bg-[#C9A86A] px-5 text-sm font-bold text-[#0A2342] shadow-sm transition-all hover:brightness-105 hover:shadow-md"
             >
               Publicar propiedad
-            </a>
+            </Link>
           </div>
 
           <button
@@ -146,22 +154,22 @@ export function Navbar() {
         </div>
         <div className="space-y-1 px-4 pt-4">
           {LINKS.map((l) => (
-            <a
+            <Link
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
               className="block rounded-lg px-4 py-3 text-lg font-medium text-white hover:bg-white/10"
             >
               {l.label}
-            </a>
+            </Link>
           ))}
-          <a
-            href="#publicar"
+          <Link
+            href="/#contacto"
             onClick={() => setOpen(false)}
             className="mt-4 block rounded-full bg-[#C9A86A] px-4 py-3 text-center text-base font-bold text-[#0A2342]"
           >
             Publicar propiedad
-          </a>
+          </Link>
         </div>
       </div>
     </header>

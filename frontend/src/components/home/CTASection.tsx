@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function CTASection() {
   return (
     <section
@@ -30,7 +32,7 @@ export function CTASection() {
               <span className="text-[#C9A86A]">Hablemos hoy.</span>
             </h2>
             <p className="mt-5 max-w-xl text-base text-white/80">
-              Un asesor experto te va a contactar en menos de 24 horas hábiles. Cero compromiso,
+              Un asesor experto se pone en contacto a la brevedad. Cero compromiso,
               máxima transparencia.
             </p>
           </div>
@@ -40,14 +42,14 @@ export function CTASection() {
               <div className="text-3xl">📢</div>
               <h3 className="mt-3 text-xl font-semibold text-white">Publicá tu propiedad</h3>
               <p className="mt-2 text-sm text-white/70">
-                La mostramos a +50.000 personas interesadas en el litoral cada mes.
+                Contanos qué querés publicar y un asesor te acompaña en el proceso.
               </p>
-              <a
-                href="#publicar"
+              <Link
+                href="/#contacto"
                 className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#C9A86A] px-5 text-sm font-bold text-[#0A2342] transition-all hover:brightness-105"
               >
                 Empezar ahora →
-              </a>
+              </Link>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all hover:border-[#C9A86A]/40 hover:bg-white/10">

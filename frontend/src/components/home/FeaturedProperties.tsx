@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Property } from "@/services/mock-properties";
 import { PropertyCard } from "./PropertyCard";
 
@@ -28,8 +29,8 @@ export function FeaturedProperties({ properties }: FeaturedPropertiesProps) {
               el mercado del litoral.
             </p>
           </div>
-          <a
-            href="#propiedades"
+          <Link
+            href="/propiedades"
             className="group inline-flex items-center gap-2 text-sm font-semibold text-[#0A2342] transition-colors hover:text-[#C9A86A]"
           >
             Ver todas
@@ -44,7 +45,7 @@ export function FeaturedProperties({ properties }: FeaturedPropertiesProps) {
             >
               <path d="M5 12h14M13 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </a>
+          </Link>
         </div>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,48 +1,57 @@
+import Link from "next/link";
+
+/**
+ * Categorías del home.
+ *
+ * Sprint 14-B — se retiraron los conteos ("+450 disponibles", etc.): eran
+ * cifras no respaldadas por el catálogo. Cada tarjeta ahora enlaza al listado
+ * filtrado por `propertyType`, que es el parámetro real que acepta
+ * /propiedades, en vez de un ancla inexistente (#cat-casas).
+ */
 const CATEGORIES = [
   {
     label: "Casas",
-    count: "+450 disponibles",
-    emoji: "🏠",
+    propertyType: "casa",
+    emoji: "\u{1F3E0}",
     image:
       "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80&auto=format&fit=crop",
   },
   {
     label: "Departamentos",
-    count: "+320 disponibles",
-    emoji: "🏢",
+    propertyType: "departamento",
+    emoji: "\u{1F3E2}",
     image:
       "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80&auto=format&fit=crop",
   },
   {
     label: "Campos",
-    count: "+75 disponibles",
-    emoji: "🌾",
+    propertyType: "campo",
+    emoji: "\u{1F33E}",
     image:
       "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80&auto=format&fit=crop",
   },
   {
     label: "Locales",
-    count: "+120 disponibles",
-    emoji: "🏪",
+    propertyType: "local",
+    emoji: "\u{1F3EA}",
     image:
       "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80&auto=format&fit=crop",
   },
   {
     label: "Oficinas",
-    count: "+60 disponibles",
-    emoji: "💼",
+    propertyType: "oficina",
+    emoji: "\u{1F4BC}",
     image:
       "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80&auto=format&fit=crop",
   },
   {
     label: "Countries",
-    count: "+85 disponibles",
-    emoji: "🌳",
+    propertyType: "country",
+    emoji: "\u{1F333}",
     image:
       "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80&auto=format&fit=crop",
   },
 ];
-
 export function CategoriesSection() {
   return (
     <section className="bg-white py-20 md:py-28">
@@ -62,9 +71,9 @@ export function CategoriesSection() {
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CATEGORIES.map((cat) => (
-            <a
+            <Link
               key={cat.label}
-              href={`#cat-${cat.label.toLowerCase()}`}
+              href={`/propiedades?propertyType=${cat.propertyType}`}
               className="group relative aspect-[4/3] overflow-hidden rounded-2xl shadow-[0_4px_24px_-8px_rgba(10,35,66,0.12)] transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(10,35,66,0.35)]"
             >
               <img
@@ -83,12 +92,11 @@ export function CategoriesSection() {
               <div className="absolute inset-0 flex flex-col justify-end p-6">
                 <span className="text-3xl">{cat.emoji}</span>
                 <h3 className="mt-2 text-2xl font-semibold text-white">{cat.label}</h3>
-                <p className="mt-1 text-sm text-white/80">{cat.count}</p>
                 <span className="mt-3 inline-flex w-fit items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-[#C9A86A] transition-transform group-hover:translate-x-1">
                   Explorar →
                 </span>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>

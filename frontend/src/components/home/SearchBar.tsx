@@ -1,35 +1,59 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+/**
+ * Buscador del hero.
+ *
+ * Sprint 14-B — antes era decorativo: el botón "Buscar" no tenía handler y el
+ * selector de tipo no guardaba estado. Ahora navega a /propiedades con los
+ * mismos parámetros que acepta el listado (operationType / propertyType / city).
+ *
+ * La pestaña "Emprendimientos" se retiró porque no existe esa operación en el
+ * catálogo: prometía un resultado inexistente.
+ */
+
 const TABS = [
-  { key: "comprar", label: "Comprar" },
-  { key: "alquilar", label: "Alquilar" },
-  { key: "emprendimientos", label: "Emprendimientos" },
+  { key: "venta", label: "Comprar" },
+  { key: "alquiler", label: "Alquilar" },
 ] as const;
 
-const CHIPS = [
-  "Corrientes",
-  "Resistencia",
-  "Posadas",
-  "Barrio cerrado",
-  "Frente al río",
-];
+const CHIPS = ["Corrientes", "Resistencia", "Posadas", "Paraná"];
 
 export function SearchBar() {
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("comprar");
-  const [location, setLocation] = useState("");
+  const router = useRouter();
+  const [operationType, setOperationType] =
+    useState<(typeof TABS)[number]["key"]>("venta");
+  const [propertyType, setPropertyType] = useState("");
+  const [city, setCity] = useState("");
+
+  const search = () => {
+    const params = new URLSearchParams({ operationType });
+    if (propertyType) params.set("propertyType", propertyType);
+    const trimmed = city.trim();
+    if (trimmed) params.set("city", trimmed);
+    router.push(`/propiedades?${params.toString()}`);
+  };
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-white/30 bg-white/95 shadow-[0_20px_60px_-20px_rgba(10,35,66,0.4)] backdrop-blur-md">
+    <form
+      role="search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        search();
+      }}
+      className="w-full overflow-hidden rounded-2xl border border-white/30 bg-white/95 shadow-[0_20px_60px_-20px_rgba(10,35,66,0.4)] backdrop-blur-md"
+    >
       <div className="flex border-b border-[#D8D8D8]">
         {TABS.map((t) => (
           <button
             key={t.key}
             type="button"
-            onClick={() => setTab(t.key)}
+            aria-pressed={operationType === t.key}
+            onClick={() => setOperationType(t.key)}
             className={`flex-1 px-3 py-3.5 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
-              tab === t.key
+              operationType === t.key
                 ? "bg-[#0A2342] text-white"
                 : "text-[#0A2342] hover:bg-[#F8F7F4]"
             }`}
@@ -46,13 +70,17 @@ export function SearchBar() {
             <circle cx="12" cy="9" r="2.5" />
           </svg>
           <div className="flex-1">
-            <label className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+            <label
+              htmlFor="hero-city"
+              className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500"
+            >
               Ubicación
             </label>
             <input
+              id="hero-city"
               type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
               placeholder="Ciudad, barrio, country, zona..."
               className="w-full bg-transparent text-sm text-[#0A2342] placeholder:text-slate-400 focus:outline-none"
             />
@@ -65,11 +93,19 @@ export function SearchBar() {
             <path d="M9 21V12h6v9" />
           </svg>
           <div className="flex-1">
-            <label className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+            <label
+              htmlFor="hero-type"
+              className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500"
+            >
               Tipo de propiedad
             </label>
             <div className="relative">
-              <select className="w-full appearance-none bg-transparent pr-6 text-sm text-[#0A2342] focus:outline-none">
+              <select
+                id="hero-type"
+                value={propertyType}
+                onChange={(e) => setPropertyType(e.target.value)}
+                className="w-full appearance-none bg-transparent pr-6 text-sm text-[#0A2342] focus:outline-none"
+              >
                 <option value="">Cualquiera</option>
                 <option value="casa">Casa</option>
                 <option value="departamento">Departamento</option>
@@ -96,7 +132,7 @@ export function SearchBar() {
         </div>
 
         <button
-          type="button"
+          type="submit"
           className="flex items-center justify-center gap-2 bg-[#C9A86A] px-6 py-4 text-sm font-bold text-[#0A2342] transition-all hover:brightness-105 md:px-8"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -113,13 +149,13 @@ export function SearchBar() {
           <button
             key={c}
             type="button"
-            onClick={() => setLocation(c)}
+            onClick={() => setCity(c)}
             className="rounded-full bg-white px-3 py-1 text-[#0A2342] shadow-sm transition-colors hover:bg-[#0A2342] hover:text-white"
           >
             {c}
           </button>
         ))}
       </div>
-    </div>
+    </form>
   );
 }
