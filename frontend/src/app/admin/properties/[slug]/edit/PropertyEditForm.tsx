@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { PropertyStatusControls } from "../../PropertyStatusControls";
+import { STATUS_LABEL, type PropertyStatus } from "@/lib/property-status";
 import type { Property } from "@/services/mock-properties";
 
 type Action = (formData: FormData) => Promise<{
@@ -14,6 +16,10 @@ interface Props {
   action: Action;
   slug: string;
   property: Property;
+  /** Estado del ciclo de vida, resuelto en el server. */
+  status: PropertyStatus;
+  /** Si el rol puede publicar/archivar (owner/admin o super-admin). */
+  canManage: boolean;
 }
 
 const OPERATION_OPTIONS = [
@@ -38,17 +44,23 @@ const CURRENCY_OPTIONS = [
   { value: "ARS", label: "ARS" },
 ] as const;
 
-export function PropertyEditForm({ action, slug, property }: Props) {
+export function PropertyEditForm({ action, slug, property, status, canManage }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Initial published state from current DB value (defaults to true only if
-  // upstream returns undefined · should never happen with rowToProperty mapping it
-  // explicitly · safety fallback).
-  // Critical: opening + saving an unpublished property MUST NOT auto-publish.
-  const [published, setPublished] = useState<boolean>(property.published ?? true);
+  /*
+   * Sprint 15-B — este formulario ya NO decide la visibilidad.
+   *
+   * Antes enviaba `published` en el submit, pero desde la migración 0009 esa
+   * columna es un espejo derivado de `status` que el trigger recalcula en cada
+   * UPDATE: el valor enviado se descartaba en silencio. El toggle parecía
+   * funcionar y no hacía nada.
+   *
+   * La publicación se gobierna desde un único lugar, el ciclo de vida, con las
+   * mismas acciones que el listado.
+   */
 
   const badgesInitial = property.badges?.join(", ") ?? "";
 
@@ -58,7 +70,6 @@ export function PropertyEditForm({ action, slug, property }: Props) {
         setFeedback(null);
         setFieldErrors({});
         fd.set("slug", slug);
-        fd.set("published", published ? "true" : "false");
         startTransition(async () => {
           const r = await action(fd);
           if (r.ok) {
@@ -72,7 +83,7 @@ export function PropertyEditForm({ action, slug, property }: Props) {
       }}
       className="space-y-5"
     >
-      {/* Publish toggle */}
+      {/* Estado de publicacion — control unico, compartido con el listado */}
       <div className="rounded-lg border border-[#C9A86A]/40 bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -80,35 +91,16 @@ export function PropertyEditForm({ action, slug, property }: Props) {
               Estado de publicacion
             </div>
             <div className="mt-1 text-sm text-[#0A2342]">
-              {published
-                ? "Publicada · visible en /propiedades y portales"
-                : "Borrador · NO visible al publico (solo admin)"}
+              {STATUS_LABEL[status]}
+              {status === "published"
+                ? " · visible en el sitio publico"
+                : " · NO visible al publico"}
             </div>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Guardar cambios no altera la visibilidad: se cambia con estas acciones.
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPublished(true)}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
-                published
-                  ? "bg-[#0A2342] text-white"
-                  : "border border-[#D8D8D8] bg-white text-[#0A2342]"
-              }`}
-            >
-              Publicada
-            </button>
-            <button
-              type="button"
-              onClick={() => setPublished(false)}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
-                !published
-                  ? "bg-[#0A2342] text-white"
-                  : "border border-[#D8D8D8] bg-white text-[#0A2342]"
-              }`}
-            >
-              Borrador
-            </button>
-          </div>
+          <PropertyStatusControls slug={slug} status={status} canManage={canManage} />
         </div>
       </div>
 
