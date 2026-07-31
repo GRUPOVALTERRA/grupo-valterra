@@ -69,6 +69,13 @@ export default async function EditPropertyPage({ params }: PageProps) {
           action={updatePropertyDetailsAction}
           slug={property.slug}
           property={property}
+          status={property.status ?? (property.published ? "published" : "draft")}
+          canManage={
+            ctx.isSuperAdmin ||
+            ctx.memberships.some(
+              (m) => m.agencyId === property.agencyId && ["owner", "admin"].includes(m.role),
+            )
+          }
         />
       </div>
     </div>

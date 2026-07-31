@@ -163,7 +163,10 @@ export async function updatePropertyDetailsAction(
     covered_area_m2: formData.get("covered_area_m2"),
     total_area_m2: formData.get("total_area_m2"),
     badges: formData.get("badges"),
-    published: formData.get("published"),
+    // Sprint 15-B — la visibilidad NO se toma del formulario: `published` es un
+    // espejo derivado de `status` (migración 0009) y el trigger lo recalcula en
+    // cada UPDATE. Aceptarlo aquí era un valor que se descartaba en silencio.
+    published: undefined,
   });
   if (!result.valid) {
     return { ok: false, error: "Revisa los campos marcados", fieldErrors: result.errors };
@@ -210,7 +213,6 @@ export async function updatePropertyDetailsAction(
       covered_area_m2: d.covered_area_m2 ?? null,
       total_area_m2: d.total_area_m2 ?? null,
       badges: d.badges ?? [],
-      published: d.published,
     },
   });
   if (!updateRes.ok) {
