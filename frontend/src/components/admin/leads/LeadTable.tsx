@@ -30,8 +30,14 @@ const STATUS_CLASSES: Record<LeadStatus, string> = {
   archived: "bg-slate-100 text-slate-600 ring-slate-200",
 };
 
+/**
+ * Sprint 16 — "contact-form" cubre dos casos distintos: la consulta hecha
+ * desde la ficha de una propiedad y la consulta general de la home. La
+ * etiqueta se deriva de si el lead tiene propiedad asociada; mostrar
+ * "Form propiedad" en una consulta general inducía a error en la bandeja.
+ */
 const SOURCE_LABEL: Record<LeadSource, string> = {
-  "contact-form": "Form propiedad",
+  "contact-form": "Consulta general",
   whatsapp: "WhatsApp",
   phone: "Teléfono",
   email: "Email",
@@ -50,10 +56,15 @@ function StatusBadge({ status }: { status: LeadStatus }) {
   );
 }
 
-function SourceBadge({ source }: { source: LeadSource }) {
+function sourceLabel(source: LeadSource, propertySlug?: string | null): string {
+  if (source === "contact-form" && propertySlug) return "Consulta por propiedad";
+  return SOURCE_LABEL[source];
+}
+
+function SourceBadge({ source, propertySlug }: { source: LeadSource; propertySlug?: string | null }) {
   return (
     <span className="inline-flex items-center rounded-full bg-[#F8F7F4] px-2.5 py-0.5 text-[11px] font-medium text-[#0A2342]">
-      {SOURCE_LABEL[source]}
+      {sourceLabel(source, propertySlug)}
     </span>
   );
 }
@@ -124,7 +135,7 @@ export function LeadTable({ leads }: LeadTableProps) {
                     {lead.agentName ?? <span className="text-slate-300">—</span>}
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <SourceBadge source={lead.source} />
+                    <SourceBadge source={lead.source} propertySlug={lead.property_slug} />
                   </td>
                   <td className="px-4 py-3 align-top">
                     <StatusBadge status={lead.status} />
@@ -188,7 +199,7 @@ export function LeadTable({ leads }: LeadTableProps) {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <SourceBadge source={lead.source} />
+              <SourceBadge source={lead.source} propertySlug={lead.property_slug} />
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#D8D8D8] pt-3">
