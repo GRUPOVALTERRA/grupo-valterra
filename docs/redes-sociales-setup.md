@@ -11,8 +11,9 @@ Fuente de la identidad visual: `frontend/public/brand/`.
 ## 0. Datos maestros
 
 Estos valores se repiten en todas las plataformas. Definirlos una sola vez evita
-inconsistencias que después son difíciles de corregir (sobre todo el nombre legal y la
-dirección, que Google y Meta usan para verificar).
+inconsistencias que después son difíciles de corregir — sobre todo nombre, dirección y
+teléfono, que Google y Meta cruzan entre sí para verificar el negocio. Deben coincidir
+**carácter por carácter** en todas las fichas.
 
 | Dato | Valor |
 | --- | --- |
@@ -20,9 +21,19 @@ dirección, que Google y Meta usan para verificar).
 | Eslogan | Soluciones Inmobiliarias del Litoral |
 | Categoría | Agencia inmobiliaria / Real Estate Agent |
 | Sitio web | https://www.grupovalterra.com.ar |
-| Teléfono / WhatsApp | ⚠️ **PENDIENTE** — ver sección 6 |
-| Dirección física | ⚠️ **PENDIENTE** — ver sección 6 |
-| Email de contacto | ⚠️ **PENDIENTE** — ver sección 6 |
+| Teléfono / WhatsApp | +54 9 379 515-9096 |
+| Dirección | Catamarca 1365, Piso 1° Dpto. I, Corrientes Capital |
+| Ciudad base | Corrientes Capital |
+| Zona de cobertura | Entre Ríos, Corrientes, Chaco y Misiones |
+| Email administrativo | grupovalterraservinmob@gmail.com (2FA activa) |
+| Admin de Página FB | Gustavo Zacarias (cuenta personal) |
+
+> ⚠️ **Riesgo de titularidad del email.** Las cuentas se dan de alta con un Gmail personal,
+> no con un correo del dominio propio. Si mañana cambia quien administra, la recuperación
+> de todas las cuentas depende de ese Gmail. Migrar a `contacto@grupovalterra.com.ar`
+> **antes** de dar de alta es mucho más barato que migrar después: Google Business en
+> particular obliga a un traspaso de propiedad con espera de varios días. Decisión
+> pendiente.
 
 ### Paleta de marca
 
@@ -35,57 +46,124 @@ dirección, que Google y Meta usan para verificar).
 
 ### Imágenes de perfil
 
-- **Avatar (todas las redes):** `frontend/public/brand/avatar-social.svg` — isotipo dorado
-  sobre navy, cuadrado 1024×1024. Exportar a PNG antes de subir; varias plataformas
-  rechazan SVG.
+- **Avatar (todas las redes):** `frontend/public/brand/avatar-social.png` — 1024×1024,
+  isotipo dorado sobre navy, **listo para subir**. La V queda dentro del área segura del
+  recorte circular que aplican Instagram, Facebook y LinkedIn.
+- **Fuente editable:** `avatar-social.svg`, por si hay que regenerarlo en otro tamaño.
 - **No usar `logo-principal.svg` como avatar.** Es un lockup horizontal de 1200×320: en el
-  recorte circular que aplican Instagram, Facebook y LinkedIn el texto queda cortado e
-  ilegible. El lockup sirve para portadas, no para avatares.
-- **Portada (Facebook 1640×856, LinkedIn 1128×191, YouTube 2048×1152):** lockup horizontal
+  recorte circular el texto queda cortado e ilegible. El lockup sirve para portadas.
+- **Portadas (Facebook 1640×856, LinkedIn 1128×191, YouTube 2048×1152):** lockup horizontal
   sobre fondo off-white, con margen generoso — LinkedIn y YouTube recortan mucho en mobile.
 
 ---
 
 ## 1. Handles — validación por plataforma
 
-Cada red tiene reglas distintas de longitud y caracteres permitidos. `grupovalterra` son
-13 caracteres y pasa en todas, así que es el candidato principal en todos lados. Las
-alternativas propuestas **no** sirven en todas por igual:
+`grupovalterra` son 13 caracteres y pasa las reglas de todas las plataformas, así que es el
+candidato principal en todos lados.
 
-| Plataforma | Límite | Caracteres | Handle propuesto | Estado |
+| Plataforma | Límite | Caracteres | Handle | Estado |
 | --- | --- | --- | --- | --- |
-| Instagram | 30 | letras, números, `.` `_` | `grupovalterra` | ✅ válido |
-| Facebook (página) | mín. 5 | letras, números, `.` | `grupovalterra` | ✅ válido |
-| TikTok | 24 | letras, números, `.` `_` | `grupovalterra` | ✅ válido |
-| LinkedIn (URL) | 5–100 | letras, números, `-` | `grupovalterra` | ✅ válido |
-| YouTube (@handle) | 3–30 | letras, números, `.` `_` `-` | `grupovalterra` | ✅ válido |
-| X / Twitter | **15** | letras, números, `_` **(sin puntos)** | `grupovalterra` | ✅ válido |
+| Instagram | 30 | letras, números, `.` `_` | `grupovalterra` | ✅ |
+| Facebook (página) | mín. 5 | letras, números, `.` | `grupovalterra` | ✅ |
+| TikTok | 24 | letras, números, `.` `_` | `grupovalterra` | ✅ |
+| LinkedIn (URL) | 5–100 | letras, números, `-` | `grupo-valterra` | ✅ |
+| YouTube (@handle) | 3–30 | letras, números, `.` `_` `-` | `grupovalterra` | ✅ |
+| X / Twitter | **15** | letras, números, `_` **(sin puntos)** | `grupovalterra` | ✅ |
 | Google Business | — | no usa handle | — | n/a |
 
-### Si `@grupovalterra` está ocupado
+### Fallbacks si `@grupovalterra` está ocupado
 
-El orden de preferencia que pediste funciona en casi todas, con dos excepciones que hay
-que tener en cuenta:
+| Plataforma | Fallback | Nota |
+| --- | --- | --- |
+| Instagram | `grupovalterra_ok` → `grupovalterra.corrientes` | ambos válidos |
+| Facebook | `grupovalterra_ok` → `grupovalterra.corrientes` | Facebook rechaza usuarios que parezcan dominios; `.corrientes` es seguro |
+| TikTok | `grupovalterra_ok` → `grupovalterra.corrientes` (24, justo en el límite) | |
+| LinkedIn | `grupo-valterra-corrientes` | **sin puntos**, LinkedIn solo admite guiones |
+| X | `grupovalterraar` (15) → `valterra_ar` (11) | ver abajo |
 
-1. `grupovalterra.ar` — ✅ Instagram, TikTok, YouTube. ❌ **X** (no admite puntos).
-   ⚠️ **Facebook**: rechaza nombres de usuario que parecen dominios; `.ar` puede pasar,
-   pero si lo bloquea usar `grupovalterra.arg`.
-   ❌ **LinkedIn**: no admite puntos → usar `grupovalterra-ar`.
-2. `grupovalterrainmobiliaria` — 25 caracteres. ✅ Instagram, LinkedIn, YouTube.
-   ❌ **TikTok** (máx. 24, se pasa por 1). ❌ **X** (máx. 15).
-3. `grupovalterra.corrientes` — 24 caracteres. ✅ Instagram, TikTok (justo en el límite),
-   YouTube. ❌ **X**. ⚠️ LinkedIn con guion: `grupovalterra-corrientes`.
+**Verificado — `grupovalterrainmobiliaria` no sirve en TikTok:** son 25 caracteres contra un
+límite de 24. Se pasa por uno. Usar `grupovalterra`.
 
-**Fallback para X**, donde ninguna alternativa de tu lista entra en 15 caracteres:
-`grupovalterraar` (15) o `valterra_ar` (11). Decisión de marca pendiente — ver sección 6.
+**Verificado — X no admite ninguna variante con punto** y `grupovalterrainmobiliaria` (25)
+se pasa del límite de 15. Los únicos fallbacks viables son `grupovalterraar` o
+`valterra_ar`. Si ambos están tomados, la decisión de marca es abrir X con otro nombre o
+directamente no abrir X — es la red de menor peso para una inmobiliaria local.
 
 > **Recomendación:** reservá el handle en todas las plataformas *antes* de completar los
-> perfiles, incluso en las que no vayas a usar activamente todavía. Reservar es gratis y
-> recuperar un handle tomado por otro es prácticamente imposible.
+> perfiles, incluso en las que no vayas a usar todavía. Reservar es gratis; recuperar un
+> handle tomado por otro es prácticamente imposible.
 
 ---
 
 ## 2. Textos por plataforma (copiar y pegar)
+
+### Google Business Profile
+
+Es la ficha de mayor impacto comercial para una inmobiliaria: define si aparecés en
+"inmobiliarias cerca mío" y en Maps. **Prioridad 1.**
+
+**Nombre:** `Grupo Valterra`
+**Categoría principal:** Agencia inmobiliaria
+**Categorías secundarias:** Agente inmobiliario, Tasador inmobiliario
+**Dirección:** `Catamarca 1365, Piso 1° Dpto. I, Corrientes Capital, Corrientes`
+**Teléfono:** `+54 9 379 515-9096`
+**Sitio:** `https://www.grupovalterra.com.ar`
+
+**Descripción** (750 caracteres máx.):
+
+```
+Grupo Valterra es una empresa especializada en transacciones inmobiliarias que
+ofrece asesoramiento personalizado para propiedades en la región noreste de
+Argentina (litoral), con presencia en Paraná, Corrientes, Posadas y Resistencia.
+
+Compra, venta, alquiler y alquiler temporal de propiedades residenciales y
+comerciales. Acompañamos cada operación de principio a fin: valuación,
+comercialización, documentación y cierre.
+
+Consultá el catálogo completo en www.grupovalterra.com.ar
+```
+
+**Áreas de servicio:** Corrientes, Chaco, Entre Ríos, Misiones.
+
+⚠️ **Dos cosas a prever en la verificación:**
+
+1. La dirección es una **oficina en piso 1°**. Google suele resolver estos casos con
+   verificación por video, no por postal: piden mostrar cartelería visible con el nombre
+   del negocio, el acceso desde la calle y el interior de la oficina. Conviene tener
+   cartel en la puerta *antes* de iniciar el trámite — sin señalización identificable, la
+   verificación se rechaza y el reintento demora semanas.
+2. Declarar **cuatro provincias enteras** como área de servicio es válido, pero Google
+   pondera la cercanía: una ficha con área muy amplia rankea peor en su propia ciudad. Si
+   el grueso de las operaciones es en Corrientes Capital, conviene declarar localidades
+   concretas en lugar de provincias completas.
+
+### Facebook (Página)
+
+**Nombre:** `Grupo Valterra`
+**Categoría:** Agencia inmobiliaria
+**Usuario:** `@grupovalterra`
+
+⚠️ **La Página tiene dos campos de texto distintos y el texto largo no entra en el corto.**
+
+**Bio** (límite **101 caracteres** — es el que se ve bajo el nombre):
+
+```
+Soluciones Inmobiliarias del Litoral 🏡 Compra, venta y alquiler en Corrientes.
+```
+*(78 caracteres)*
+
+**Acerca de / Descripción** (campo largo):
+
+```
+Soluciones Inmobiliarias del Litoral 🏡
+Compra, venta, alquiler y alquiler temporal de propiedades en Entre Ríos, Corrientes, Chaco y Misiones. Asesoramiento personalizado para inversiones inmobiliarias.
+📍 Catamarca 1365, Corrientes Capital
+📞 +54 9 379 515-9096
+🌐 www.grupovalterra.com.ar
+```
+
+**Botón de acción:** WhatsApp → `+54 9 379 515-9096`
 
 ### Instagram
 
@@ -100,120 +178,102 @@ Grupo Valterra | Inmobiliaria
 **Biografía** (150 caracteres máx.):
 
 ```
-Soluciones Inmobiliarias del Litoral
-🏡 Venta · Alquiler · Tasaciones
-📍 Corrientes y alrededores
-📲 Consultas por WhatsApp ⬇️
+🏡 Soluciones Inmobiliarias del Litoral
+📍 Entre Ríos | Corrientes | Chaco | Misiones
+📲 +54 9 379 515-9096
+👇 Consultá tu propiedad
 ```
-*(≈124 caracteres con saltos de línea)*
+*(≈129 caracteres con saltos de línea)*
 
 **Enlace:** `https://www.grupovalterra.com.ar`
 **Categoría:** Agencia inmobiliaria
 **Botones de acción:** WhatsApp, Cómo llegar, Correo electrónico
 
-### Facebook (Página)
+### TikTok
 
-**Nombre de la página:** `Grupo Valterra`
-**Categoría:** Agencia inmobiliaria
-**Biografía corta** (101 caracteres máx.):
+**Biografía** (80 caracteres máx.):
 
 ```
-Soluciones Inmobiliarias del Litoral. Venta, alquiler y tasaciones en Corrientes.
+🏡 Inmobiliaria del Litoral | Compra, venta y alquiler | Corrientes, Arg
 ```
-*(80 caracteres)*
+*(71 caracteres — entra)*
 
-**Descripción larga:**
+**Enlace:** `https://www.grupovalterra.com.ar`
+*(el campo de sitio web se habilita recién al pasar a cuenta de empresa)*
 
-```
-Grupo Valterra es una inmobiliaria del litoral argentino especializada en venta,
-alquiler y tasación de propiedades. Acompañamos cada operación de principio a fin,
-con asesoramiento profesional y un portfolio seleccionado de propiedades en
-Corrientes y la región.
+### Meta Business Suite
 
-Consultá nuestro catálogo completo en www.grupovalterra.com.ar
-```
-
-### Google Business Profile
-
-Es la ficha de mayor impacto comercial para una inmobiliaria: define si aparecés en
-"inmobiliarias cerca mío" y en Google Maps. Priorizar esta por encima de las redes.
-
-**Nombre:** `Grupo Valterra`
-**Categoría principal:** Agencia inmobiliaria
-**Categorías secundarias:** Agente inmobiliario, Tasador inmobiliario
-**Descripción** (750 caracteres máx.):
+**Descripción del negocio:**
 
 ```
-Grupo Valterra es una inmobiliaria del litoral argentino dedicada a la venta,
-el alquiler y la tasación de propiedades. Ofrecemos asesoramiento profesional
-en cada etapa de la operación: valuación, comercialización, documentación y
-cierre. Trabajamos con propiedades residenciales y comerciales en Corrientes y
-la región del litoral.
-
-Consultá el catálogo completo en www.grupovalterra.com.ar
+Grupo Valterra es una empresa especializada en transacciones inmobiliarias que
+ofrece asesoramiento personalizado para propiedades en la región noreste de
+Argentina (litoral), con presencia en Paraná, Corrientes, Posadas y Resistencia.
 ```
 
-**Área de servicio:** Corrientes Capital + localidades donde efectivamente operen.
-**Atributos a activar:** "Ofrece servicios en el lugar", enlace a citas si aplica.
+**Dirección, teléfono y sitio:** los de la sección 0, idénticos a los de Google Business.
 
 ### LinkedIn (Página de empresa)
 
 **Nombre:** `Grupo Valterra`
-**Eslogan / tagline** (120 caracteres máx.):
+**URL:** `linkedin.com/company/grupo-valterra`
+**Eslogan** (120 caracteres máx.):
 
 ```
-Soluciones Inmobiliarias del Litoral | Venta, alquiler y tasaciones
+Soluciones Inmobiliarias del Litoral | Compra, venta y alquiler en Entre Ríos, Corrientes, Chaco y Misiones
 ```
-*(66 caracteres)*
+*(106 caracteres)*
 
-**Sector:** Bienes raíces
-**Tamaño:** ⚠️ pendiente de confirmar
-**Tipo:** Empresa privada
+**Sector:** Bienes raíces · **Tipo:** Empresa privada
+
+### X / Twitter
+
+**Bio** (160 caracteres máx.):
+
+```
+🏡 Soluciones Inmobiliarias del Litoral. Compra, venta y alquiler en Entre Ríos, Corrientes, Chaco y Misiones. 📍 Corrientes Capital
+```
+*(130 caracteres)*
 
 ---
 
-## 3. Orden de ejecución recomendado
+## 3. Orden de ejecución
 
-El orden importa: Instagram y Facebook se vinculan a través de Meta Business Suite, y
-hacerlo al revés obliga a rehacer pasos.
-
-1. **Reservar handles** en las 6 plataformas (solo usuario y contraseña, sin completar
-   perfil). Bloquea el nombre mientras armás el resto.
-2. **Google Business Profile** — iniciar primero porque la verificación (video o postal)
-   puede demorar días o semanas. Cuanto antes arranque, mejor.
-3. **Facebook: crear la Página** desde una cuenta personal administradora.
-4. **Instagram: crear la cuenta** y convertirla a *Cuenta de empresa*.
-5. **Vincular** Instagram ↔ Página de Facebook desde Meta Business Suite.
-6. **WhatsApp Business** — configurar y conectar al perfil de Instagram y a la Página.
-7. **LinkedIn, TikTok, YouTube** — perfiles secundarios, sin urgencia.
-8. **Sitio web** — agregar los enlaces a las redes en el footer y el `sameAs` del
-   structured data (ver sección 5).
+1. **Google Business Profile** — iniciar primero: la verificación puede demorar semanas y
+   define la aparición en Maps y en búsquedas locales.
+2. **Página de Facebook** — completar foto, portada, bio corta, descripción y contacto.
+3. **Instagram** — convertir a cuenta de empresa, vincular a la Página, cargar bio y link.
+4. **TikTok** — convertir a cuenta de empresa, cargar bio, foto y link.
+5. **Meta Business Suite** — vincular Facebook + Instagram, cargar datos, dejar iniciada la
+   verificación del negocio.
+6. **X y LinkedIn** — con los handles de la sección 1.
+7. **Sitio web** — enlaces en el footer y `sameAs` del structured data (sección 5).
 
 ---
 
-## 4. WhatsApp Business — advertencia importante
+## 4. WhatsApp Business — decisión pendiente
 
-Un número de teléfono **no puede estar en WhatsApp personal y WhatsApp Business a la vez**.
-Al migrar, la app personal deja de funcionar con ese número en ese dispositivo.
+Un número **no puede estar en WhatsApp personal y WhatsApp Business a la vez**. Al migrar
+`+54 9 379 515-9096`, la app personal deja de funcionar con ese número en ese equipo.
 
-Antes de configurarlo, decidir:
+Confirmar con el dueño del teléfono antes de migrar:
 
 - **Línea dedicada nueva** (recomendado): separa lo personal de lo comercial, permite que
-  varias personas del equipo atiendan, y no arriesga el historial personal de nadie.
-- **Migrar un número existente**: conserva los chats y los contactos que ya te escriben,
-  pero quien sea dueño de ese número pierde su WhatsApp personal ahí.
+  varias personas atiendan, y no arriesga el historial personal de nadie.
+- **Migrar el número actual**: conserva los chats y contactos existentes, pero su dueño
+  pierde el WhatsApp personal en ese equipo.
+
+Si se migra, hacerlo **antes** de cargar el botón de WhatsApp en Instagram y Facebook, para
+no publicar un número que después cambia.
 
 ---
 
 ## 5. Integración con el sitio
 
-Una vez creadas las cuentas, los perfiles deben quedar enlazados desde el sitio en dos
-lugares:
-
 - **Footer** — íconos con enlace a cada red.
-- **Structured data** — propiedad `sameAs` del schema `RealEstateAgent`, que le confirma a
-  Google que esos perfiles y el sitio son la misma entidad. Es lo que consolida la ficha
-  de Google Business con las redes.
+- **Structured data** — `sameAs` del schema `RealEstateAgent`, que le confirma a Google que
+  esos perfiles y el sitio son la misma entidad. Es lo que consolida la ficha de Google
+  Business con las redes.
 
 ```json
 {
@@ -222,10 +282,19 @@ lugares:
   "name": "Grupo Valterra",
   "slogan": "Soluciones Inmobiliarias del Litoral",
   "url": "https://www.grupovalterra.com.ar",
+  "telephone": "+5493795159096",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Catamarca 1365, Piso 1° Dpto. I",
+    "addressLocality": "Corrientes",
+    "addressRegion": "Corrientes",
+    "addressCountry": "AR"
+  },
+  "areaServed": ["Corrientes", "Chaco", "Entre Ríos", "Misiones"],
   "sameAs": [
     "https://www.instagram.com/grupovalterra",
     "https://www.facebook.com/grupovalterra",
-    "https://www.linkedin.com/company/grupovalterra"
+    "https://www.linkedin.com/company/grupo-valterra"
   ]
 }
 ```
@@ -234,35 +303,33 @@ Actualizar los handles reales una vez confirmados en el alta.
 
 ---
 
-## 6. Pendientes — requieren definición
+## 6. Pendientes de decisión
 
-Ninguno de estos se puede inferir del repo ni de los datos entregados:
-
-| # | Pendiente | Por qué bloquea |
+| # | Pendiente | Por qué importa |
 | --- | --- | --- |
-| 1 | **Teléfono / WhatsApp completo** | El dato llegó cortado (solo `+54`). Es campo obligatorio en Google Business, Instagram y Facebook. |
-| 2 | **Dirección física** | Google Business exige dirección verificable o área de servicio declarada. Sin esto no hay ficha. |
-| 3 | **Email corporativo** | Conviene dar de alta las cuentas con un mail de dominio (`contacto@grupovalterra.com.ar`), no uno personal: si mañana cambia quien administra, las cuentas no se pierden. |
-| 4 | **Ciudad base** | Los textos asumen **Corrientes**, inferido de la alternativa `@grupovalterra.corrientes` que propusiste. Confirmar antes de publicar. |
-| 5 | **Handle de X** | Ninguna de las alternativas propuestas entra en el límite de 15 caracteres. Decidir entre `grupovalterraar` o `valterra_ar` — o descartar X. |
-| 6 | **Plataformas del alcance** | Este kit cubre Instagram, Facebook, Google Business, WhatsApp, LinkedIn, TikTok, YouTube y X. Confirmar cuáles entran realmente. |
+| 1 | **Email de dominio propio** | Dar de alta con Gmail personal ata la recuperación de todas las cuentas a ese buzón. Migrar después cuesta mucho más que hacerlo ahora. |
+| 2 | **Número de WhatsApp Business** | Línea nueva vs. migrar la actual (sección 4). Bloquea los botones de acción de Instagram y Facebook. |
+| 3 | **Cartelería en la oficina** | Sin señalización visible, la verificación por video de Google Business se rechaza. |
+| 4 | **Alcance del área de servicio en Google** | Cuatro provincias enteras vs. localidades concretas (sección 2). |
+| 5 | **Handle de X si los fallbacks están tomados** | Decidir nombre alternativo o no abrir X. |
 
 ---
 
 ## 7. Checklist de alta
 
 ```text
-[ ] Handles reservados en las 6 plataformas
-[ ] Avatar exportado a PNG 1024×1024 desde avatar-social.svg
+[ ] Handles reservados en todas las plataformas
+[ ] Avatar avatar-social.png subido en todas las cuentas
 [ ] Portadas generadas (FB 1640×856 · LI 1128×191 · YT 2048×1152)
 [ ] Google Business Profile creado y verificación iniciada
-[ ] Página de Facebook creada + nombre de usuario asignado
-[ ] Instagram creado y convertido a Cuenta de empresa
+[ ] Página de Facebook completa + nombre de usuario asignado
+[ ] Instagram convertido a Cuenta de empresa
 [ ] Instagram ↔ Facebook vinculados en Meta Business Suite
-[ ] WhatsApp Business configurado (número definido en pendiente #1)
+[ ] TikTok convertido a cuenta de empresa
+[ ] WhatsApp Business definido y configurado
 [ ] Botones de acción activos en Instagram y Facebook
-[ ] LinkedIn / TikTok / YouTube completados
+[ ] LinkedIn / X completados
 [ ] Enlaces agregados al footer del sitio
 [ ] sameAs actualizado en el structured data
-[ ] Autenticación en dos pasos activada en todas las cuentas
+[ ] 2FA activada en todas las cuentas
 ```
