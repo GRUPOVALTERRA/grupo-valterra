@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
 import { getAgencyBySlug, listAgencyMembers } from "@/services/agencies";
 import { InviteMemberForm } from "./InviteMemberForm";
+import { AgencySettingsForm } from "./AgencySettingsForm";
 import { inviteMemberAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +74,27 @@ export default async function AgencyDetailPage({
               ))
             )}
           </ul>
+        </div>
+
+        <div>
+          <h2 className="text-sm font-semibold text-[#0A2342]">Configuracion de la agencia</h2>
+          <p className="mt-1 text-[11px] text-slate-500">
+            El email de contacto es el destino de los avisos de consultas.
+          </p>
+          <div className="mt-3">
+            <AgencySettingsForm
+              slug={agency.slug}
+              initial={{
+                name: agency.name ?? "",
+                contact_email: agency.contact_email ?? "",
+                contact_phone: agency.contact_phone ?? "",
+                whatsapp: agency.whatsapp ?? "",
+                address: agency.address ?? "",
+                city: agency.city ?? "",
+                province: agency.province ?? "",
+              }}
+            />
+          </div>
         </div>
 
         <div>

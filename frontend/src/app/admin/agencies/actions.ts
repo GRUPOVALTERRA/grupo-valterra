@@ -13,6 +13,7 @@ import {
   removeAgencyMember,
   countAgencyOwners,
   type AgencyRole,
+  updateAgency,
 } from "@/services/agencies";
 import {
   createAgencyInviteIssuer,
@@ -471,4 +472,85 @@ export async function ownerInviteMemberAction(
 
   if (ctx.scopedAgencySlug) revalidatePath(`/admin/agencies/${ctx.scopedAgencySlug}`);
   return result;
+}
+
+/* ==========================================================
+ * Sprint 16 · Configuración editable de agencia
+ * ========================================================== */
+
+const AGENCY_EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export interface UpdateAgencyResult {
+  ok: boolean;
+  error?: string;
+  errors?: Record<string, string>;
+}
+
+/**
+ * Edita los datos de la agencia del operador.
+ *
+ * Permisos: owner/admin de ESA agencia, o super-admin. La agencia objetivo se
+ * resuelve por slug pero se verifica contra las memberships de la sesión: un
+ * owner de la agencia A no puede editar la B aunque manipule el formulario.
+ * El slug no es editable. `contact_email` se valida porque es el destinatario
+ * de las notificaciones de leads: un valor roto silenciaría los avisos.
+ */
+export async function updateAgencyAction(
+  formData: FormData,
+): Promise<UpdateAgencyResult> {
+  const ctx = await getAdminContext();
+
+  const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+  if (!slug) return { ok: false, error: "slug requerido" };
+
+  const agency = await getAgencyBySlug(slug);
+  if (!agency) return { ok: false, error: "Agencia no encontrada" };
+
+  const isManager =
+    ctx.isSuperAdmin ||
+    ctx.memberships.some(
+      (m) => m.agencyId === agency.id && ["owner", "admin"].includes(m.role),
+    );
+  if (!isManager) return { ok: false, error: "Tu rol no puede editar esta agencia" };
+
+  const str = (k: string) => String(formData.get(k) ?? "").trim();
+  const errors: Record<string, string> = {};
+
+  const name = str("name");
+  if (name && (name.length < 2 || name.length > 200)) {
+    errors.name = "Entre 2 y 200 caracteres";
+  }
+
+  const contactEmail = str("contact_email");
+  if (contactEmail && !AGENCY_EMAIL_RX.test(contactEmail)) {
+    errors.contact_email = "Email invalido";
+  }
+  if (!contactEmail) {
+    // Sin email de contacto, las notificaciones de leads dependen del fallback
+    // global. Se exige explícito para que nadie lo vacíe por accidente.
+    errors.contact_email = "Requerido: es el destino de los avisos de consultas";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return { ok: false, error: "Revisa los campos marcados", errors };
+  }
+
+  const res = await updateAgency({
+    agencyId: agency.id,
+    updatedBy: ctx.userId ?? (ctx.isSuperAdmin ? "super-admin" : null),
+    patch: {
+      name: name || undefined,
+      contact_email: contactEmail,
+      contact_phone: str("contact_phone") || null,
+      whatsapp: str("whatsapp") || null,
+      address: str("address") || null,
+      city: str("city") || null,
+      province: str("province") || null,
+    },
+  });
+  if (!res.ok) return { ok: false, error: res.error ?? "No se pudo guardar" };
+
+  revalidatePath(`/admin/agencies/${slug}`);
+  revalidatePath("/admin/agencies");
+  return { ok: true };
 }

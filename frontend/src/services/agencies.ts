@@ -192,6 +192,7 @@ export interface AgencyFull {
   contact_email: string | null;
   contact_phone: string | null;
   whatsapp: string | null;
+  address: string | null;
   city: string | null;
   province: string | null;
   created_at: string;
@@ -231,7 +232,7 @@ export async function listAgencies(): Promise<AgencyFull[]> {
     const { data, error } = await withTimeout(
       supabase
         .from("agencies")
-        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, city, province, created_at")
+        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, address, city, province, created_at")
         .order("created_at", { ascending: false }),
       6000,
       "agencies.list",
@@ -254,7 +255,7 @@ export async function getAgencyBySlug(slug: string): Promise<AgencyFull | null> 
     const { data, error } = await withTimeout(
       supabase
         .from("agencies")
-        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, city, province, created_at")
+        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, address, city, province, created_at")
         .eq("slug", slug)
         .maybeSingle(),
       4000,
@@ -456,6 +457,76 @@ export async function removeAgencyMember(
     return { ok: true };
   } catch (err) {
     log.error("agency_members", "remove exception", err instanceof Error ? err : { err: String(err) });
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+  }
+}
+
+/* ==========================================================
+ * Sprint 16 · Configuración editable de agencia
+ * ========================================================== */
+
+export interface UpdateAgencyPatch {
+  name?: string;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  whatsapp?: string | null;
+  address?: string | null;
+  city?: string | null;
+  province?: string | null;
+}
+
+/**
+ * Actualiza los datos de contacto y presentación de una agencia.
+ *
+ * El `agencyId` lo resuelve la server action desde la sesión: este servicio
+ * jamás recibe un id elegido por el navegador. El slug NO es editable — es la
+ * clave pública de la agencia. `contact_email` es el destinatario de las
+ * notificaciones de leads; no se usa como remitente de Auth (eso es
+ * RESEND_SENDER) ni se valida aquí más allá del formato: la validación
+ * semántica vive en la action.
+ */
+export async function updateAgency(args: {
+  agencyId: string;
+  patch: UpdateAgencyPatch;
+  updatedBy?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!args.agencyId) return { ok: false, error: "agencyId requerido" };
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+
+  const clean: Record<string, string | null> = {};
+  const set = (k: keyof UpdateAgencyPatch) => {
+    const v = args.patch[k];
+    if (v === undefined) return;
+    clean[k] = typeof v === "string" ? v.trim() || null : null;
+  };
+  (["name", "contact_email", "contact_phone", "whatsapp", "address", "city", "province"] as const)
+    .forEach(set);
+
+  if (Object.keys(clean).length === 0) return { ok: false, error: "Sin cambios" };
+  if (clean.name !== undefined && (clean.name === null || clean.name.length < 2 || clean.name.length > 200)) {
+    return { ok: false, error: "Nombre invalido (2-200 chars)" };
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await withTimeout(
+      supabase.from("agencies").update(clean).eq("id", args.agencyId),
+      6000,
+      "agencies.update",
+    );
+    if (error) {
+      log.error("agencies", "update error", { agencyId: args.agencyId, message: error.message });
+      return { ok: false, error: error.message };
+    }
+    // Auditable: quién cambió qué campos (no los valores, que pueden ser PII).
+    log.info("agencies", "agency actualizada", {
+      agencyId: args.agencyId,
+      fields: Object.keys(clean),
+      updatedBy: args.updatedBy ?? "unknown",
+    });
+    return { ok: true };
+  } catch (err) {
+    log.error("agencies", "update exception", err instanceof Error ? err : { err: String(err) });
     return { ok: false, error: err instanceof Error ? err.message : "unknown" };
   }
 }
