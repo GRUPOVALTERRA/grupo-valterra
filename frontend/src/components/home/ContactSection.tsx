@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { MOCK_PROPERTIES } from "@/services/mock-properties";
+import { SocialLinks } from "@/components/layout/SocialLinks";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -123,6 +124,15 @@ export function ContactSection({ propertySlug: propSlug, propertyTitle: propTitl
                 </li>
               ))}
             </ul>
+
+            <div className="mt-10">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
+                Seguinos en redes
+              </p>
+              <div className="mt-3">
+                <SocialLinks variant="light" />
+              </div>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-[#D8D8D8] bg-white p-6 shadow-[0_20px_60px_-20px_rgba(10,35,66,0.18)] md:p-8">

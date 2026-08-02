@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { SocialLinks } from "./SocialLinks";
 
 /**
  * Enlaces del pie.
@@ -54,18 +55,20 @@ export function Footer() {
             <div className="mt-6 space-y-2.5 text-sm text-white/80">
               <div className="flex items-start gap-2.5">
                 <span className="text-[#C9A86A]">📍</span>
-                <span>Catamarca 1365 Piso 1° Dpto. I, Corrientes, Capital</span>
+                <span>Corrientes Capital, Argentina · Atención con cita previa por WhatsApp</span>
               </div>
               <a href="tel:+5493795159096" className="flex items-center gap-2.5 hover:text-[#C9A86A]">
                 <span className="text-[#C9A86A]">📞</span>
                 +54 9 379 515-9096
               </a>
               {/*
-                Sprint 14-B — se retiró el email de contacto anterior: pertenecía a
-                otro dominio y no hay casilla comercial confirmada en el dominio
-                propio (la de acceso es sólo remitente de autenticación). Se dejan
-                los canales verificables: teléfono, WhatsApp y el formulario.
+                S16-SOCIAL — casilla administrativa confirmada por el dueño
+                (commit a6b07ae). Reemplaza al email retirado en Sprint 14-B.
               */}
+              <a href="mailto:grupovalterraservinmob@gmail.com" className="flex items-center gap-2.5 hover:text-[#C9A86A]">
+                <span className="text-[#C9A86A]">✉️</span>
+                grupovalterraservinmob@gmail.com
+              </a>
               <a
                 href="https://wa.me/5493795159096"
                 target="_blank"
@@ -112,10 +115,8 @@ export function Footer() {
           <p className="text-xs text-white/60">
             © {year} Grupo Valterra · Soluciones Inmobiliarias del Litoral
           </p>
-          {/*
-            Sprint 14-B — se retiraron los iconos sociales: apuntaban a "#" y no
-            hay perfiles confirmados. Se reponen cuando existan URLs reales.
-          */}
+          {/* S16-SOCIAL — URLs oficiales confirmadas, centralizadas en lib/social.ts */}
+          <SocialLinks variant="dark" />
         </div>
       </div>
     </footer>
