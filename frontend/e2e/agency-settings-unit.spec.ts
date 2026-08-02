@@ -77,6 +77,6 @@ test.describe("fuente de leads", () => {
 
   test("la derivacion usa property_slug del lead, sin tocar datos", () => {
     const src = codeOf(read("components/admin/leads/LeadTable.tsx"));
-    expect(src).toContain("propertySlug={lead.property_slug}");
+    expect(src).toContain("propertySlug={lead.propertySlug}");
   });
 });

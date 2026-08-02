@@ -192,6 +192,7 @@ export interface AgencyFull {
   contact_email: string | null;
   contact_phone: string | null;
   whatsapp: string | null;
+  address: string | null;
   city: string | null;
   province: string | null;
   created_at: string;
@@ -231,7 +232,7 @@ export async function listAgencies(): Promise<AgencyFull[]> {
     const { data, error } = await withTimeout(
       supabase
         .from("agencies")
-        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, city, province, created_at")
+        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, address, city, province, created_at")
         .order("created_at", { ascending: false }),
       6000,
       "agencies.list",
@@ -254,7 +255,7 @@ export async function getAgencyBySlug(slug: string): Promise<AgencyFull | null> 
     const { data, error } = await withTimeout(
       supabase
         .from("agencies")
-        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, city, province, created_at")
+        .select("id, slug, name, legal_name, cuit, matricula, contact_email, contact_phone, whatsapp, address, city, province, created_at")
         .eq("slug", slug)
         .maybeSingle(),
       4000,

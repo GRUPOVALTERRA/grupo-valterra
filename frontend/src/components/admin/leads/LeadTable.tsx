@@ -135,7 +135,7 @@ export function LeadTable({ leads }: LeadTableProps) {
                     {lead.agentName ?? <span className="text-slate-300">—</span>}
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <SourceBadge source={lead.source} propertySlug={lead.property_slug} />
+                    <SourceBadge source={lead.source} propertySlug={lead.propertySlug} />
                   </td>
                   <td className="px-4 py-3 align-top">
                     <StatusBadge status={lead.status} />
@@ -199,7 +199,7 @@ export function LeadTable({ leads }: LeadTableProps) {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <SourceBadge source={lead.source} propertySlug={lead.property_slug} />
+              <SourceBadge source={lead.source} propertySlug={lead.propertySlug} />
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#D8D8D8] pt-3">
