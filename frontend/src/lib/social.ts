@@ -6,7 +6,8 @@
  * alrededor del 01/09/2026. Cuando ocurra, actualizar SOLO la URL de abajo.
  */
 export const SOCIAL_LINKS = [
-  { name: "Facebook", href: "https://www.facebook.com/61567845351489" },
+  // Página sin username todavía — cuando reclamen @grupovalterra, reemplazar por la URL corta.
+  { name: "Facebook", href: "https://www.facebook.com/profile.php?id=61593004700771" },
   { name: "Instagram", href: "https://www.instagram.com/grupovalterraar" },
   { name: "TikTok", href: "https://www.tiktok.com/@grupovalterra_ok" },
   { name: "X", href: "https://x.com/grupovalterraar" },
