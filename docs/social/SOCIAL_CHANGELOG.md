@@ -10,6 +10,7 @@ Registrar acá todo cambio de handle, URL o política. Cada cambio lo confirma e
 - TikTok: @grupovalterra_ok — activa.
 - X: @grupovalterraar — activa.
 - Enlaces integrados al sitio (footer + sección contacto) via `frontend/src/lib/social.ts` (PR #14).
+- Dominio https://www.grupovalterra.com.ar CONECTADO y sirviendo producción (02/08/2026).
 
 ## Acciones futuras PENDIENTES (no consumadas)
 
@@ -17,12 +18,14 @@ Registrar acá todo cambio de handle, URL o política. Cada cambio lo confirma e
 | --- | --- | --- | --- | --- |
 | 1 | TikTok cambia a @grupovalterraar | ~01/09/2026 | Gustavo | `lib/social.ts` (solo la URL) + SOCIAL_ACCOUNTS.md + este changelog |
 | 2 | Username propio de Facebook (si se reclama) | sin fecha | Gustavo | `lib/social.ts` + SOCIAL_ACCOUNTS.md |
-| 3 | Conectar https://www.grupovalterra.com.ar al sitio (hoy prod en grupo-valterra.vercel.app; la zona DNS solo tiene registros de correo) | sin fecha | Gustavo | DNS Cloudflare + Vercel; las bios ya usan la URL del dominio |
-| 4 | Rescatar avatar-social.png de la branch histórica al repo | sin fecha | Director | `frontend/public/brand/` |
-| 5 | WhatsApp Business (línea nueva vs migrar la actual) | sin fecha | Gustavo | Botones de contacto en IG/FB |
+| 3 | Rescatar avatar-social.png de la branch histórica al repo | sin fecha | Director | `frontend/public/brand/` |
+| 4 | WhatsApp Business (línea nueva vs migrar la actual) | sin fecha | Gustavo | Botones de contacto en IG/FB |
 
 ## Historial
 
+- 02/08/2026 — ✅ COMPLETADO: dominio https://www.grupovalterra.com.ar conectado al sitio.
+  Evidencia: /api/health en el dominio responde ok, db connected, commit `cff2ffd` (producción
+  vigente). Verificado por el Director en gate S16-QA.
 - 02/08/2026 — Kit operativo reconstruido desde main (`docs/s16-social-operations-kit`);
   la branch documental histórica NO se mergeó (contenía domicilio físico y handles propuestos
   que no coinciden con las cuentas reales).
