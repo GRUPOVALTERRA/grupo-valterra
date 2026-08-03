@@ -237,3 +237,93 @@ test.describe("PII", () => {
     for (const f of ["email", "phone", "recipient", "subject", "body", "ip"]) expect(cols).not.toContain(f);
   });
 });
+
+/* ============================================================
+ * PR1-H — hardening de logs y permisos
+ * ============================================================ */
+test.describe("hardening de logs", () => {
+  const logCalls = (src: string) =>
+    [...codeOf(src).matchAll(/log\.(info|warn|error)\([\s\S]*?\}\);/g)].map((m) => m[0]).join("\n");
+
+  test("H1. ningun log del flujo registra IP, mensaje crudo ni objeto de error completo", () => {
+    const all = [
+      logCalls(read("lib/notifications.ts")),
+      logCalls(read("services/lead-notifications.ts")),
+      logCalls(read("app/api/contact/route.ts")),
+    ].join("\n");
+    expect(all).not.toMatch(/,\s*err\s*instanceof\s*Error\s*\?\s*err\s*:/);
+    expect(all).not.toContain("message: error.message");
+    expect(all).not.toContain("err.message");
+    expect(all).not.toContain("JSON.stringify");
+    for (const f of ["lead.email", "lead.phone", "lead.message", "recipients:", "subject", "html"]) {
+      expect(all).not.toContain(f);
+    }
+    expect(all).not.toMatch(/\{\s*ip\s*[,}]/);
+    expect(all).not.toMatch(/[,{]\s*ip\s*,/);
+  });
+
+  test("H2. una cadena sensible dentro del error del proveedor NO llega a ningun campo persistible", () => {
+    const sensible = "550 rejected for cliente.real@gmail.com desde 200.45.12.9";
+    const { status, reason } = classifyProviderError({ statusCode: 550, message: sensible, name: "ResendError" });
+    for (const persisted of [status, reason]) {
+      expect(persisted).not.toContain("@");
+      expect(persisted).not.toContain("cliente.real");
+      expect(persisted).not.toContain("200.45");
+      expect(persisted).not.toContain("550");
+    }
+    expect(isNotifyReason(reason)).toBe(true);
+  });
+
+  test("H3. la IP se usa para rate-limit pero solo su huella no reversible va al log", () => {
+    const route = codeOf(read("app/api/contact/route.ts"));
+    expect(route).toContain("ipFingerprint(ip)");
+    expect(route).toContain("rateLimit(`contact:${ip}`");
+    expect(codeOf(read("lib/rate-limit.ts"))).toContain('createHash("sha256")');
+  });
+});
+
+test.describe("hardening de permisos SQL", () => {
+  test("H4. las funciones son security invoker, no definer", () => {
+    const sql = codeOf(migration());
+    expect(sql).toContain("security invoker");
+    expect(sql).not.toContain("security definer");
+  });
+
+  test("H5. search_path fijado a vacio y tablas calificadas por esquema", () => {
+    const sql = codeOf(migration());
+    expect((sql.match(/set search_path = ''/g) ?? []).length).toBe(2);
+    expect(sql).not.toContain("set search_path = public");
+    expect(sql.slice(sql.indexOf("create or replace function"))).toContain("update public.leads");
+  });
+
+  test("H6. EXECUTE revocado de PUBLIC/anon/authenticated y concedido a service_role", () => {
+    const sql = codeOf(migration());
+    expect(sql).toContain("revoke all on function public.begin_lead_notification_attempt(text) from public");
+    expect(sql).toContain("revoke all on function public.finish_lead_notification_attempt(text, text, text, text) from public");
+    expect(sql).toContain("from anon");
+    expect(sql).toContain("from authenticated");
+    expect(sql).toContain("to service_role");
+  });
+
+  test("H7. las RPC se invocan solo con el cliente service_role", () => {
+    const svc = codeOf(read("services/lead-notifications.ts"));
+    expect(svc).toContain("getSupabaseAdmin()");
+    expect(svc).not.toContain("ANON_KEY");
+    expect((svc.match(/supabase\.rpc\(/g) ?? []).length).toBe(2);
+  });
+});
+
+test.describe("alcance de datos en after()", () => {
+  test("H8. el closure captura el lead ya en memoria, sin releerlo ni ampliar superficie", () => {
+    const route = codeOf(read("app/api/contact/route.ts"));
+    expect(route).not.toContain("getLeadById");
+    expect(read("app/api/contact/route.ts")).toContain("y no solo `lead.id` de forma deliberada");
+  });
+
+  test("H9. el lead capturado no se registra ni se persiste desde el closure", () => {
+    const svc = codeOf(read("services/lead-notifications.ts"));
+    expect(svc).not.toMatch(/log\.(info|warn|error)\([^)]*\blead\b\s*[,)]/);
+    expect(svc).not.toContain("...lead");
+    expect(svc).not.toContain("JSON.stringify(lead");
+  });
+});

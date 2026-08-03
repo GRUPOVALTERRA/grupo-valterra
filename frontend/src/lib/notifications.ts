@@ -124,7 +124,7 @@ export async function notifyNewLead(lead: Lead): Promise<NotifyResult> {
       return { ok: false, error: error.message, providerError: shape };
     }
 
-    log.info("notifications", "email enviado", { leadId: lead.id, recipients: recipients.length, messageId: data?.id });
+    log.info("notifications", "email enviado", { leadId: lead.id, recipientCount: recipients.length, messageId: data?.id });
     return { ok: true, id: data?.id };
   } catch (err) {
     const shape: ProviderErrorShape = err instanceof Error ? { name: err.name, statusCode: (err as { statusCode?: number }).statusCode, message: err.message } : {};

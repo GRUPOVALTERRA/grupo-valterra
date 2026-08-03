@@ -109,11 +109,19 @@ end $$;
 --    un lead 'sent' NUNCA se degrada.
 --    Devuelve el numero de intento resultante, o NULL si no aplico.
 -- ----------------------------------------------------------
+-- SEGURIDAD: estas funciones se invocan EXCLUSIVAMENTE desde el servidor con
+-- un cliente Supabase service_role (`getSupabaseAdmin`), que ya posee los
+-- permisos necesarios y bypassa RLS. Por eso NO se usa `security definer`:
+-- con `security invoker` la funcion corre con los privilegios de quien la
+-- llama, de modo que un usuario anon o authenticated no podria alterar el
+-- estado de notificacion de un lead arbitrario aunque lograra invocarla.
+-- Ademas se revoca EXECUTE de PUBLIC/anon/authenticated mas abajo.
+-- `search_path = ''` + nombres calificados evitan el secuestro por search_path.
 create or replace function public.begin_lead_notification_attempt(p_lead_id text)
 returns smallint
 language sql
-security definer
-set search_path = public
+security invoker
+set search_path = ''
 as $$
   update public.leads
      set notify_attempts = notify_attempts + 1,
@@ -138,8 +146,8 @@ create or replace function public.finish_lead_notification_attempt(
 )
 returns boolean
 language sql
-security definer
-set search_path = public
+security invoker
+set search_path = ''
 as $$
   update public.leads
      set notify_status     = p_status,
@@ -152,3 +160,27 @@ $$;
 
 comment on function public.finish_lead_notification_attempt(text, text, text, text) is
   'S16-LEAD-OBS: persiste el resultado del intento. Nunca sobrescribe un lead ya sent.';
+
+-- ----------------------------------------------------------
+-- 8. Permisos: nadie mas que el servidor puede tocar el estado.
+--    Por defecto Postgres concede EXECUTE a PUBLIC en cada funcion nueva;
+--    hay que revocarlo explicitamente.
+-- ----------------------------------------------------------
+revoke all on function public.begin_lead_notification_attempt(text) from public;
+revoke all on function public.finish_lead_notification_attempt(text, text, text, text) from public;
+
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    execute 'revoke all on function public.begin_lead_notification_attempt(text) from anon';
+    execute 'revoke all on function public.finish_lead_notification_attempt(text, text, text, text) from anon';
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'authenticated') then
+    execute 'revoke all on function public.begin_lead_notification_attempt(text) from authenticated';
+    execute 'revoke all on function public.finish_lead_notification_attempt(text, text, text, text) from authenticated';
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'service_role') then
+    execute 'grant execute on function public.begin_lead_notification_attempt(text) to service_role';
+    execute 'grant execute on function public.finish_lead_notification_attempt(text, text, text, text) to service_role';
+  end if;
+end $$;
