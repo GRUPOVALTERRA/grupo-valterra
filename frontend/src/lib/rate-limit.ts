@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 /**
  * Rate limiter in-memory por IP.
  *
@@ -57,6 +59,18 @@ export function rateLimit(
 /**
  * Extrae IP del request. En Vercel viene en x-forwarded-for.
  */
+/**
+ * Huella NO reversible de la IP, para logs.
+ *
+ * La IP es un dato personal: no debe quedar en logs. Pero perder por completo
+ * la capacidad de correlacionar abuso desde un mismo origen empeora la
+ * seguridad. Esta huella conserva la correlacion sin exponer la IP: es un
+ * hash truncado, imposible de revertir a la direccion original.
+ */
+export function ipFingerprint(ip: string): string {
+  return createHash("sha256").update(ip).digest("hex").slice(0, 8);
+}
+
 export function getClientIp(headers: Headers): string {
   const xff = headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();

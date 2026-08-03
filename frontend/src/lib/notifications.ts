@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { log } from "@/lib/logger";
 import type { Lead } from "@/services/mock-leads";
 import { getAgencyContactById } from "@/services/agencies";
+import { leadIdempotencyKey, type ProviderErrorShape } from "@/lib/notify-status";
 
 /**
  * Notifications layer - Sprint 9.5.
@@ -14,8 +15,12 @@ import { getAgencyContactById } from "@/services/agencies";
  *   - Idempotency: usamos lead.id como key para que reintentos no dupliquen.
  *   - Sandbox-friendly: si RESEND_API_KEY no esta, la funcion no-opea con un
  *     log.warn (no rompe el contact flow).
- *   - Sender: por defecto "onboarding@resend.dev" (sandbox publica de Resend).
- *     Cuando exista valterra.com.ar verificado, se cambia a "leads@valterra.com.ar".
+  *   - Sender: RESEND_SENDER (hoy notificaciones@grupovalterra.com.ar, dominio
+ *     verificado). El fallback de sandbox solo aplica sin variable configurada.
+ *
+ * Sprint 16 (S16-LEAD-OBS): esta capa NO persiste estado. Devuelve el
+ * resultado (incluida la forma estructurada del error, sin texto crudo) y
+ * `services/lead-notifications` se encarga de registrarlo.
  */
 
 const SENDER = process.env.RESEND_SENDER ?? "Grupo Valterra <onboarding@resend.dev>";
@@ -39,11 +44,13 @@ export function parseRecipients(raw: string | undefined): string[] {
     .filter((s) => s.length > 0 && s.includes("@"));
 }
 
-interface NotifyResult {
+export interface NotifyResult {
   ok: boolean;
   skipped?: "no-api-key" | "no-recipients";
   id?: string;
   error?: string;
+  /** Forma ESTRUCTURADA del error (statusCode/name) para categorizar. Nunca se persiste tal cual. */
+  providerError?: ProviderErrorShape;
 }
 
 /**
@@ -102,7 +109,7 @@ export async function notifyNewLead(lead: Lead): Promise<NotifyResult> {
       text: renderText(lead),
       headers: {
         // Idempotency key - Resend dedupea reintentos con el mismo key
-        "Idempotency-Key": `lead-${lead.id}`,
+        "Idempotency-Key": leadIdempotencyKey(lead.id),
       },
       tags: [
         { name: "type", value: "lead_notification" },
@@ -111,15 +118,18 @@ export async function notifyNewLead(lead: Lead): Promise<NotifyResult> {
     });
 
     if (error) {
-      log.error("notifications", "Resend error", { leadId: lead.id, message: error.message });
-      return { ok: false, error: error.message };
+      const shape: ProviderErrorShape = { name: error.name, statusCode: (error as { statusCode?: number }).statusCode, message: error.message };
+      // El texto crudo va SOLO al log (retencion corta), nunca a la base.
+      log.error("notifications", "Resend error", { leadId: lead.id, providerName: error.name, providerStatusCode: shape.statusCode ?? null });
+      return { ok: false, error: error.message, providerError: shape };
     }
 
-    log.info("notifications", "email enviado", { leadId: lead.id, recipients: recipients.length, messageId: data?.id });
+    log.info("notifications", "email enviado", { leadId: lead.id, recipientCount: recipients.length, messageId: data?.id });
     return { ok: true, id: data?.id };
   } catch (err) {
-    log.error("notifications", "notifyNewLead exception", err instanceof Error ? err : { err: String(err) });
-    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+    const shape: ProviderErrorShape = err instanceof Error ? { name: err.name, statusCode: (err as { statusCode?: number }).statusCode, message: err.message } : {};
+    log.error("notifications", "notifyNewLead exception", { leadId: lead.id, providerName: shape.name ?? null, providerStatusCode: shape.statusCode ?? null });
+    return { ok: false, error: err instanceof Error ? err.message : "unknown", providerError: shape };
   }
 }
 
