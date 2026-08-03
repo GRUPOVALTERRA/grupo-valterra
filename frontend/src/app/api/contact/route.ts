@@ -1,9 +1,9 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { validateLead } from "@/lib/validateLead";
 import { addLead, getAllLeads, computeStats } from "@/services/mock-leads";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { log } from "@/lib/logger";
-import { notifyNewLead } from "@/lib/notifications";
+import { processLeadNotification } from "@/services/lead-notifications";
 import { getAgencyContactByPropertySlug, getValterraAgencyId } from "@/services/agencies";
 
 export const dynamic = "force-dynamic";
@@ -111,9 +111,17 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactRe
       id: lead.id, ip, propertySlug: lead.propertySlug, agencyId: lead.agencyId, resolution,
     });
 
-    // Fire-and-forget notification - resuelve recipient desde agency.contact_email
-    notifyNewLead(lead).catch((err) => {
-      log.error("api/contact", "notifyNewLead unexpected throw", err instanceof Error ? err : { err: String(err) });
+        // S16-LEAD-OBS: el envio corre DESPUES de responder, pero dentro del ciclo
+    // de vida garantizado de la funcion. La promesa suelta anterior podia
+    // truncarse cuando el runtime congelaba la funcion al devolver el 201.
+    // Contrato publico intacto: el lead ya esta persistido y la respuesta no
+    // espera al proveedor. Una notificacion fallida NO invalida el lead.
+    after(async () => {
+      try {
+        await processLeadNotification(lead);
+      } catch (err) {
+        log.error("api/contact", "processLeadNotification unexpected throw", { leadId: lead.id, errorName: err instanceof Error ? err.name : "unknown" });
+      }
     });
 
     return NextResponse.json({ ok: true, leadId: lead.id }, { status: 201 });
