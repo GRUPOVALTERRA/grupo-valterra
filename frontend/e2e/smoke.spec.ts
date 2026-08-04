@@ -40,7 +40,10 @@ test.describe("Guardas de acceso admin", () => {
     await page.goto("/admin/leads");
     await expect(page).toHaveURL(/\/admin\/login/);
     await expect(page.getByText(/Iniciar sesi[oó]n/i)).toBeVisible();
-    await expect(page.getByText(/Magic link/i)).toBeVisible();
+    // Se apunta al BOTÓN, no al texto: "magic link" también aparece en el pie
+    // de la pantalla de login, y `getByText` resolvía a dos elementos, lo que
+    // en modo estricto hace fallar el test aunque el guard funcione bien.
+    await expect(page.getByRole("button", { name: "Magic link" })).toBeVisible();
   });
 
   test("/admin/properties sin sesión redirige a login", async ({ page }) => {

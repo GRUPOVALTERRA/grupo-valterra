@@ -1,4 +1,5 @@
 import type { Lead, LeadStatus, LeadSource } from "@/services/mock-leads";
+import { NOTIFY_TONE_CLASS, notifyBadge } from "@/lib/lead-notify-view";
 
 /**
  * Tabla de leads.
@@ -46,6 +47,25 @@ const SOURCE_LABEL: Record<LeadSource, string> = {
   portal: "Portal externo",
 };
 
+/**
+ * Estado del aviso por correo (S16-LEAD-OBS PR2).
+ *
+ * El `title` lleva la explicación en palabras: la etiqueta sola no alcanza
+ * para saber si hay algo que hacer. Nunca se muestra el identificador del
+ * proveedor ni códigos técnicos — eso queda en auditoría, no en la bandeja.
+ */
+function NotifyBadge({ status, reason }: { status: Lead["notifyStatus"]; reason?: string }) {
+  const badge = notifyBadge(status, reason);
+  return (
+    <span
+      title={badge.explanation}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${NOTIFY_TONE_CLASS[badge.tone]}`}
+    >
+      {badge.label}
+    </span>
+  );
+}
+
 function StatusBadge({ status }: { status: LeadStatus }) {
   return (
     <span
@@ -92,6 +112,21 @@ function telLink(lead: Lead): string {
 }
 
 export function LeadTable({ leads }: LeadTableProps) {
+  // Un listado vacío tras filtrar es un resultado legítimo, no un error: se
+  // dice explícitamente en vez de dejar una tabla en blanco que parece rota.
+  if (leads.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[#D8D8D8] bg-white px-6 py-12 text-center">
+        <p className="text-sm font-medium text-[#0A2342]">
+          No hay consultas que coincidan con los filtros
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Probá quitar el filtro de aviso o limpiar la búsqueda.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Desktop */}
@@ -106,6 +141,7 @@ export function LeadTable({ leads }: LeadTableProps) {
                 <th className="px-4 py-3">Propiedad</th>
                 <th className="px-4 py-3">Agente</th>
                 <th className="px-4 py-3">Fuente</th>
+                <th className="px-4 py-3">Aviso</th>
                 <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3 text-right">Acciones</th>
@@ -136,6 +172,9 @@ export function LeadTable({ leads }: LeadTableProps) {
                   </td>
                   <td className="px-4 py-3 align-top">
                     <SourceBadge source={lead.source} propertySlug={lead.propertySlug} />
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    <NotifyBadge status={lead.notifyStatus} reason={lead.notifyReason} />
                   </td>
                   <td className="px-4 py-3 align-top">
                     <StatusBadge status={lead.status} />
@@ -200,7 +239,12 @@ export function LeadTable({ leads }: LeadTableProps) {
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <SourceBadge source={lead.source} propertySlug={lead.propertySlug} />
+              <NotifyBadge status={lead.notifyStatus} reason={lead.notifyReason} />
             </div>
+            {/* En móvil no hay hover: la explicación se muestra siempre. */}
+            <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
+              {notifyBadge(lead.notifyStatus, lead.notifyReason).explanation}
+            </p>
 
             <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#D8D8D8] pt-3">
               <a

@@ -9,6 +9,23 @@ export type LeadSource =
   | "contact-form" | "whatsapp" | "phone" | "email"
   | "referral" | "social" | "portal";
 
+/**
+ * Estado de entrega del aviso por correo (migración 0010, S16-LEAD-OBS).
+ *
+ * Tipo CERRADO a propósito: la bandeja decide colores, etiquetas y filtros a
+ * partir de este valor, así que un `string` abierto dejaría entrar estados que
+ * la UI no sabe representar. `toLeadNotifyStatus` normaliza cualquier valor
+ * inesperado a `unknown` en vez de romper el panel.
+ */
+export const LEAD_NOTIFY_STATUSES = [
+  "unknown",
+  "pending",
+  "sent",
+  "failed",
+  "skipped",
+] as const;
+export type LeadNotifyStatus = (typeof LEAD_NOTIFY_STATUSES)[number];
+
 export interface Lead {
   id: string;
   name: string;
@@ -22,6 +39,13 @@ export interface Lead {
   status: LeadStatus;
   message: string;
   createdAt: string;
+  /* --- Estado del aviso por correo (S16-LEAD-OBS) --- */
+  notifyStatus: LeadNotifyStatus;
+  notifyAttempts: number;
+  notifyLastAt?: string;
+  notifyReason?: string;
+  /** Identificador opaco del proveedor. NUNCA se muestra en la UI. */
+  notifyMessageId?: string;
 }
 
 export interface NewLeadInput {
@@ -60,9 +84,38 @@ interface LeadRow {
   agency_id: string | null;
   source: LeadSource;
   status: LeadStatus;
+  /* --- migración 0010: estado del aviso --- */
+  notify_status: string | null;
+  notify_attempts: number | null;
+  notify_last_at: string | null;
+  notify_reason: string | null;
+  notify_message_id: string | null;
+}
+
+/**
+ * Normaliza el estado que viene de la base.
+ *
+ * La columna tiene un CHECK que sólo admite los cinco valores, pero el panel
+ * no puede depender de eso: una fila anterior a la migración, una lectura
+ * contra un esquema desactualizado o un valor futuro que este build todavía no
+ * conoce llegarían como algo inesperado. En ese caso se representa como
+ * `unknown` —información histórica neutral— y NUNCA como `sent`: dar por
+ * avisado un lead que quizás no lo está es el único error caro de esta tabla.
+ */
+export function toLeadNotifyStatus(raw: unknown): LeadNotifyStatus {
+  return typeof raw === "string" &&
+    (LEAD_NOTIFY_STATUSES as readonly string[]).includes(raw)
+    ? (raw as LeadNotifyStatus)
+    : "unknown";
 }
 
 function rowToLead(row: LeadRow): Lead {
+  const notifyStatus = toLeadNotifyStatus(row.notify_status);
+  if (row.notify_status != null && notifyStatus === "unknown" && row.notify_status !== "unknown") {
+    // Señal saneada: se registra que hubo un valor fuera de contrato, sin
+    // volcar el valor crudo ni ningún dato del lead más allá de su id.
+    log.warn("leads", "notify_status fuera de contrato; se trata como unknown", { leadId: row.id });
+  }
   return {
     id: row.id,
     name: row.name,
@@ -76,12 +129,22 @@ function rowToLead(row: LeadRow): Lead {
     source: row.source,
     status: row.status,
     createdAt: row.created_at,
+    notifyStatus,
+    notifyAttempts: row.notify_attempts ?? 0,
+    notifyLastAt: row.notify_last_at ?? undefined,
+    notifyReason: row.notify_reason ?? undefined,
+    notifyMessageId: row.notify_message_id ?? undefined,
   };
 }
 
 /* ---------- fallback memoria ---------- */
 
-const SEED_LEADS: Lead[] = [
+/**
+ * Los seeds son de desarrollo local: nunca pasaron por el pipeline de aviso,
+ * así que nacen `unknown` (sin evidencia) y no `pending`, que significaría que
+ * hay un envío en curso esperando resultado.
+ */
+const SEED_LEADS: Lead[] = ([
   {
     id: "LEAD-SEED-A3F2C9", name: "Juan Pérez", phone: "+54 9 343 511-2233",
     email: "juan.perez@gmail.com",
@@ -134,7 +197,11 @@ const SEED_LEADS: Lead[] = [
     message: "Encontré otra propiedad. Gracias por la atención.",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 78).toISOString(),
   },
-];
+] as Omit<Lead, "notifyStatus" | "notifyAttempts">[]).map((seed) => ({
+  ...seed,
+  notifyStatus: "unknown" as const,
+  notifyAttempts: 0,
+}));
 
 const MEMORY_STORE: Lead[] = [...SEED_LEADS];
 
@@ -170,7 +237,14 @@ export async function getAllLeads(filters: LeadFilters = {}): Promise<Lead[]> {
     const supabase = getSupabaseAdmin();
     let query = supabase
       .from("leads")
-      .select("id,created_at,name,phone,email,message,property_slug,property_title,agent_name,agency_id,source,status")
+      // S16-LEAD-OBS PR2: se agregan las cinco columnas de aviso; sin ellas el
+      // panel no puede mostrar si el correo salió. La lista es explícita (no
+      // `*`) para que agregar una columna a la tabla no filtre datos nuevos a
+      // la UI sin decidirlo. Va en UN literal: partirla en concatenaciones le
+      // saca a supabase-js el tipo literal y deja de inferir la forma de fila.
+      .select(
+        "id,created_at,name,phone,email,message,property_slug,property_title,agent_name,agency_id,source,status,notify_status,notify_attempts,notify_last_at,notify_reason,notify_message_id",
+      )
       .order("created_at", { ascending: false });
 
     if (filters.agencyId) {
@@ -206,6 +280,11 @@ export async function addLead(input: NewLeadInput): Promise<Lead> {
     source: input.source ?? "contact-form",
     status: "new",
     createdAt: now,
+    // Un lead recién creado todavía no tiene resultado de aviso: el envío se
+    // dispara después de responder (after()). `pending` es exactamente eso, y
+    // es también el default de la columna en la migración 0010.
+    notifyStatus: "pending",
+    notifyAttempts: 0,
   };
 
   if (!isSupabaseConfigured()) {
