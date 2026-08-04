@@ -9,6 +9,11 @@ import { MembersSection } from "./MembersSection";
 import { getAdminContext } from "@/lib/admin-context";
 import { ownerInviteMemberAction, updateMemberRoleAction, removeMemberAction } from "@/app/admin/agencies/actions";
 import { listAgencyMembers, type AgencyMemberLite } from "@/services/agencies";
+import {
+  applyLeadFilters,
+  countAttention,
+  parseLeadListFilters,
+} from "@/lib/admin-lead-filter";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +22,11 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminLeadsPage() {
+export default async function AdminLeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const ctx = await getAdminContext();
   if (!ctx.scopedAgencyId && !ctx.isSuperAdmin) notFound();
 
@@ -25,6 +34,8 @@ export default async function AdminLeadsPage() {
   let dbError: string | null = null;
 
   try {
+    // El scope por agencia se resuelve acá, desde la sesión: los filtros de la
+    // URL nunca amplían lo que el operador puede ver.
     leads = await getAllLeads(
       ctx.scopedAgencyId ? { agencyId: ctx.scopedAgencyId } : {},
     );
@@ -33,7 +44,15 @@ export default async function AdminLeadsPage() {
     log.error("admin/leads", "error cargando leads", err instanceof Error ? err : { err: String(err) });
   }
 
-  const stats = computeStats(leads);
+  const sp = await searchParams;
+  const filters = parseLeadListFilters({ q: sp.q, estado: sp.estado, aviso: sp.aviso });
+  const visibleLeads = applyLeadFilters(leads, filters);
+  // "Requieren atención" se cuenta sobre TODO el scope, no sobre la vista
+  // filtrada: si se contara sobre lo visible, el número desaparecería justo
+  // cuando el operador filtra por otra cosa.
+  const attentionCount = countAttention(leads);
+
+  const stats = computeStats(visibleLeads);
   const scopeLabel = ctx.scopedAgencyName ?? "Sin agency";
   const isOwner = ctx.memberships.some(
     (m) => m.agencyId === ctx.scopedAgencyId && m.role === "owner",
@@ -113,7 +132,13 @@ export default async function AdminLeadsPage() {
         />
       )}
 
-      <LeadsDashboard leads={leads} stats={stats} />
+      <LeadsDashboard
+        leads={visibleLeads}
+        stats={stats}
+        filters={filters}
+        totalInScope={leads.length}
+        attentionCount={attentionCount}
+      />
     </>
   );
 }

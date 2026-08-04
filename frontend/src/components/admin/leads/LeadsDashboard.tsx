@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Lead, LeadStats } from "@/services/mock-leads";
+import { activeFilterCount, type LeadListFilters } from "@/lib/admin-lead-filter";
 import { LeadStatsCards } from "./LeadStatsCards";
 import { LeadFilters } from "./LeadFilters";
 import { LeadTable } from "./LeadTable";
@@ -11,11 +12,24 @@ import { LeadTable } from "./LeadTable";
  */
 
 interface LeadsDashboardProps {
+  /** Leads ya filtrados por la página (server-side). */
   leads: Lead[];
   stats: LeadStats;
+  filters: LeadListFilters;
+  /** Total del scope de la agencia, sin filtrar. */
+  totalInScope: number;
+  /** Cuántos avisos reclaman atención en todo el scope. Excluye históricos. */
+  attentionCount: number;
 }
 
-export function LeadsDashboard({ leads, stats }: LeadsDashboardProps) {
+export function LeadsDashboard({
+  leads,
+  stats,
+  filters,
+  totalInScope,
+  attentionCount,
+}: LeadsDashboardProps) {
+  const isFiltered = activeFilterCount(filters) > 0;
   return (
     <div className="min-h-screen bg-[#F8F7F4]/40 text-[#0A2342]">
       <header className="border-b border-[#D8D8D8] bg-white">
@@ -59,13 +73,32 @@ export function LeadsDashboard({ leads, stats }: LeadsDashboardProps) {
             Bandeja de leads
           </h1>
           <p className="mt-1 text-sm text-[#4A5568]">
-            {stats.total} {stats.total === 1 ? "consulta registrada" : "consultas registradas"}
+            {isFiltered ? (
+              <>
+                {leads.length} de {totalInScope}{" "}
+                {totalInScope === 1 ? "consulta" : "consultas"} tras aplicar los filtros
+              </>
+            ) : (
+              <>
+                {totalInScope}{" "}
+                {totalInScope === 1 ? "consulta registrada" : "consultas registradas"}
+              </>
+            )}
+            {attentionCount > 0 && (
+              <>
+                {" · "}
+                <span className="font-semibold text-amber-700">
+                  {attentionCount}{" "}
+                  {attentionCount === 1 ? "requiere atención" : "requieren atención"}
+                </span>
+              </>
+            )}
           </p>
         </div>
 
         <LeadStatsCards stats={stats} />
 
-        <LeadFilters />
+        <LeadFilters filters={filters} resultCount={leads.length} />
 
         <LeadTable leads={leads} />
 
