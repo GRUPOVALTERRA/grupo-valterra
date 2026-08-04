@@ -164,9 +164,11 @@ test.describe("ejecucion del envio", () => {
 
   test("18. sigue funcionando con email deshabilitado (sin API key)", () => {
     expect(codeOf(read("lib/notifications.ts"))).toContain('skipped: "no-api-key"');
+    // PR3 extrajo el mapeo a mapNotifyOutcome (objeto, no asignaciones):
+    // la semántica es la misma, compartida entre alta y reintento.
     const svc = codeOf(read("services/lead-notifications.ts"));
-    expect(svc).toContain('reason = "no-api-key"');
-    expect(svc).toContain('status = "skipped"');
+    expect(svc).toContain('reason: "no-api-key"');
+    expect(svc).toContain('status: "skipped"');
   });
 });
 
@@ -175,16 +177,24 @@ test.describe("transiciones de estado", () => {
 
   test("6/7/8. el resultado se mapea a sent / failed / skipped", () => {
     const s = svc();
-    expect(s).toContain('status = "sent"');
-    expect(s).toContain('status = "skipped"');
+    // Mapeo único en mapNotifyOutcome (PR3): un solo lugar que traduce el
+    // resultado del proveedor, usado por processLeadNotification y el reintento.
+    expect(s).toContain("function mapNotifyOutcome");
+    expect(s).toContain('status: "sent"');
+    expect(s).toContain('status: "skipped"');
     expect(s).toContain("classifyProviderError(result.providerError)");
-    expect(s).toContain("messageId = result.id ?? null");
+    expect(s).toContain("messageId: result.id ?? null");
   });
 
   test("6b. el message_id se persiste solo en el exito", () => {
     const s = svc();
-    const iSent = s.indexOf('status = "sent"');
-    expect(s.indexOf("messageId = result.id", iSent)).toBeGreaterThan(iSent);
+    // El único branch que lleva result.id es el de éxito (result.ok).
+    const iOk = s.indexOf("if (result.ok)");
+    expect(iOk).toBeGreaterThan(-1);
+    const okBranch = s.slice(iOk, s.indexOf("}", iOk));
+    expect(okBranch).toContain("messageId: result.id ?? null");
+    const occurrences = s.match(/messageId: result\.id/g) ?? [];
+    expect(occurrences.length).toBe(1);
   });
 
   test("10b. el servicio no reenvia un lead ya notificado", () => {
@@ -309,7 +319,12 @@ test.describe("hardening de permisos SQL", () => {
     const svc = codeOf(read("services/lead-notifications.ts"));
     expect(svc).toContain("getSupabaseAdmin()");
     expect(svc).not.toContain("ANON_KEY");
-    expect((svc.match(/supabase\.rpc\(/g) ?? []).length).toBe(2);
+    // PR1: begin + finish. PR3 agrega el claim del reintento (0011).
+    const calls = svc.match(/supabase\.rpc\("([a-z_]+)"/g) ?? [];
+    expect(calls.length).toBe(3);
+    expect(svc).toContain('supabase.rpc("begin_lead_notification_attempt"');
+    expect(svc).toContain('supabase.rpc("finish_lead_notification_attempt"');
+    expect(svc).toContain('supabase.rpc("claim_lead_notification_retry"');
   });
 });
 

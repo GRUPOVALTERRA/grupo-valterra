@@ -264,6 +264,54 @@ export async function getAllLeads(filters: LeadFilters = {}): Promise<Lead[]> {
   }
 }
 
+/**
+ * S16-LEAD-OBS PR3 — lectura puntual de un lead, con scope opcional de agencia.
+ *
+ * El scope lo resuelve el SERVIDOR (sesión), nunca el cliente. Para un actor
+ * no super-admin la consulta pinea agency_id: un lead de otra agencia (o
+ * inexistente) devuelve null indistinguible — no se filtra información.
+ */
+export async function getLeadById(
+  id: string,
+  scope: { agencyId?: string } = {},
+): Promise<Lead | null> {
+  if (!isSupabaseConfigured()) {
+    warnMemoryMode();
+    const found = MEMORY_STORE.find((l) => l.id === id) ?? null;
+    if (!found) return null;
+    if (scope.agencyId && found.agencyId !== scope.agencyId) return null;
+    return found;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    let query = supabase
+      .from("leads")
+      // Mismo literal ÚNICO que getAllLeads (ver comentario allí): explícito
+      // y sin concatenaciones para conservar la inferencia de fila.
+      .select(
+        "id,created_at,name,phone,email,message,property_slug,property_title,agent_name,agency_id,source,status,notify_status,notify_attempts,notify_last_at,notify_reason,notify_message_id",
+      )
+      .eq("id", id);
+
+    if (scope.agencyId) {
+      query = query.eq("agency_id", scope.agencyId);
+    }
+
+    const { data, error } = await withTimeout(query.maybeSingle(), 8000, "leads.selectById");
+
+    if (error) {
+      log.error("leads", "supabase selectById error", { message: error.message, code: error.code });
+      throw new Error(`supabase selectById: ${error.message}`);
+    }
+    if (!data) return null;
+    return rowToLead(data as LeadRow);
+  } catch (err) {
+    log.error("leads", "getLeadById falló", err instanceof Error ? err : { err: String(err) });
+    throw err;
+  }
+}
+
 export async function addLead(input: NewLeadInput): Promise<Lead> {
   const id = generateLeadId();
   const now = new Date().toISOString();

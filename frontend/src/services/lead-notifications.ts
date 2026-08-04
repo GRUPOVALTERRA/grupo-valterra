@@ -34,6 +34,29 @@ export interface ProcessResult {
   alreadySent?: boolean;
 }
 
+/**
+ * Traduce el resultado del proveedor a (status, reason, messageId).
+ * Compartido entre el flujo de alta y el reintento manual: la clasificación
+ * es UNA sola, no dos copias que deriven.
+ */
+function mapNotifyOutcome(result: Awaited<ReturnType<typeof notifyNewLead>>): {
+  status: NotifyStatus;
+  reason: NotifyReason | null;
+  messageId: string | null;
+} {
+  if (result.ok) {
+    return { status: "sent", reason: null, messageId: result.id ?? null };
+  }
+  if (result.skipped === "no-api-key") {
+    return { status: "skipped", reason: "no-api-key", messageId: null };
+  }
+  if (result.skipped === "no-recipients") {
+    return { status: "skipped", reason: "no-recipients", messageId: null };
+  }
+  const mapped = classifyProviderError(result.providerError);
+  return { status: mapped.status, reason: mapped.reason, messageId: null };
+}
+
 /** Registra el inicio del intento. Devuelve el número de intento, o null si no aplica. */
 async function beginAttempt(leadId: string): Promise<number | null> {
   const supabase = getSupabaseAdmin();
@@ -95,25 +118,7 @@ export async function processLeadNotification(lead: Lead): Promise<ProcessResult
   }
 
   const result = await notifyNewLead(lead);
-
-  let status: NotifyStatus;
-  let reason: NotifyReason | null = null;
-  let messageId: string | null = null;
-
-  if (result.ok) {
-    status = "sent";
-    messageId = result.id ?? null;
-  } else if (result.skipped === "no-api-key") {
-    status = "skipped";
-    reason = "no-api-key";
-  } else if (result.skipped === "no-recipients") {
-    status = "skipped";
-    reason = "no-recipients";
-  } else {
-    const mapped = classifyProviderError(result.providerError);
-    status = mapped.status;
-    reason = mapped.reason;
-  }
+  const { status, reason, messageId } = mapNotifyOutcome(result);
 
   await finishAttempt(lead.id, status, reason, messageId);
 
@@ -128,4 +133,83 @@ export async function processLeadNotification(lead: Lead): Promise<ProcessResult
   });
 
   return { ok: status === "sent", status, reason, attempt };
+}
+
+/* ==================================================================
+ * S16-LEAD-OBS PR3 — reintento manual con claim exclusivo
+ * ================================================================== */
+
+export interface RetryProcessResult {
+  /** false = el claim no se adquirió; NO se envió nada. */
+  claimed: boolean;
+  status: NotifyStatus | null;
+  reason: NotifyReason | null;
+  attempt: number | null;
+}
+
+/**
+ * Adquiere el claim exclusivo del reintento (migración 0011).
+ * Devuelve el número de intento, o null si otro request ganó la carrera,
+ * el estado no es elegible, la agencia no coincide o el lead no existe.
+ */
+async function claimRetry(leadId: string, agencyId: string | null): Promise<number | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await withTimeout(
+    supabase.rpc("claim_lead_notification_retry", {
+      p_lead_id: leadId,
+      p_agency_id: agencyId,
+    }),
+    4000,
+    "leads.claimNotifyRetry",
+  );
+  if (error) {
+    log.error("lead_notifications", "claim retry error", { leadId, code: error.code });
+    return null;
+  }
+  return typeof data === "number" ? data : null;
+}
+
+/**
+ * Reintenta el aviso de un lead YA autorizado por la server action.
+ *
+ * NO usa `begin_lead_notification_attempt`: esa función no es exclusiva y el
+ * claim ya incrementó attempts — llamarla acá contaría el intento dos veces.
+ *
+ * Idempotencia: reutiliza la MISMA clave estable (`lead-{id}`, dentro de
+ * `notifyNewLead`). No se genera una clave nueva para forzar al proveedor a
+ * aceptar el envío: si la deduplicación aplica, es la protección funcionando.
+ *
+ * Requiere Supabase configurado: sin base no hay claim atómico posible y el
+ * reintento manual no debe ejecutarse sin exclusividad garantizada.
+ * NUNCA lanza.
+ */
+export async function retryLeadNotification(lead: Lead): Promise<RetryProcessResult> {
+  if (!isSupabaseConfigured()) {
+    log.warn("lead_notifications", "reintento rechazado: supabase no configurado", { leadId: lead.id });
+    return { claimed: false, status: null, reason: null, attempt: null };
+  }
+
+  const attempt = await claimRetry(lead.id, lead.agencyId ?? null);
+  if (attempt === null) {
+    return { claimed: false, status: null, reason: null, attempt: null };
+  }
+
+  const result = await notifyNewLead(lead);
+  const { status, reason, messageId } = mapNotifyOutcome(result);
+
+  // `finish` conserva la guarda de 0010: jamás degrada un lead ya `sent`
+  // (cubre también la respuesta tardía de un intento anterior).
+  await finishAttempt(lead.id, status, reason, messageId);
+
+  // Log saneado: mismos criterios de PR1-H. Sin PII, sin message_id.
+  log.info("lead_notifications", "reintento registrado", {
+    leadId: lead.id,
+    agencyId: lead.agencyId ?? null,
+    status,
+    reason,
+    attempt,
+    providerStatusCode: result.providerError?.statusCode ?? null,
+  });
+
+  return { claimed: true, status, reason, attempt };
 }

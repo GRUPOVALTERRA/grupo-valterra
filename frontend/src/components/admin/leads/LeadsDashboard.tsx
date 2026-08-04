@@ -20,6 +20,8 @@ interface LeadsDashboardProps {
   totalInScope: number;
   /** Cuántos avisos reclaman atención en todo el scope. Excluye históricos. */
   attentionCount: number;
+  /** S16-LEAD-OBS PR3: visibilidad del reintento (rol resuelto server-side). */
+  canRetry: boolean;
 }
 
 export function LeadsDashboard({
@@ -28,6 +30,7 @@ export function LeadsDashboard({
   filters,
   totalInScope,
   attentionCount,
+  canRetry,
 }: LeadsDashboardProps) {
   const isFiltered = activeFilterCount(filters) > 0;
   return (
@@ -100,7 +103,7 @@ export function LeadsDashboard({
 
         <LeadFilters filters={filters} resultCount={leads.length} />
 
-        <LeadTable leads={leads} />
+        <LeadTable leads={leads} canRetry={canRetry} />
 
         <p className="pt-4 text-center text-xs text-slate-500">
           Panel admin · auth básica · próxima fase: NextAuth + roles multi-inmobiliaria.
