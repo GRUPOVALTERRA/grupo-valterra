@@ -57,6 +57,14 @@ export default async function AdminLeadsPage({
   const isOwner = ctx.memberships.some(
     (m) => m.agencyId === ctx.scopedAgencyId && m.role === "owner",
   );
+  // S16-LEAD-OBS PR3 — VISIBILIDAD del reintento (owner/admin del scope o
+  // super-admin), resuelta de la sesión. La autorización real la repite la
+  // server action contra la agencia del lead; ocultar el botón no autoriza.
+  const canRetry =
+    ctx.isSuperAdmin ||
+    ctx.memberships.some(
+      (m) => m.agencyId === ctx.scopedAgencyId && (m.role === "owner" || m.role === "admin"),
+    );
 
   let members: AgencyMemberLite[] = [];
   if (isOwner && ctx.scopedAgencyId) {
@@ -138,6 +146,7 @@ export default async function AdminLeadsPage({
         filters={filters}
         totalInScope={leads.length}
         attentionCount={attentionCount}
+        canRetry={canRetry}
       />
     </>
   );

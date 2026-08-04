@@ -1,5 +1,6 @@
 import type { Lead, LeadStatus, LeadSource } from "@/services/mock-leads";
 import { NOTIFY_TONE_CLASS, notifyBadge } from "@/lib/lead-notify-view";
+import { RetryNotifyButton } from "./RetryNotifyButton";
 
 /**
  * Tabla de leads.
@@ -9,6 +10,12 @@ import { NOTIFY_TONE_CLASS, notifyBadge } from "@/lib/lead-notify-view";
 
 interface LeadTableProps {
   leads: Lead[];
+  /**
+   * S16-LEAD-OBS PR3: visibilidad del reintento (owner/admin/super-admin,
+   * resuelta server-side en la página). Ocultar el botón NO es la
+   * autorización: la server action vuelve a decidir por su cuenta.
+   */
+  canRetry: boolean;
 }
 
 const STATUS_LABEL: Record<LeadStatus, string> = {
@@ -111,7 +118,7 @@ function telLink(lead: Lead): string {
   return `tel:${lead.phone.replace(/\s/g, "")}`;
 }
 
-export function LeadTable({ leads }: LeadTableProps) {
+export function LeadTable({ leads, canRetry }: LeadTableProps) {
   // Un listado vacío tras filtrar es un resultado legítimo, no un error: se
   // dice explícitamente en vez de dejar una tabla en blanco que parece rota.
   if (leads.length === 0) {
@@ -174,7 +181,19 @@ export function LeadTable({ leads }: LeadTableProps) {
                     <SourceBadge source={lead.source} propertySlug={lead.propertySlug} />
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <NotifyBadge status={lead.notifyStatus} reason={lead.notifyReason} />
+                    <div className="flex flex-col items-start gap-1.5">
+                      <NotifyBadge status={lead.notifyStatus} reason={lead.notifyReason} />
+                      {canRetry && (
+                        <RetryNotifyButton
+                          leadId={lead.id}
+                          leadName={lead.name}
+                          notifyStatus={lead.notifyStatus}
+                          notifyReason={lead.notifyReason}
+                          notifyAttempts={lead.notifyAttempts}
+                          notifyLastAt={lead.notifyLastAt}
+                        />
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 align-top">
                     <StatusBadge status={lead.status} />
@@ -240,6 +259,16 @@ export function LeadTable({ leads }: LeadTableProps) {
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <SourceBadge source={lead.source} propertySlug={lead.propertySlug} />
               <NotifyBadge status={lead.notifyStatus} reason={lead.notifyReason} />
+              {canRetry && (
+                <RetryNotifyButton
+                  leadId={lead.id}
+                  leadName={lead.name}
+                  notifyStatus={lead.notifyStatus}
+                  notifyReason={lead.notifyReason}
+                  notifyAttempts={lead.notifyAttempts}
+                  notifyLastAt={lead.notifyLastAt}
+                />
+              )}
             </div>
             {/* En móvil no hay hover: la explicación se muestra siempre. */}
             <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
