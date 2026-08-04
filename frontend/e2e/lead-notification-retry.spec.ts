@@ -248,7 +248,11 @@ test.describe("claim atómico (migración 0011)", () => {
     expect(sql).toContain("security invoker");
     expect(sql).toContain("set search_path = ''");
     expect(sql).toContain("update public.leads"); // schema-qualified
-    expect(sql).toContain("revoke all on function public.claim_lead_notification_retry(text, text) from public");
+    // Tipos = tipos REALES de Production (id text, agency_id UUID). Con text
+    // el CREATE aborta en Production con 42883 (uuid = text) — pasó el 04-08.
+    expect(sql).toContain("p_lead_id   text");
+    expect(sql).toContain("p_agency_id uuid");
+    expect(sql).toContain("revoke all on function public.claim_lead_notification_retry(text, uuid) from public");
     expect(sql).toContain("from anon");
     expect(sql).toContain("from authenticated");
     expect(sql).toContain("to service_role");

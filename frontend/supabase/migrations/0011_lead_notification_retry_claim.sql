@@ -38,13 +38,19 @@
 -- Aplicar: Supabase Studio - SQL Editor - Run.
 -- (NO aplicar en Production dentro del gate PR3: decision separada.)
 --
+-- Tipos de parámetros = tipos REALES de public.leads en Production:
+-- id es text, agency_id es UUID. Declarar p_agency_id como text hacía abortar
+-- el CREATE con 42883 (uuid = text): language sql valida el cuerpo al crear.
+-- El harness de PGlite reproduce estos tipos para que el gate sea
+-- representativo.
+--
 -- Rollback (no destruye datos de negocio):
---   drop function if exists public.claim_lead_notification_retry(text, text);
+--   drop function if exists public.claim_lead_notification_retry(text, uuid);
 -- ==========================================================
 
 create or replace function public.claim_lead_notification_retry(
   p_lead_id   text,
-  p_agency_id text
+  p_agency_id uuid
 )
 returns smallint
 language sql
@@ -68,7 +74,7 @@ as $$
   returning notify_attempts;
 $$;
 
-comment on function public.claim_lead_notification_retry(text, text) is
+comment on function public.claim_lead_notification_retry(text, uuid) is
   'S16-LEAD-OBS PR3: claim atomico y exclusivo del reintento manual. Solo failed/skipped (o pending con claim vencido >15min). Transiciona a pending, incrementa attempts y sella last_at en una sentencia. NULL = claim no adquirido.';
 
 -- ----------------------------------------------------------
@@ -76,17 +82,17 @@ comment on function public.claim_lead_notification_retry(text, text) is
 -- servidor con service_role; security invoker + revoke impiden que anon o
 -- authenticated alteren el estado aunque lograran invocarla.
 -- ----------------------------------------------------------
-revoke all on function public.claim_lead_notification_retry(text, text) from public;
+revoke all on function public.claim_lead_notification_retry(text, uuid) from public;
 
 do $$
 begin
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    execute 'revoke all on function public.claim_lead_notification_retry(text, text) from anon';
+    execute 'revoke all on function public.claim_lead_notification_retry(text, uuid) from anon';
   end if;
   if exists (select 1 from pg_roles where rolname = 'authenticated') then
-    execute 'revoke all on function public.claim_lead_notification_retry(text, text) from authenticated';
+    execute 'revoke all on function public.claim_lead_notification_retry(text, uuid) from authenticated';
   end if;
   if exists (select 1 from pg_roles where rolname = 'service_role') then
-    execute 'grant execute on function public.claim_lead_notification_retry(text, text) to service_role';
+    execute 'grant execute on function public.claim_lead_notification_retry(text, uuid) to service_role';
   end if;
 end $$;
