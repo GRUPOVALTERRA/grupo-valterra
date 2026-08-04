@@ -17,9 +17,12 @@
 --
 -- Recuperacion (leads no quedan bloqueados): si el proceso muere despues del
 -- claim y nunca llega el finish, el lead queda 'pending' con notify_last_at
--- sellado. Un 'pending' cuyo claim tiene mas de 15 minutos vuelve a ser
--- reclamable (ventana >> timeout real del envio, que es de segundos). Un
--- 'pending' FRESCO nunca es reclamable.
+-- sellado — en la UI ese estado se denomina "Intento interrumpido". Un
+-- 'pending' cuyo claim tiene 15 minutos O MAS (<=) vuelve a ser reclamable
+-- (ventana >> timeout real del envio, que es de segundos). Un 'pending'
+-- FRESCO nunca es reclamable. El umbral vive ACA (now() del servidor de
+-- base = tiempo autoritativo); la constante de la UI es solo presentacion y
+-- un test falla si ambas definiciones divergen.
 --
 -- NO reclamables jamas: 'sent' (el proveedor ya acepto el correo),
 -- 'unknown' (historico sin evidencia: no es una cola) y valores fuera del
@@ -59,7 +62,7 @@ as $$
        or (
          notify_status = 'pending'
          and notify_last_at is not null
-         and notify_last_at < now() - interval '15 minutes'
+         and notify_last_at <= now() - interval '15 minutes'
        )
      )
   returning notify_attempts;

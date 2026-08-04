@@ -45,13 +45,50 @@ export function isAmbiguousRetry(notifyLastAt: string | undefined, now: Date = n
   return now.getTime() - last > RETRY_IDEMPOTENCY_WINDOW_MS;
 }
 
-/** true si un `pending` puede considerarse claim huérfano recuperable. */
+/**
+ * true si un `pending` puede considerarse claim huérfano ("Intento
+ * interrumpido"): 15 minutos O MÁS sin resultado (borde inclusivo, igual que
+ * el `<=` del SQL). SEÑAL PRESENTACIONAL: la decisión autoritativa la toma la
+ * RPC con el now() del servidor de base — nunca el reloj del navegador ni un
+ * flag del cliente.
+ */
 export function isStalePendingClaim(notifyLastAt: string | undefined, now: Date = new Date()): boolean {
   if (!notifyLastAt) return false;
   const last = new Date(notifyLastAt).getTime();
   if (Number.isNaN(last)) return false;
-  return now.getTime() - last > RETRY_CLAIM_STALE_MS;
+  return now.getTime() - last >= RETRY_CLAIM_STALE_MS;
 }
+
+/* ------------------------------------------------------------------ */
+/* Tipo de acción disponible sobre el aviso                            */
+/* ------------------------------------------------------------------ */
+
+export type RetryActionKind = "retry" | "recover";
+
+/**
+ * Qué acción ofrece la UI para un lead:
+ * - "retry"  → failed/skipped: "Reintentar aviso".
+ * - "recover"→ pending huérfano (≥15 min): "Recuperar aviso" / "Intento
+ *              interrumpido". SIEMPRE con confirmación reforzada.
+ * - null     → unknown, sent, pending reciente (en curso) o valor raro.
+ * Señal visual: el servidor y el SQL revalidan por su cuenta.
+ */
+export function retryActionKind(
+  status: LeadNotifyStatus,
+  notifyLastAt: string | undefined,
+  now: Date = new Date(),
+): RetryActionKind | null {
+  if (isRetryEligibleStatus(status)) return "retry";
+  if (status === "pending" && isStalePendingClaim(notifyLastAt, now)) return "recover";
+  return null;
+}
+
+/** Denominación del pending huérfano en código y UI. */
+export const STALE_PENDING_LABEL = "Intento interrumpido";
+
+/** Advertencia del diálogo de recuperación (posible duplicado limitado). */
+export const STALE_RECOVERY_WARNING =
+  "El intento quedó sin resultado durante más de 15 minutos. Podés recuperar el procesamiento. Existe una posibilidad limitada de que el proveedor haya recibido el correo aunque el sistema no registrara la respuesta.";
 
 /* ------------------------------------------------------------------ */
 /* Autorización                                                        */

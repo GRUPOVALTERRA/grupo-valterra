@@ -6,10 +6,12 @@ import { retryLeadNotificationAction } from "@/app/admin/leads/actions";
 import { notifyBadge } from "@/lib/lead-notify-view";
 import {
   isAmbiguousRetry,
-  isRetryEligibleStatus,
+  retryActionKind,
   skippedRetryWarning,
   RETRY_AMBIGUOUS_WARNING,
   RETRY_RESULT_MESSAGES,
+  STALE_PENDING_LABEL,
+  STALE_RECOVERY_WARNING,
   type RetryResult,
 } from "@/lib/lead-notify-retry";
 import type { LeadNotifyStatus } from "@/services/mock-leads";
@@ -76,13 +78,24 @@ export function RetryNotifyButton({
   const [result, setResult] = useState<RetryResult | null>(null);
   const [pending, startTransition] = useTransition();
 
-  // Elegibilidad de presentación: unknown/pending/sent no ofrecen reintento.
-  if (!isRetryEligibleStatus(notifyStatus)) return null;
+  // Elegibilidad de PRESENTACIÓN (el servidor y el SQL revalidan solos):
+  // failed/skipped → "retry"; pending huérfano (≥15 min) → "recover";
+  // unknown, sent y pending reciente (en curso) → sin acción.
+  const kind = retryActionKind(notifyStatus, notifyLastAt);
+  if (kind === null) return null;
 
+  const isRecovery = kind === "recover";
+  const actionLabel = isRecovery ? "Recuperar aviso" : "Reintentar aviso";
   const ambiguous = isAmbiguousRetry(notifyLastAt);
   const configWarning = skippedRetryWarning(notifyReason);
-  const explanation = notifyBadge(notifyStatus, notifyReason).explanation;
-  const confirmDisabled = pending || (ambiguous && !acknowledged);
+  const explanation = isRecovery
+    ? `${STALE_PENDING_LABEL}: el proceso no registró el resultado del envío.`
+    : notifyBadge(notifyStatus, notifyReason).explanation;
+  // La recuperación SIEMPRE exige confirmación reforzada; el reintento sólo
+  // cuando la antigüedad es ambigua (>24 h o sin fecha).
+  const needsAck = isRecovery || ambiguous;
+  const warningText = isRecovery ? STALE_RECOVERY_WARNING : RETRY_AMBIGUOUS_WARNING;
+  const confirmDisabled = pending || (needsAck && !acknowledged);
 
   function close() {
     if (pending) return; // no se cierra con un envío en vuelo
@@ -108,7 +121,7 @@ export function RetryNotifyButton({
         onClick={() => setOpen(true)}
         className="inline-flex h-7 items-center rounded-md border border-[#D8D8D8] bg-white px-2 text-[11px] font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
       >
-        Reintentar aviso
+        {actionLabel}
       </button>
 
       {open && (
@@ -124,7 +137,7 @@ export function RetryNotifyButton({
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="retry-title" className="text-base font-bold text-[#0A2342]">
-              Reintentar aviso por correo
+              {isRecovery ? "Recuperar aviso interrumpido" : "Reintentar aviso por correo"}
             </h2>
 
             <dl className="mt-3 space-y-1 text-sm text-slate-700">
@@ -150,9 +163,9 @@ export function RetryNotifyButton({
               </p>
             )}
 
-            {ambiguous && result === null && (
+            {needsAck && result === null && (
               <div className="mt-3 rounded-md bg-amber-50 px-3 py-2">
-                <p className="text-sm text-amber-900">{RETRY_AMBIGUOUS_WARNING}</p>
+                <p className="text-sm text-amber-900">{warningText}</p>
                 <label className="mt-2 flex items-start gap-2 text-sm text-amber-900">
                   <input
                     type="checkbox"
@@ -193,7 +206,7 @@ export function RetryNotifyButton({
                   disabled={confirmDisabled}
                   className="inline-flex h-9 items-center rounded-md bg-[#0A2342] px-3 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-50"
                 >
-                  {pending ? "Enviando…" : "Reintentar aviso"}
+                  {pending ? "Enviando…" : actionLabel}
                 </button>
               )}
             </div>

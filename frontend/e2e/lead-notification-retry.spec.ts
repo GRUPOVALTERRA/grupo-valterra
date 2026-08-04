@@ -204,8 +204,9 @@ test.describe("claim atómico (migración 0011)", () => {
     const claim = sql.slice(sql.indexOf("update public.leads"), sql.indexOf("returning"));
     expect(claim).toContain("set notify_status   = 'pending'");
     expect(claim).toContain("notify_status in ('failed', 'skipped')");
-    // Un pending FRESCO no es reclamable: el perdedor de la carrera obtiene 0 filas.
-    expect(claim).toContain("notify_last_at < now() - interval '15 minutes'");
+    // Un pending FRESCO no es reclamable: el perdedor de la carrera obtiene 0
+    // filas. Borde inclusivo (PR3-H): 15 minutos O MÁS es recuperable.
+    expect(claim).toContain("notify_last_at <= now() - interval '15 minutes'");
   });
 
   test("15b. perder la carrera devuelve un resultado neutral, no un error técnico", () => {
@@ -338,9 +339,12 @@ test.describe("resultados", () => {
  * UI (25–29 + skipped §9)
  * ============================================================ */
 test.describe("UI del reintento", () => {
-  test("25/26. el botón y el diálogo NO existen para unknown, pending ni sent", () => {
+  test("25/26. el botón y el diálogo NO existen para unknown, pending reciente ni sent", () => {
     const btn = codeOf(BUTTON());
-    expect(btn).toContain("if (!isRetryEligibleStatus(notifyStatus)) return null");
+    // PR3-H: la puerta es retryActionKind — null para unknown/sent/pending
+    // reciente; "recover" sólo para pending huérfano (≥15 min).
+    expect(btn).toContain("const kind = retryActionKind(notifyStatus, notifyLastAt)");
+    expect(btn).toContain("if (kind === null) return null");
     // El return null está ANTES de cualquier render del diálogo.
     expect(btn.indexOf("return null")).toBeLessThan(btn.indexOf('role="dialog"'));
   });
@@ -359,7 +363,9 @@ test.describe("UI del reintento", () => {
     const btn = codeOf(BUTTON());
     expect(btn).toContain("RETRY_AMBIGUOUS_WARNING");
     expect(btn).toContain('type="checkbox"');
-    expect(btn).toContain("ambiguous && !acknowledged");
+    // PR3-H: la reforzada aplica si es ambiguo O si es recuperación.
+    expect(btn).toContain("const needsAck = isRecovery || ambiguous");
+    expect(btn).toContain("needsAck && !acknowledged");
     expect(RETRY_AMBIGUOUS_WARNING).toContain("Podría existir un correo anterior");
   });
 
@@ -384,7 +390,7 @@ test.describe("UI del reintento", () => {
     const btn = codeOf(BUTTON());
     expect(btn).toContain("configWarning");
     expect(btn).not.toContain("configWarning &&  acknowledged");
-    expect(btn).toContain("const confirmDisabled = pending || (ambiguous && !acknowledged)");
+    expect(btn).toContain("const confirmDisabled = pending || (needsAck && !acknowledged)");
   });
 
   test("durante la acción: progreso visible y cierre bloqueado", () => {
