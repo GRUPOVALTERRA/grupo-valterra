@@ -25,6 +25,7 @@ import {
   pathBelongsTo,
   sanitizeAltText,
 } from "../src/lib/property-gallery";
+import { svgBytes, validJpeg, validPng, validWebp } from "./fixtures/image-bytes";
 
 /**
  * S17 PR1 — núcleo de la galería: modelo, reglas puras y servicio.
@@ -52,40 +53,11 @@ const sqlOf = (s: string) =>
 const MIGRATION = () => read("supabase/migrations/0012_property_images.sql");
 const SERVICE = () => read("src/services/property-images.ts");
 
-/* ------------------------------------------------------------------ */
-/* Fixtures de bytes (inventados, mínimos)                             */
-/* ------------------------------------------------------------------ */
+/* Fixtures compartidos (estructuralmente válidos, ver e2e/fixtures). */
+const pngBytes = validPng;
+const jpegBytes = validJpeg;
+const webpBytes = validWebp;
 
-function pngBytes(width: number, height: number): Uint8Array {
-  const b = new Uint8Array(33);
-  b.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0); // firma
-  b.set([0x00, 0x00, 0x00, 0x0d], 8); // len IHDR
-  b.set([0x49, 0x48, 0x44, 0x52], 12); // "IHDR"
-  new DataView(b.buffer).setUint32(16, width);
-  new DataView(b.buffer).setUint32(20, height);
-  return b;
-}
-
-function jpegBytes(width: number, height: number): Uint8Array {
-  // FF D8 FF C0 <len=0x0011> <precision> <H H> <W W> ...
-  const b = new Uint8Array(20);
-  b.set([0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08], 0);
-  b[7] = (height >> 8) & 0xff; b[8] = height & 0xff;
-  b[9] = (width >> 8) & 0xff; b[10] = width & 0xff;
-  return b;
-}
-
-function webpBytes(width: number, height: number): Uint8Array {
-  const b = new Uint8Array(30);
-  const ascii = (s: string, o: number) => { for (let i = 0; i < s.length; i++) b[o + i] = s.charCodeAt(i); };
-  ascii("RIFF", 0); ascii("WEBP", 8); ascii("VP8X", 12);
-  const w = width - 1, h = height - 1;
-  b[24] = w & 0xff; b[25] = (w >> 8) & 0xff; b[26] = (w >> 16) & 0xff;
-  b[27] = h & 0xff; b[28] = (h >> 8) & 0xff; b[29] = (h >> 16) & 0xff;
-  return b;
-}
-
-const svgBytes = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>');
 const AG = "11111111-1111-4111-8111-111111111111";
 const RAND = "99999999-9999-4999-8999-999999999999";
 
