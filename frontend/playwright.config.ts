@@ -23,7 +23,10 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 10_000 },
   use: {
-    baseURL: process.env.BASE_URL ?? "https://grupo-valterra.vercel.app",
+    // Dominio propio: es el canónico desde el 02-08 y, además, algunas redes
+    // corporativas (FortiGuard) bloquean *.vercel.app y hacían fallar el
+    // smoke por timeout en la máquina real sin que hubiera defecto alguno.
+    baseURL: process.env.BASE_URL ?? "https://www.grupovalterra.com.ar",
     trace: "on-first-retry",
     ignoreHTTPSErrors: false,
   },
