@@ -1,3 +1,5 @@
+import { verifyImageStructure } from "@/lib/image-decode";
+
 /**
  * S17 — identificación de imágenes por CONTENIDO (magic bytes) + dimensiones.
  *
@@ -140,12 +142,18 @@ export interface ImageInspection {
     | "unrecognized-content"
     | "type-mismatch"
     | "unreadable-dimensions"
-    | "dimensions-out-of-range";
+    | "dimensions-out-of-range"
+    | "not-decodable";
 }
 
 /**
- * Inspección completa: tamaño + tipo por contenido + coincidencia con lo
- * declarado + dimensiones dentro de rango. NUNCA confía en la extensión.
+ * Inspección completa y ÚNICO punto de entrada de validación: tamaño + tipo
+ * por contenido + coincidencia con lo declarado + INTEGRIDAD ESTRUCTURAL del
+ * contenedor completo + dimensiones dentro de rango.
+ *
+ * NUNCA confía en la extensión ni en el Content-Type. Deliberadamente no
+ * existe una variante "rápida" sin verificación estructural: un segundo punto
+ * de entrada más débil terminaría usándose por error en algún camino.
  */
 export function inspectImageBytes(
   bytes: Uint8Array,
@@ -160,6 +168,12 @@ export function inspectImageBytes(
   // Si el cliente declaró un tipo, debe coincidir con los bytes reales.
   if (declaredType && declaredType !== sniffed) {
     return { ok: false, reason: "type-mismatch" };
+  }
+
+  // S17 PR2: el contenedor debe estar íntegro de principio a fin. Rechaza
+  // truncados, polyglots y basura pegada después del fin de la imagen.
+  if (!verifyImageStructure(bytes, sniffed).ok) {
+    return { ok: false, reason: "not-decodable" };
   }
 
   const dims = parseImageDimensions(bytes, sniffed);

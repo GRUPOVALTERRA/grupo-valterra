@@ -5,6 +5,12 @@ import { getPropertyBySlug } from "@/services/properties";
 import { effectiveStatus } from "@/lib/property-status";
 import { updatePropertyDetailsAction } from "../../actions";
 import { PropertyEditForm } from "./PropertyEditForm";
+import { listPropertyImages } from "@/services/property-images";
+import { canManageGallery } from "@/lib/property-gallery";
+import {
+  PropertyGallerySection,
+  type GalleryImageView,
+} from "@/components/admin/properties/PropertyGallerySection";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +40,27 @@ export default async function EditPropertyPage({ params }: PageProps) {
   // Para MF3: published default true · si el caller necesita el real, el server action
   // lo reescribe segun el form. Aca pasamos true por default (UI puede toggle).
   // Si la property esta unpublished, no aparece en /propiedades publico igualmente.
+
+  // S17 PR2 · Galería. Roles habilitados: los mismos del ciclo de propiedades
+  // (owner/admin/agent) o super-admin. Cada server action revalida por su
+  // cuenta: esto solo decide qué se muestra.
+  const canManageImages =
+    ctx.isSuperAdmin ||
+    ctx.memberships.some((m) => m.agencyId === property.agencyId && canManageGallery(m.role));
+
+  // Vista RECORTADA: el storage_path no cruza al cliente.
+  let galleryImages: GalleryImageView[] = [];
+  if (canManageImages && property.id && property.agencyId) {
+    const res = await listPropertyImages(property.id, property.agencyId);
+    if (res.ok) {
+      galleryImages = res.value.map((i) => ({
+        id: i.id,
+        url: i.url,
+        altText: i.altText,
+        isCover: i.isCover,
+      }));
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:px-8">
@@ -77,6 +104,12 @@ export default async function EditPropertyPage({ params }: PageProps) {
               (m) => m.agencyId === property.agencyId && ["owner", "admin"].includes(m.role),
             )
           }
+        />
+
+        <PropertyGallerySection
+          slug={property.slug}
+          images={galleryImages}
+          canManage={canManageImages}
         />
       </div>
     </div>
