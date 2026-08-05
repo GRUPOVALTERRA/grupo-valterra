@@ -212,6 +212,9 @@ test.describe("migración 0012", () => {
     expect(sql).toContain("storage_path text not null unique");
     expect(sql).toContain("char_length(storage_path) <= 300");
     expect(sql).toContain("char_length(alt_text) <= 300");
+    // Ruta interna, no URL libre ni traversal: invariante EN LA BASE.
+    expect(sql).toContain("storage_path like 'agency/%'");
+    expect(sql).toContain("not like '%..%'");
   });
 
   test("RLS habilitada SIN políticas: solo service_role llega a la tabla", () => {

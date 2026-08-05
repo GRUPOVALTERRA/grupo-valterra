@@ -52,7 +52,11 @@ create table if not exists public.property_images (
   property_id  text not null,
   agency_id    uuid not null,
   storage_path text not null unique
-               check (char_length(storage_path) <= 300),
+               check (char_length(storage_path) <= 300)
+               -- Ruta INTERNA del bucket, jamás una URL libre ni traversal:
+               -- el prefijo canonico lo genera el servicio server-side y la
+               -- base lo exige aunque el codigo tenga un bug.
+               check (storage_path like 'agency/%' and storage_path not like '%..%'),
   position     smallint not null default 0
                check (position >= 0),
   is_cover     boolean not null default false,
