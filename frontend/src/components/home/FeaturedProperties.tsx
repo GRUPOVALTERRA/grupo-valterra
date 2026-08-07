@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Property } from "@/services/mock-properties";
+import { AvailableBanner } from "@/components/public/AvailableBanner";
 import { PropertyCard } from "./PropertyCard";
 
 interface FeaturedPropertiesProps {
@@ -11,7 +12,8 @@ interface FeaturedPropertiesProps {
  * El data fetching vive en `src/app/page.tsx` (await getFeaturedProperties).
  */
 export function FeaturedProperties({ properties }: FeaturedPropertiesProps) {
-  if (properties.length === 0) return null;
+  // Sin propiedades publicadas: banner institucional DISPONIBLE.
+  if (properties.length === 0) return <AvailableBanner />;
 
   return (
     <section className="bg-[#F8F7F4]/60 py-20 md:py-28">

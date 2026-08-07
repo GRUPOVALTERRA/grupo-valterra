@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let propertyRoutes: MetadataRoute.Sitemap = [];
 
   try {
-    const properties = await getAllProperties();
+    const properties = await getAllProperties({ allowSampleFallback: false });
     propertyRoutes = properties.map((p) => ({
       url: `${SITE_URL}/propiedades/${p.slug}`,
       priority: 0.8,

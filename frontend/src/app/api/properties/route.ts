@@ -70,6 +70,8 @@ export async function GET(request: NextRequest) {
     city: sp.get("city")?.trim() || undefined,
     operationType: parseOperation(sp.get("operation_type")),
     propertyType: parsePropertyType(sp.get("property_type")),
+    // API pública: nunca servir el snapshot de muestra.
+    allowSampleFallback: false,
   };
 
   const items = await getAllProperties(filters);
