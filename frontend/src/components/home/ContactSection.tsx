@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { MOCK_PROPERTIES } from "@/services/mock-properties";
 import { SocialLinks } from "@/components/layout/SocialLinks";
+
+/** Opción del select "Propiedad consultada": propiedades reales publicadas. */
+interface PropertyOption {
+  slug: string;
+  title: string;
+  city: string;
+}
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -27,6 +33,28 @@ export function ContactSection({ propertySlug: propSlug, propertyTitle: propTitl
   const [leadId, setLeadId] = useState<string | null>(null);
   const [propertySlug, setPropertySlug] = useState(propSlug ?? "");
 
+  const [propertyOptions, setPropertyOptions] = useState<PropertyOption[]>([]);
+
+  useEffect(() => {
+    // Página de detalle: el slug viene por prop y el select no se muestra.
+    if (propSlug) return;
+    let cancelled = false;
+    fetch("/api/properties?limit=50")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { items?: PropertyOption[] } | null) => {
+        if (cancelled || !data?.items) return;
+        setPropertyOptions(
+          data.items.map((p) => ({ slug: p.slug, title: p.title, city: p.city })),
+        );
+      })
+      .catch(() => {
+        /* sin opciones: el select queda oculto y aplica "Consulta general" */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [propSlug]);
+
   useEffect(() => {
     // Si el slug viene por prop (página de detalle), no leer el hash.
     if (propSlug) return;
@@ -35,9 +63,9 @@ export function ContactSection({ propertySlug: propSlug, propertyTitle: propTitl
     if (hash.startsWith("contacto-")) {
       const slug = hash.replace(/^contacto-/, "");
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hash read on mount
-      if (MOCK_PROPERTIES.some((p) => p.slug === slug)) setPropertySlug(slug);
+      if (propertyOptions.some((p) => p.slug === slug)) setPropertySlug(slug);
     }
-  }, [propSlug]);
+  }, [propSlug, propertyOptions]);
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -51,7 +79,7 @@ export function ContactSection({ propertySlug: propSlug, propertyTitle: propTitl
     setGeneralError(null);
 
     const slug = String(fd.get("propertySlug") ?? "");
-    const propertyTitle = propTitle ?? MOCK_PROPERTIES.find((p) => p.slug === slug)?.title;
+    const propertyTitle = propTitle ?? propertyOptions.find((p) => p.slug === slug)?.title;
 
     const payload = {
       name: String(fd.get("name") ?? ""),
@@ -157,8 +185,11 @@ export function ContactSection({ propertySlug: propSlug, propertyTitle: propTitl
                 {propSlug ? (
                   /* Página de detalle: slug viene por prop — no mostrar select */
                   <input type="hidden" name="propertySlug" value={propSlug} />
+                ) : propertyOptions.length === 0 ? (
+                  /* Sin propiedades publicadas: consulta general implícita */
+                  <input type="hidden" name="propertySlug" value="" />
                 ) : (
-                  /* Home / consulta general: select con opciones mock */
+                  /* Home / consulta general: select con propiedades publicadas */
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                       Propiedad consultada (opcional)
@@ -172,7 +203,7 @@ export function ContactSection({ propertySlug: propSlug, propertyTitle: propTitl
                         className="h-11 w-full appearance-none rounded-lg border border-[#D8D8D8] bg-white px-3 pr-9 text-sm text-[#0A2342] focus:border-[#0A2342] focus:outline-none disabled:opacity-60"
                       >
                         <option value="">Consulta general</option>
-                        {MOCK_PROPERTIES.map((p) => (
+                        {propertyOptions.map((p) => (
                           <option key={p.slug} value={p.slug}>
                             {p.title} · {p.city}
                           </option>
