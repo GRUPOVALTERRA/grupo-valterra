@@ -4,7 +4,12 @@ import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ContactSection } from "@/components/home/ContactSection";
+import {
+  PropertyGalleryCarousel,
+  type GalleryCarouselImage,
+} from "@/components/public/PropertyGalleryCarousel";
 import { getPropertyBySlug } from "@/services/properties";
+import { listPropertyImages } from "@/services/property-images";
 import { formatPrice, type Property } from "@/services/mock-properties";
 
 export const revalidate = 60;
@@ -92,6 +97,24 @@ export default async function PropertyDetailPage({ params }: PageProps) {
   const waLink = `https://wa.me/5493795159096?text=${waMsg}`;
   const operationLabel = OPERATION_LABEL[property.operation];
 
+  // Galería (Sprint 17): fotos de property_images, cover primero.
+  // Si falla o está vacía, la ficha cae a la portada simple de siempre.
+  let galleryImages: GalleryCarouselImage[] = [];
+  if (property.agencyId) {
+    const galleryResult = await listPropertyImages(property.id, property.agencyId);
+    if (galleryResult.ok) {
+      galleryImages = galleryResult.value
+        .filter((img) => Boolean(img.url))
+        .sort(
+          (a, b) => Number(b.isCover) - Number(a.isCover) || a.position - b.position,
+        )
+        .map((img) => ({
+          url: img.url as string,
+          alt: img.altText ?? property.title,
+        }));
+    }
+  }
+
   return (
     <div className="bg-white text-[#0A2342]">
       <Navbar />
@@ -112,24 +135,41 @@ export default async function PropertyDetailPage({ params }: PageProps) {
         <section className="mx-auto max-w-7xl px-4 lg:px-8">
           <div className="overflow-hidden rounded-3xl border border-[#D8D8D8] bg-white shadow-[0_20px_60px_-20px_rgba(10,35,66,0.18)]">
             <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
-              {property.image ? (
-                // eslint-disable-next-line @next/next/no-img-element -- hero remoto · Sprint 11 migra a next/image + remotePatterns
-                <img
-                  src={property.image}
-                  alt={property.title}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              ) : null}
-              <div className="absolute left-5 top-5 flex flex-wrap gap-2">
-                <span className="rounded-full bg-[#0A2342]/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
-                  {operationLabel}
-                </span>
-                {property.badges?.slice(0, 2).map((b) => (
-                  <span key={b} className="rounded-full bg-[#C9A86A] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#0A2342]">
-                    {b}
-                  </span>
-                ))}
-              </div>
+              {galleryImages.length > 0 ? (
+                <PropertyGalleryCarousel images={galleryImages}>
+                  <div className="absolute left-5 top-5 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-[#0A2342]/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+                      {operationLabel}
+                    </span>
+                    {property.badges?.slice(0, 2).map((b) => (
+                      <span key={b} className="rounded-full bg-[#C9A86A] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#0A2342]">
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+                </PropertyGalleryCarousel>
+              ) : (
+                <>
+                  {property.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- hero remoto · Sprint 11 migra a next/image + remotePatterns
+                    <img
+                      src={property.image}
+                      alt={property.title}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : null}
+                  <div className="absolute left-5 top-5 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-[#0A2342]/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+                      {operationLabel}
+                    </span>
+                    {property.badges?.slice(0, 2).map((b) => (
+                      <span key={b} className="rounded-full bg-[#C9A86A] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#0A2342]">
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="grid gap-8 p-6 md:p-10 lg:grid-cols-[1.4fr_1fr]">
