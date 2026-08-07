@@ -280,7 +280,9 @@ export async function getAllProperties(filters: PropertyFilters = {}): Promise<P
 }
 
 export async function getFeaturedProperties(limit = 6): Promise<Property[]> {
-  return getAllProperties({ featured: true, limit });
+  // Público (home). Sin muestras: si no hay propiedades reales publicadas,
+  // la home muestra el banner DISPONIBLE en lugar del snapshot de prueba.
+  return getAllProperties({ featured: true, limit, allowSampleFallback: false });
 }
 
 export interface GetPropertyBySlugOptions {
@@ -313,18 +315,18 @@ export async function getPropertyBySlug(
     }
     if (error) {
       log.error("properties", "supabase bySlug error", { slug, message: error.message, code: error.code });
-      return memorySnapshot().find((p) => p.slug === slug) ?? null;
+      return null;
     }
     if (!data) {
-      const fallback = memorySnapshot().find((p) => p.slug === slug);
-      if (fallback) return fallback;
+      // Sin fallback al snapshot de muestra: una propiedad que no existe (o no
+      // está publicada) responde 404 en lugar de servir una ficha de prueba.
       log.info("properties", "slug no encontrado", { slug });
       return null;
     }
     return rowToProperty((data as unknown) as PropertyRow);
   } catch (err) {
     log.error("properties", "getPropertyBySlug fallo", err instanceof Error ? err : { err: String(err) });
-    return memorySnapshot().find((p) => p.slug === slug) ?? null;
+    return null;
   }
 }
 

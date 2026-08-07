@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { AvailableBanner } from "@/components/public/AvailableBanner";
 import { PropertyFilters } from "@/components/public/PropertyFilters";
 import { PublicPropertyCard } from "@/components/public/PublicPropertyCard";
 import { getAllProperties } from "@/services/properties";
@@ -88,6 +89,9 @@ export default async function PropiedadesPage({ searchParams }: PageProps) {
     propertyType,
     city,
     limit: 50,
+    // Sin propiedades reales publicadas el sitio no muestra el snapshot de
+    // muestra: en su lugar se muestra el banner DISPONIBLE de Grupo Valterra.
+    allowSampleFallback: false,
   });
 
   const currentFilters = { operationType, propertyType, city };
@@ -126,6 +130,10 @@ export default async function PropiedadesPage({ searchParams }: PageProps) {
               {properties.map((property) => (
                 <PublicPropertyCard key={property.id} property={property} />
               ))}
+            </div>
+          ) : !hasFilters ? (
+            <div className="overflow-hidden rounded-2xl">
+              <AvailableBanner />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
