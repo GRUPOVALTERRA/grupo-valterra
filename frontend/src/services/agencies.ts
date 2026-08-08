@@ -175,6 +175,101 @@ export async function getAgencyContactById(agencyId: string): Promise<string | n
   }
 }
 
+// ---------- WhatsApp por agency (botón "Consultar por WhatsApp") ----------
+
+/**
+ * Normaliza un teléfono a dígitos para wa.me (ej: "+54 9 379 465-6610" → "5493794656610").
+ * Números argentinos: wa.me requiere el "9" entre el código de país y el área
+ * para celulares; si falta ("54379...") se inserta.
+ */
+function toWaDigits(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let digits = raw.replace(/\D/g, "");
+  if (digits.length < 8) return null;
+  if (digits.startsWith("54") && !digits.startsWith("549")) {
+    digits = `549${digits.slice(2)}`;
+  }
+  return digits;
+}
+
+const whatsappCache = new Map<string, { value: string | null; at: number }>();
+
+/**
+ * WhatsApp de contacto de la agency (whatsapp, fallback contact_phone),
+ * ya normalizado para wa.me. null si la agency no tiene número cargado.
+ * Cache 5min. NO throws.
+ */
+export async function getAgencyWhatsappById(
+  agencyId: string | null | undefined,
+): Promise<string | null> {
+  if (!agencyId) return null;
+  const cached = getCached(whatsappCache, agencyId);
+  if (cached !== undefined) return cached;
+
+  if (!isSupabaseConfigured()) {
+    whatsappCache.set(agencyId, { value: null, at: Date.now() });
+    return null;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await withTimeout(
+      supabase.from("agencies").select("whatsapp, contact_phone").eq("id", agencyId).maybeSingle(),
+      4000,
+      "agencies.whatsappById",
+    );
+    if (error || !data) {
+      if (error) log.warn("agencies", "whatsappById error", { agencyId, message: error.message });
+      whatsappCache.set(agencyId, { value: null, at: Date.now() });
+      return null;
+    }
+    const row = data as { whatsapp: string | null; contact_phone: string | null };
+    const value = toWaDigits(row.whatsapp) ?? toWaDigits(row.contact_phone);
+    whatsappCache.set(agencyId, { value, at: Date.now() });
+    return value;
+  } catch (err) {
+    log.error("agencies", "whatsappById exception", err instanceof Error ? err : { err: String(err) });
+    whatsappCache.set(agencyId, { value: null, at: Date.now() });
+    return null;
+  }
+}
+
+/**
+ * Mapa agencyId → WhatsApp normalizado, para listados (una sola query).
+ * Solo incluye agencies con número cargado. Cache 5min. NO throws.
+ */
+let whatsappMapCache: { value: Record<string, string>; at: number } | null = null;
+
+export async function getAgencyWhatsappMap(): Promise<Record<string, string>> {
+  if (whatsappMapCache && Date.now() - whatsappMapCache.at <= CONTACT_CACHE_TTL_MS) {
+    return whatsappMapCache.value;
+  }
+  if (!isSupabaseConfigured()) return {};
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await withTimeout(
+      supabase.from("agencies").select("id, whatsapp, contact_phone"),
+      4000,
+      "agencies.whatsappMap",
+    );
+    if (error || !data) {
+      if (error) log.warn("agencies", "whatsappMap error", { message: error.message });
+      return {};
+    }
+    const map: Record<string, string> = {};
+    for (const row of data as { id: string; whatsapp: string | null; contact_phone: string | null }[]) {
+      const value = toWaDigits(row.whatsapp) ?? toWaDigits(row.contact_phone);
+      if (value) map[row.id] = value;
+    }
+    whatsappMapCache = { value: map, at: Date.now() };
+    return map;
+  } catch (err) {
+    log.error("agencies", "whatsappMap exception", err instanceof Error ? err : { err: String(err) });
+    return {};
+  }
+}
+
 // ============================================================
 // MF6: CRUD agencies + members (super-admin only · llama desde server actions)
 // SERVICE_ROLE bypass RLS - controlamos auth en el caller.

@@ -10,6 +10,8 @@ import {
 } from "@/components/public/PropertyGalleryCarousel";
 import { getPropertyBySlug } from "@/services/properties";
 import { listPropertyImages } from "@/services/property-images";
+import { getAgencyWhatsappById } from "@/services/agencies";
+import { DEFAULT_WHATSAPP } from "@/lib/social";
 import { formatPrice, type Property } from "@/services/mock-properties";
 
 export const revalidate = 60;
@@ -94,7 +96,9 @@ export default async function PropertyDetailPage({ params }: PageProps) {
   const waMsg = encodeURIComponent(
     `Hola, vi la propiedad "${property.title}" en Grupo Valterra (${price}) y me gustaría más info.`,
   );
-  const waLink = `https://wa.me/5493795159096?text=${waMsg}`;
+  // WhatsApp de la inmobiliaria dueña de la propiedad; fallback al general.
+  const agencyWhatsapp = await getAgencyWhatsappById(property.agencyId);
+  const waLink = `https://wa.me/${agencyWhatsapp ?? DEFAULT_WHATSAPP}?text=${waMsg}`;
   const operationLabel = OPERATION_LABEL[property.operation];
 
   // Galería (Sprint 17): fotos de property_images, cover primero.

@@ -5,13 +5,15 @@ import { PropertyCard } from "./PropertyCard";
 
 interface FeaturedPropertiesProps {
   properties: Property[];
+  /** Mapa agencyId → WhatsApp (dígitos wa.me) para el botón de cada card. */
+  whatsappByAgency?: Record<string, string>;
 }
 
 /**
  * Dumb component: recibe propiedades ya resueltas por el server component padre.
  * El data fetching vive en `src/app/page.tsx` (await getFeaturedProperties).
  */
-export function FeaturedProperties({ properties }: FeaturedPropertiesProps) {
+export function FeaturedProperties({ properties, whatsappByAgency }: FeaturedPropertiesProps) {
   // Sin propiedades publicadas: banner institucional DISPONIBLE.
   if (properties.length === 0) return <AvailableBanner />;
 
@@ -52,7 +54,11 @@ export function FeaturedProperties({ properties }: FeaturedPropertiesProps) {
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {properties.map((p) => (
-            <PropertyCard key={p.id} property={p} />
+            <PropertyCard
+              key={p.id}
+              property={p}
+              whatsapp={p.agencyId ? whatsappByAgency?.[p.agencyId] : undefined}
+            />
           ))}
         </div>
       </div>

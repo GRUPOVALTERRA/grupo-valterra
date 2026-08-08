@@ -14,3 +14,10 @@ export const SOCIAL_LINKS = [
 ] as const;
 
 export type SocialName = (typeof SOCIAL_LINKS)[number]["name"];
+
+/**
+ * WhatsApp general de Grupo Valterra (dígitos wa.me).
+ * Los botones de propiedades usan el WhatsApp de la agency dueña y caen
+ * a este número solo si la agency no tiene uno cargado.
+ */
+export const DEFAULT_WHATSAPP = "5493795159096";

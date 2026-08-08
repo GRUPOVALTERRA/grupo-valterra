@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { DEFAULT_WHATSAPP } from "@/lib/social";
 import { formatPrice, type Property } from "@/services/mock-properties";
 
 interface PublicPropertyCardProps {
   property: Property;
+  /** WhatsApp de la agency dueña (dígitos wa.me). Fallback: número general. */
+  whatsapp?: string;
 }
 
 const OPERATION_LABEL: Record<Property["operation"], string> = {
@@ -22,11 +25,11 @@ const TYPE_LABEL: Record<Property["type"], string> = {
   country: "Country",
 };
 
-export function PublicPropertyCard({ property }: PublicPropertyCardProps) {
+export function PublicPropertyCard({ property, whatsapp }: PublicPropertyCardProps) {
   const waMsg = encodeURIComponent(
     `Hola, me interesa la propiedad "${property.title}" en Grupo Valterra. ¿Podría darme más información?`,
   );
-  const waLink = `https://wa.me/5493795159096?text=${waMsg}`;
+  const waLink = `https://wa.me/${whatsapp ?? DEFAULT_WHATSAPP}?text=${waMsg}`;
   const location = [property.neighborhood, property.city, property.province]
     .filter(Boolean)
     .join(", ");

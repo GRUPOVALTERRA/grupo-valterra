@@ -1,8 +1,12 @@
+import Link from "next/link";
 import type { Property } from "@/services/mock-properties";
 import { formatPrice } from "@/services/mock-properties";
+import { DEFAULT_WHATSAPP } from "@/lib/social";
 
 interface PropertyCardProps {
   property: Property;
+  /** WhatsApp de la agency dueña (dígitos wa.me). Fallback: número general. */
+  whatsapp?: string;
 }
 
 const OPERATION_LABEL = {
@@ -11,24 +15,30 @@ const OPERATION_LABEL = {
   "alquiler-temporal": "Alquiler temporal",
 };
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export function PropertyCard({ property, whatsapp }: PropertyCardProps) {
   const waMsg = encodeURIComponent(
     `Hola, vi la propiedad "${property.title}" en Valterra (${formatPrice(
       property.price,
       property.currency,
     )}) y me gustaría más info.`,
   );
-  const waLink = `https://wa.me/5493795159096?text=${waMsg}`;
+  const waLink = `https://wa.me/${whatsapp ?? DEFAULT_WHATSAPP}?text=${waMsg}`;
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_-8px_rgba(10,35,66,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(10,35,66,0.35)]">
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-        <img
-          src={property.image}
-          alt={property.title}
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        <Link
+          href={`/propiedades/${property.slug}`}
+          aria-label={`Ver propiedad: ${property.title}`}
+          className="absolute inset-0"
+        >
+          <img
+            src={property.image}
+            alt={property.title}
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        </Link>
 
         {/* Badges */}
         <div className="absolute left-4 top-4 flex flex-wrap gap-1.5">
@@ -66,7 +76,12 @@ export function PropertyCard({ property }: PropertyCardProps) {
         </div>
 
         <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[#0A2342]">
-          {property.title}
+          <Link
+            href={`/propiedades/${property.slug}`}
+            className="transition-colors hover:text-[#C9A86A]"
+          >
+            {property.title}
+          </Link>
         </h3>
 
         <p className="flex items-center gap-1.5 text-sm text-slate-500">
@@ -104,11 +119,18 @@ export function PropertyCard({ property }: PropertyCardProps) {
           )}
         </div>
 
+        <Link
+          href={`/propiedades/${property.slug}`}
+          className="mt-2 inline-flex h-10 items-center justify-center rounded-lg bg-[#0A2342] text-sm font-semibold text-white transition-colors hover:bg-[#0A2342]/90"
+        >
+          Ver propiedad
+        </Link>
+
         <a
           href={waLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#25D366] text-sm font-semibold text-white transition-all hover:brightness-95"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#25D366] text-sm font-semibold text-white transition-all hover:brightness-95"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
