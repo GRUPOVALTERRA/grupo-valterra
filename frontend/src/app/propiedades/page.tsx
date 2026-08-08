@@ -6,6 +6,7 @@ import { AvailableBanner } from "@/components/public/AvailableBanner";
 import { PropertyFilters } from "@/components/public/PropertyFilters";
 import { PublicPropertyCard } from "@/components/public/PublicPropertyCard";
 import { getAllProperties } from "@/services/properties";
+import { getAgencyWhatsappMap } from "@/services/agencies";
 import type { PropertyOperation, PropertyType } from "@/services/mock-properties";
 
 export const revalidate = 60;
@@ -94,6 +95,9 @@ export default async function PropiedadesPage({ searchParams }: PageProps) {
     allowSampleFallback: false,
   });
 
+  // WhatsApp por agency: cada card consulta a la inmobiliaria dueña.
+  const whatsappByAgency = await getAgencyWhatsappMap();
+
   const currentFilters = { operationType, propertyType, city };
   const hasFilters = Boolean(operationType ?? propertyType ?? city);
   const count = properties.length;
@@ -128,7 +132,11 @@ export default async function PropiedadesPage({ searchParams }: PageProps) {
           {count > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {properties.map((property) => (
-                <PublicPropertyCard key={property.id} property={property} />
+                <PublicPropertyCard
+                  key={property.id}
+                  property={property}
+                  whatsapp={property.agencyId ? whatsappByAgency[property.agencyId] : undefined}
+                />
               ))}
             </div>
           ) : !hasFilters ? (

@@ -1,8 +1,11 @@
 import type { Property } from "@/services/mock-properties";
 import { formatPrice } from "@/services/mock-properties";
+import { DEFAULT_WHATSAPP } from "@/lib/social";
 
 interface PropertyCardProps {
   property: Property;
+  /** WhatsApp de la agency dueña (dígitos wa.me). Fallback: número general. */
+  whatsapp?: string;
 }
 
 const OPERATION_LABEL = {
@@ -11,14 +14,14 @@ const OPERATION_LABEL = {
   "alquiler-temporal": "Alquiler temporal",
 };
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export function PropertyCard({ property, whatsapp }: PropertyCardProps) {
   const waMsg = encodeURIComponent(
     `Hola, vi la propiedad "${property.title}" en Valterra (${formatPrice(
       property.price,
       property.currency,
     )}) y me gustaría más info.`,
   );
-  const waLink = `https://wa.me/5493795159096?text=${waMsg}`;
+  const waLink = `https://wa.me/${whatsapp ?? DEFAULT_WHATSAPP}?text=${waMsg}`;
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_-8px_rgba(10,35,66,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(10,35,66,0.35)]">

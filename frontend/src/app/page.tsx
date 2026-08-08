@@ -6,6 +6,7 @@ import { FeaturedProperties } from "@/components/home/FeaturedProperties";
 import { ContactSection } from "@/components/home/ContactSection";
 import { CTASection } from "@/components/home/CTASection";
 import { getFeaturedProperties } from "@/services/properties";
+import { getAgencyWhatsappMap } from "@/services/agencies";
 
 export const metadata = {
   title: "Grupo Valterra · Soluciones Inmobiliarias del Litoral",
@@ -19,6 +20,7 @@ export const revalidate = 60;
 
 export default async function HomePage() {
   const featured = await getFeaturedProperties(6);
+  const whatsappByAgency = await getAgencyWhatsappMap();
 
   return (
     <div
@@ -28,7 +30,7 @@ export default async function HomePage() {
       <Navbar />
       <HeroSection />
       <CategoriesSection />
-      <FeaturedProperties properties={featured} />
+      <FeaturedProperties properties={featured} whatsappByAgency={whatsappByAgency} />
       {/*
         Sprint 14-B — StatsSection y PlansSection quedan fuera del render público.
         StatsSection publicaba métricas no acreditadas (1.200+ propiedades,
