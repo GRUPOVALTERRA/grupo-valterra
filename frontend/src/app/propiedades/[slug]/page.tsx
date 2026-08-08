@@ -210,6 +210,18 @@ export default async function PropertyDetailPage({ params }: PageProps) {
                     <Spec icon="🌳" label="Terreno" value={`${property.totalArea} m²`} />
                   )}
                 </ul>
+
+                {/* Descripción cargada desde admin (null-safe) */}
+                {property.description?.trim() && (
+                  <div className="mt-8 border-t border-[#D8D8D8] pt-6">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Descripción
+                    </h2>
+                    <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-slate-700">
+                      {property.description.trim()}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Sidebar precio + CTA */}
@@ -247,8 +259,6 @@ export default async function PropertyDetailPage({ params }: PageProps) {
                 )}
               </aside>
             </div>
-
-            {/* Descripción (si existe en el type futuro, por ahora null-safe) */}
           </div>
         </section>
 
