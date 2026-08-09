@@ -13,8 +13,10 @@ import type { PublicLocation } from "@/lib/geo/types";
  * sueltas y no decide visibilidad: si el modo es `hidden` la sección
  * ni siquiera se renderiza (lo decide el server component).
  *
- * Leaflet + tiles OpenStreetMap: sin API key. La atribución OSM es
- * obligatoria y siempre visible.
+ * Tiles: Esri World Street Map (sin API key). Se eligió tras verificar
+ * que tile.openstreetmap.org devolvía 503 desde redes reales (política
+ * de uso del servidor comunitario de OSM). La atribución del proveedor
+ * es obligatoria y siempre visible; nunca se oculta.
  */
 
 interface Props {
@@ -47,11 +49,14 @@ export default function PropertyPublicMap({ location, heightPx = 320 }: Props) {
       scrollWheelZoom: false, // no secuestrar el scroll de la ficha
       attributionControl: true,
     });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 19,
+        attribution:
+          'Tiles &copy; <a href="https://www.esri.com">Esri</a> — Esri, DeLorme, NAVTEQ',
+      },
+    ).addTo(map);
 
     if (location.kind === "exact") {
       L.marker([point.latitude, point.longitude], { icon: goldPin() }).addTo(map);

@@ -63,11 +63,13 @@ test.describe("componentes públicos de mapa", () => {
     expect(map).toContain("location.radiusM");
   });
 
-  test("Leaflet/OSM sin API key y con atribución obligatoria visible", () => {
-    expect(map).toContain("tile.openstreetmap.org");
-    expect(map).toContain("openstreetmap.org/copyright");
+  test("tiles sin API key y con atribución obligatoria visible", () => {
+    expect(map).toContain("server.arcgisonline.com");
+    expect(map).toContain("attribution:");
+    expect(map).toMatch(/Esri/);
     expect(map).toContain("attributionControl: true");
     expect(map).not.toMatch(/api[_-]?key/i);
+    expect(map).not.toMatch(/[?&](key|token|apikey)=/i);
   });
 
   test("carga dinámica sin SSR (Leaflet necesita window)", () => {

@@ -246,10 +246,10 @@ test.describe("UI — reglas de privacidad y mapa", () => {
     expect(section).toContain("resolvePublicLocation({");
   });
 
-  test("Leaflet: dynamic ssr:false + atribución OSM visible + sin API key", () => {
+  test("Leaflet: dynamic ssr:false + atribución de tiles visible + sin API key", () => {
     expect(section).toContain("ssr: false");
-    expect(picker).toContain("tile.openstreetmap.org");
-    expect(picker).toContain("openstreetmap.org/copyright");
+    expect(picker).toContain("server.arcgisonline.com");
+    expect(picker).toMatch(/attribution:[\s\S]*Esri/);
     expect(picker).toContain("attributionControl: true");
     expect(picker).not.toMatch(/api[_-]?key/i);
   });

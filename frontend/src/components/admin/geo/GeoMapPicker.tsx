@@ -73,11 +73,16 @@ export default function GeoMapPicker({
       dragging: interactive,
       attributionControl: true, // atribución OSM obligatoria: no ocultar
     });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    // Esri World Street Map: sin API key. Reemplaza a tile.openstreetmap.org,
+    // que devolvía 503 desde redes reales. Atribución obligatoria visible.
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 19,
+        attribution:
+          'Tiles &copy; <a href="https://www.esri.com">Esri</a> — Esri, DeLorme, NAVTEQ',
+      },
+    ).addTo(map);
 
     if (interactive) {
       map.on("click", (e: L.LeafletMouseEvent) => {
