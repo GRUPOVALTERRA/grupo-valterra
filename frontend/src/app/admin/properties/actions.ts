@@ -19,6 +19,8 @@ import {
 import { uploadPropertyImage } from "@/services/properties-storage";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { validateProperty } from "@/lib/validateProperty";
+import { validateGeo } from "@/lib/validateGeo";
+import { updatePropertyAdminGeo } from "@/services/property-geo-admin";
 
 /**
  * Sprint 11 MF2 · Property cover upload action.
@@ -425,4 +427,90 @@ export async function setPropertyStatusAction(
   revalidatePath(`/propiedades/${slug}`);
   revalidatePath("/");
   return { ok: true, status: next };
+}
+
+/* ==========================================================
+ * S18 PR2 · Editor GEO (CORE-GEO-01)
+ * ========================================================== */
+
+const GEO_RATE_LIMIT = { limit: 10, windowMs: 60_000 };
+
+export interface UpdateGeoResult {
+  ok: boolean;
+  error?: string;
+  fieldErrors?: Record<string, string>;
+}
+
+/**
+ * Guarda la geolocalización de una propiedad en una única acción coherente.
+ *
+ * Autoridad del cliente: slug + coordenadas + modo + radio. NADA más:
+ * agency_id, roles y scoping se resuelven server-side desde la sesión
+ * (requireAgencyPermission, mismos EDITOR_ROLES que el resto del ciclo:
+ * owner/admin/agent; viewer y cross-agency quedan afuera).
+ *
+ * Privacidad: esta action jamás copia lat/lng interna a public_*.
+ * La copia solo puede llegar ya hecha desde la UI por acción deliberada
+ * del operador (botón con advertencia), y aun así viaja como public_*.
+ */
+export async function updatePropertyGeoAction(
+  formData: FormData,
+): Promise<UpdateGeoResult> {
+  const ctx = await getAdminContext();
+  if (!ctx.isSuperAdmin && !ctx.scopedAgencyId) {
+    return { ok: false, error: "Sesion no autorizada" };
+  }
+
+  const hdrs = await nextHeaders();
+  const rl = rateLimit(`prop-geo:${getClientIp(hdrs)}`, GEO_RATE_LIMIT);
+  if (!rl.allowed) {
+    return { ok: false, error: `Demasiados cambios. Reintenta en ${rl.retryAfterSec}s.` };
+  }
+
+  const slug = String(formData.get("slug") ?? "").trim();
+  if (!slug) return { ok: false, error: "slug requerido" };
+
+  const validation = validateGeo({
+    lat: formData.get("lat"),
+    lng: formData.get("lng"),
+    public_location_mode: formData.get("public_location_mode"),
+    public_latitude: formData.get("public_latitude"),
+    public_longitude: formData.get("public_longitude"),
+    public_radius_m: formData.get("public_radius_m"),
+  });
+  if (!validation.valid) {
+    return { ok: false, error: "Revisa los campos de ubicación", fieldErrors: validation.errors };
+  }
+
+  const property = await getPropertyBySlug(slug, { includeDraft: true });
+  if (!property?.id) return { ok: false, error: "Property no encontrada" };
+  if (!property.agencyId) {
+    log.error("admin/properties", "geo: property sin agency_id", { slug, propertyId: property.id });
+    return { ok: false, error: "Property sin agency_id (data inconsistente)" };
+  }
+
+  const perm = await requireAgencyPermission(ctx, "edit", property.agencyId);
+  if (!perm.ok) return { ok: false, error: perm.error };
+
+  const res = await updatePropertyAdminGeo({
+    propertyId: property.id,
+    agencyId: perm.agencyId,
+    geo: validation.data,
+  });
+  // Resultado cerrado: al cliente solo un mensaje genérico; el detalle
+  // (reason + código saneado) ya quedó en el log del servidor.
+  if (!res.ok) {
+    log.warn("admin/properties", "geo: guardado fallo", { slug, reason: res.reason });
+    return { ok: false, error: "No se pudo guardar la ubicación." };
+  }
+
+  log.info("admin/properties", "geo guardado", {
+    slug,
+    propertyId: property.id,
+    mode: validation.data.publicLocationMode,
+  });
+
+  revalidatePath(`/admin/properties/${slug}/edit`);
+  revalidatePath(`/propiedades/${slug}`);
+  return { ok: true };
 }

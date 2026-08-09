@@ -56,6 +56,13 @@ Consumidores futuros: **Grupo Valterra** (propiedades, demanda) y
 geocoding. **Las políticas de privacidad NO se comparten**: cada
 producto define sus modos/radios/reglas.
 
+Registro de consumidores (S18-PR2): Grupo Valterra usa el core en el
+**editor GEO admin** (`PropertyLocationSection` + `GeoMapPicker`).
+Candidatos reutilizables identificados — `GeoMapPicker` (picker Leaflet
+genérico, ya sin dominio inmobiliario) y el patrón `PublicLocationEditor`
+(modo + centro + radio + preview fail-closed) — **no extraídos como
+paquete todavía**; se extraerán recién cuando Pati Feliz los consuma.
+
 ## VRE — DemandGeoProfile (solo diseño, NO implementar)
 
 Pertenece al diseño del Revenue Engine y por decisión directiva **no se

@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
 import { getPropertyBySlug } from "@/services/properties";
 import { effectiveStatus } from "@/lib/property-status";
-import { updatePropertyDetailsAction } from "../../actions";
+import { updatePropertyDetailsAction, updatePropertyGeoAction } from "../../actions";
 import { PropertyEditForm } from "./PropertyEditForm";
 import { listPropertyImages } from "@/services/property-images";
+import { getPropertyAdminGeo, type PropertyAdminGeo } from "@/services/property-geo-admin";
+import { PropertyLocationSection } from "@/components/admin/properties/PropertyLocationSection";
 import { canManageGallery } from "@/lib/property-gallery";
 import {
   PropertyGallerySection,
@@ -47,6 +49,29 @@ export default async function EditPropertyPage({ params }: PageProps) {
   const canManageImages =
     ctx.isSuperAdmin ||
     ctx.memberships.some((m) => m.agencyId === property.agencyId && canManageGallery(m.role));
+
+  // S18 PR2 · GEO admin. La ubicación interna SOLO llega por el DTO
+  // administrativo (property-geo-admin), nunca por el Property público.
+  // Mismos roles de edición que el resto del ciclo (owner/admin/agent).
+  //
+  // HARDENING: si el rol no puede editar GEO (viewer), el DTO interno NI
+  // SE CONSULTA NI SE SERIALIZA al cliente — el componente sensible
+  // directamente no se entrega. No se finge permiso con internal=null.
+  const canEditGeo =
+    ctx.isSuperAdmin ||
+    ctx.memberships.some(
+      (m) => m.agencyId === property.agencyId && ["owner", "admin", "agent"].includes(m.role),
+    );
+  let adminGeo: PropertyAdminGeo | null = null;
+  if (canEditGeo && property.id && property.agencyId) {
+    const geoRes = await getPropertyAdminGeo({
+      propertyId: property.id,
+      agencyId: property.agencyId,
+    });
+    adminGeo = geoRes.ok
+      ? geoRes.geo
+      : { internal: null, publicLocationMode: "approximate", publicPoint: null, publicRadiusM: 300 };
+  }
 
   // Vista RECORTADA: el storage_path no cruza al cliente.
   let galleryImages: GalleryImageView[] = [];
@@ -105,6 +130,15 @@ export default async function EditPropertyPage({ params }: PageProps) {
             )
           }
         />
+
+        {canEditGeo && adminGeo && (
+          <PropertyLocationSection
+            action={updatePropertyGeoAction}
+            slug={property.slug}
+            initialGeo={adminGeo}
+            canEdit={canEditGeo}
+          />
+        )}
 
         <PropertyGallerySection
           slug={property.slug}
