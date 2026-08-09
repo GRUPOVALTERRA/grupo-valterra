@@ -91,7 +91,7 @@ export default async function AdminLeadsPage({
             className="inline-flex items-center gap-1.5 rounded-full bg-[#0A2342] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white"
             title={ctx.isSuperAdmin ? "Acceso super-admin Valterra" : `Membership: ${ctx.memberships[0]?.role ?? "?"}`}
           >
-            <span className="text-[#C9A86A]">Scope:</span> {scopeLabel}
+            <span className="text-[#C9A86A]">Ámbito:</span> {scopeLabel}
           </span>
           <span className="hidden text-[11px] text-slate-500 sm:inline">
             {scopeRoleTag}
