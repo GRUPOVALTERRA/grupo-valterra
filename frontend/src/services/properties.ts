@@ -29,8 +29,9 @@ interface PropertyRow {
   province: string;
   country: string;
   address: string | null;
-  lat: number | string | null;
-  lng: number | string | null;
+  // S18 PR1: lat/lng (0002) son la ubicacion INTERNA exacta y NO se
+  // seleccionan ni mapean aca — invariante de privacidad CORE-GEO-01.
+  // La ubicacion publicable llega por public_* (0013) via lib/geo.
   bedrooms: number | null;
   bathrooms: number | null;
   parking: number | null;
@@ -54,7 +55,7 @@ interface PropertyRow {
 
 const COLUMNS_BASE =
   "id,slug,title,description,price,currency,per_month,operation_type,property_type," +
-  "city,neighborhood,province,country,address,lat,lng," +
+  "city,neighborhood,province,country,address," +
   "bedrooms,bathrooms,parking,covered_area_m2,total_area_m2," +
   "badges,cover_image,gallery,agent_name,agent_phone,agency_id," +
   "published,featured,featured_order,created_at,updated_at";
@@ -123,8 +124,6 @@ function rowToProperty(row: PropertyRow): Property {
     description: row.description ?? undefined,
     published: row.published,
     status: (row.status as PropertyStatus | undefined) ?? (row.published ? "published" : "draft"),
-    lat: toNumberOrUndefined(row.lat),
-    lng: toNumberOrUndefined(row.lng),
   };
 }
 
