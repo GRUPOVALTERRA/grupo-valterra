@@ -53,23 +53,24 @@ export default async function EditPropertyPage({ params }: PageProps) {
   // S18 PR2 · GEO admin. La ubicación interna SOLO llega por el DTO
   // administrativo (property-geo-admin), nunca por el Property público.
   // Mismos roles de edición que el resto del ciclo (owner/admin/agent).
+  //
+  // HARDENING: si el rol no puede editar GEO (viewer), el DTO interno NI
+  // SE CONSULTA NI SE SERIALIZA al cliente — el componente sensible
+  // directamente no se entrega. No se finge permiso con internal=null.
   const canEditGeo =
     ctx.isSuperAdmin ||
     ctx.memberships.some(
       (m) => m.agencyId === property.agencyId && ["owner", "admin", "agent"].includes(m.role),
     );
-  let adminGeo: PropertyAdminGeo = {
-    internal: null,
-    publicLocationMode: "approximate",
-    publicPoint: null,
-    publicRadiusM: 300,
-  };
-  if (property.id && property.agencyId) {
+  let adminGeo: PropertyAdminGeo | null = null;
+  if (canEditGeo && property.id && property.agencyId) {
     const geoRes = await getPropertyAdminGeo({
       propertyId: property.id,
       agencyId: property.agencyId,
     });
-    if (geoRes.ok) adminGeo = geoRes.geo;
+    adminGeo = geoRes.ok
+      ? geoRes.geo
+      : { internal: null, publicLocationMode: "approximate", publicPoint: null, publicRadiusM: 300 };
   }
 
   // Vista RECORTADA: el storage_path no cruza al cliente.
@@ -130,12 +131,14 @@ export default async function EditPropertyPage({ params }: PageProps) {
           }
         />
 
-        <PropertyLocationSection
-          action={updatePropertyGeoAction}
-          slug={property.slug}
-          initialGeo={adminGeo}
-          canEdit={canEditGeo}
-        />
+        {canEditGeo && adminGeo && (
+          <PropertyLocationSection
+            action={updatePropertyGeoAction}
+            slug={property.slug}
+            initialGeo={adminGeo}
+            canEdit={canEditGeo}
+          />
+        )}
 
         <PropertyGallerySection
           slug={property.slug}

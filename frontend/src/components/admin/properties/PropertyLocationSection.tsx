@@ -287,16 +287,31 @@ export function PropertyLocationSection({ action, slug, initialGeo, canEdit }: P
                   )}
                 </div>
               )}
-              <button
-                type="button"
-                onClick={copyInternalToPublic}
-                disabled={!canEdit || !internal}
-                className="rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-40"
-                title={COPY_INTERNAL_WARNING}
-              >
-                Usar ubicación interna como ubicación pública
-              </button>
-              <p className="text-[11px] text-amber-700">{COPY_INTERNAL_WARNING}</p>
+              {/* HARDENING: la copia interna→pública SOLO existe en modo
+                  Exacta. En Aproximada no hay camino UI hacia la interna:
+                  el centro del círculo se elige deliberadamente aparte,
+                  para que la coordenada exacta jamás viaje al navegador
+                  público como centro. */}
+              {mode === "exact" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={copyInternalToPublic}
+                    disabled={!canEdit || !internal}
+                    className="rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-40"
+                    title={COPY_INTERNAL_WARNING}
+                  >
+                    Usar ubicación interna como ubicación pública
+                  </button>
+                  <p className="text-[11px] text-amber-700">{COPY_INTERNAL_WARNING}</p>
+                </>
+              )}
+              {mode === "approximate" && (
+                <p className="text-[11px] text-slate-500">
+                  Elegí el centro del círculo a propósito: en modo Aproximada no se
+                  puede copiar la ubicación interna exacta.
+                </p>
+              )}
             </div>
           </div>
         )}

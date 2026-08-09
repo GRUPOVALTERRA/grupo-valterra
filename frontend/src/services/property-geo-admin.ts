@@ -14,6 +14,11 @@ import { isPublicLocationMode, toFiniteNumberOrNull } from "@/lib/geo/validate";
  * Scoping: toda query filtra por (id, agency_id) con service_role —
  * mismo patrón que updateProperty. El caller (server action) ya validó
  * membership/rol; este servicio vuelve a exigir agencyId igual.
+ *
+ * ERRORES CERRADOS (hardening): este módulo jamás devuelve el
+ * `error.message` crudo de Supabase ni detalles de query hacia el
+ * caller. Devuelve un `reason` de allowlist; el detalle queda en el log
+ * del servidor, saneado (código de error, sin SQL ni payload).
  */
 
 /** DTO admin: lo que el editor GEO ve y guarda. */
@@ -23,6 +28,9 @@ export interface PropertyAdminGeo {
   publicPoint: GeoPoint | null;
   publicRadiusM: number;
 }
+
+/** Resultado cerrado: nada de mensajes crudos del proveedor. */
+export type GeoAdminFailReason = "invalid-input" | "not-configured" | "not-found" | "db-error";
 
 const GEO_COLUMNS = "lat,lng,public_location_mode,public_latitude,public_longitude,public_radius_m";
 
@@ -44,9 +52,9 @@ function toPoint(lat: unknown, lng: unknown): GeoPoint | null {
 export async function getPropertyAdminGeo(args: {
   propertyId: string;
   agencyId: string;
-}): Promise<{ ok: true; geo: PropertyAdminGeo } | { ok: false; error: string }> {
-  if (!args.propertyId || !args.agencyId) return { ok: false, error: "propertyId y agencyId requeridos" };
-  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+}): Promise<{ ok: true; geo: PropertyAdminGeo } | { ok: false; reason: GeoAdminFailReason }> {
+  if (!args.propertyId || !args.agencyId) return { ok: false, reason: "invalid-input" };
+  if (!isSupabaseConfigured()) return { ok: false, reason: "not-configured" };
   try {
     const supabase = getSupabaseAdmin();
     const { data, error } = await withTimeout(
@@ -60,10 +68,11 @@ export async function getPropertyAdminGeo(args: {
       "properties.geo.select",
     );
     if (error) {
-      log.error("property-geo-admin", "select error", { propertyId: args.propertyId, message: error.message });
-      return { ok: false, error: error.message };
+      // Log saneado: código sí, message/SQL no.
+      log.error("property-geo-admin", "select error", { propertyId: args.propertyId, code: error.code ?? "unknown" });
+      return { ok: false, reason: "db-error" };
     }
-    if (!data) return { ok: false, error: "Property no encontrada en esta agencia" };
+    if (!data) return { ok: false, reason: "not-found" };
     const mode = isPublicLocationMode(data.public_location_mode ?? "")
       ? (data.public_location_mode as PublicLocationMode)
       : "approximate";
@@ -77,8 +86,11 @@ export async function getPropertyAdminGeo(args: {
       },
     };
   } catch (err) {
-    log.error("property-geo-admin", "select exception", err instanceof Error ? err : { err: String(err) });
-    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+    log.error("property-geo-admin", "select exception", {
+      propertyId: args.propertyId,
+      kind: err instanceof Error ? err.name : "unknown",
+    });
+    return { ok: false, reason: "db-error" };
   }
 }
 
@@ -90,9 +102,9 @@ export async function updatePropertyAdminGeo(args: {
   propertyId: string;
   agencyId: string;
   geo: PropertyAdminGeo;
-}): Promise<{ ok: boolean; error?: string }> {
-  if (!args.propertyId || !args.agencyId) return { ok: false, error: "propertyId y agencyId requeridos" };
-  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+}): Promise<{ ok: true } | { ok: false; reason: GeoAdminFailReason }> {
+  if (!args.propertyId || !args.agencyId) return { ok: false, reason: "invalid-input" };
+  if (!isSupabaseConfigured()) return { ok: false, reason: "not-configured" };
   try {
     const supabase = getSupabaseAdmin();
     const { error } = await withTimeout(
@@ -112,8 +124,8 @@ export async function updatePropertyAdminGeo(args: {
       "properties.geo.update",
     );
     if (error) {
-      log.error("property-geo-admin", "update error", { propertyId: args.propertyId, message: error.message, code: error.code });
-      return { ok: false, error: error.message };
+      log.error("property-geo-admin", "update error", { propertyId: args.propertyId, code: error.code ?? "unknown" });
+      return { ok: false, reason: "db-error" };
     }
     log.info("property-geo-admin", "geo actualizado", {
       propertyId: args.propertyId,
@@ -124,7 +136,10 @@ export async function updatePropertyAdminGeo(args: {
     });
     return { ok: true };
   } catch (err) {
-    log.error("property-geo-admin", "update exception", err instanceof Error ? err : { err: String(err) });
-    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+    log.error("property-geo-admin", "update exception", {
+      propertyId: args.propertyId,
+      kind: err instanceof Error ? err.name : "unknown",
+    });
+    return { ok: false, reason: "db-error" };
   }
 }

@@ -497,7 +497,12 @@ export async function updatePropertyGeoAction(
     agencyId: perm.agencyId,
     geo: validation.data,
   });
-  if (!res.ok) return { ok: false, error: `No se pudo guardar la ubicación: ${res.error ?? "unknown"}` };
+  // Resultado cerrado: al cliente solo un mensaje genérico; el detalle
+  // (reason + código saneado) ya quedó en el log del servidor.
+  if (!res.ok) {
+    log.warn("admin/properties", "geo: guardado fallo", { slug, reason: res.reason });
+    return { ok: false, error: "No se pudo guardar la ubicación." };
+  }
 
   log.info("admin/properties", "geo guardado", {
     slug,

@@ -198,6 +198,21 @@ test.describe("UI — reglas de privacidad y mapa", () => {
     expect(copyFn).toContain("setPublicPoint");
   });
 
+  test("HARDENING: el botón de copia solo existe en modo exact (approximate sin camino internal→public)", () => {
+    // El botón vive dentro de un bloque condicional exclusivo de exact...
+    const gate = section.indexOf('{mode === "exact" && (');
+    expect(gate).toBeGreaterThan(-1);
+    const btn = section.indexOf("Usar ubicación interna como ubicación pública");
+    expect(btn).toBeGreaterThan(gate);
+    // ...y aparece UNA sola vez en todo el componente (sin duplicados fuera del gate).
+    expect(section.match(/Usar ubicación interna como ubicación pública/g)?.length).toBe(1);
+    // El bloque approximate posterior solo contiene la nota (sin botón de copia).
+    const approxNote = section.lastIndexOf('{mode === "approximate" && (');
+    expect(approxNote).toBeGreaterThan(btn);
+    expect(section.slice(approxNote)).toContain("no se");
+    expect(section.slice(approxNote)).not.toContain("Usar ubicación interna");
+  });
+
   test("cambiar modo NO copia coordenadas", () => {
     const modeButtons = section.slice(
       section.indexOf("MODE_OPTIONS.map"),
@@ -245,10 +260,47 @@ test.describe("UI — reglas de privacidad y mapa", () => {
 });
 
 test.describe("persistencia/reload server-side", () => {
+  const page = read("app/admin/properties/[slug]/edit/page.tsx");
+
   test("la página de edición hidrata initialGeo desde el servicio admin", () => {
-    const page = read("app/admin/properties/[slug]/edit/page.tsx");
     expect(page).toContain("getPropertyAdminGeo(");
     expect(page).toContain("initialGeo={adminGeo}");
     expect(page).toContain("updatePropertyGeoAction");
+  });
+
+  test("HARDENING: viewer nunca recibe el DTO GEO interno", () => {
+    // La consulta del DTO está gated por canEditGeo: sin permiso no se
+    // consulta ni se serializa nada sensible al cliente.
+    expect(page).toMatch(/if \(canEditGeo && property\.id && property\.agencyId\)/);
+    // El componente sensible tampoco se renderiza para viewer.
+    expect(page).toMatch(/\{canEditGeo && adminGeo && \(\s*<PropertyLocationSection/);
+    // No hay camino alternativo que llame al servicio fuera del gate.
+    expect(page.match(/getPropertyAdminGeo\(/g)?.length).toBe(1);
+    // Y no se finge permiso: sin canEditGeo, adminGeo queda null.
+    expect(page).toContain("let adminGeo: PropertyAdminGeo | null = null");
+  });
+});
+
+test.describe("HARDENING: errores cerrados (sin detalles del proveedor)", () => {
+  const svc = read("services/property-geo-admin.ts");
+  const actions = read("app/admin/properties/actions.ts");
+  const geoBlock = actions.slice(actions.indexOf("updatePropertyGeoAction"));
+
+  test("el servicio nunca devuelve error.message crudo", () => {
+    expect(svc).not.toMatch(/error:\s*error\.message/);
+    expect(svc).not.toMatch(/reason:\s*error\.message/);
+    expect(svc).not.toMatch(/err\.message/);
+    // Resultado cerrado por allowlist.
+    expect(svc).toContain('"invalid-input" | "not-configured" | "not-found" | "db-error"');
+  });
+
+  test("los logs del servidor van saneados (código, no message/SQL)", () => {
+    expect(svc).not.toMatch(/message:\s*error\.message/);
+    expect(svc).toMatch(/code:\s*error\.code/);
+  });
+
+  test("la action devuelve mensaje genérico sin interpolar el reason", () => {
+    expect(geoBlock).toContain('"No se pudo guardar la ubicación."');
+    expect(geoBlock).not.toMatch(/No se pudo guardar[^"]*\$\{/);
   });
 });
