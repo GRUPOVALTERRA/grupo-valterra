@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WaLink } from "@/components/public/WaLink";
 
 export function CTASection() {
   return (
@@ -58,14 +59,13 @@ export function CTASection() {
               <p className="mt-2 text-sm text-white/70">
                 Respuesta rápida por WhatsApp. Sin formularios largos.
               </p>
-              <a
+              <WaLink
                 href="https://wa.me/5493795159096"
-                target="_blank"
-                rel="noopener noreferrer"
+                source="cta-home"
                 className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border-2 border-white px-5 text-sm font-semibold text-white transition-all hover:bg-white hover:text-[#0A2342]"
               >
                 WhatsApp directo
-              </a>
+              </WaLink>
             </div>
           </div>
         </div>

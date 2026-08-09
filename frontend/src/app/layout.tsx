@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Montserrat, Playfair_Display } from "next/font/google";
 import { headers } from "next/headers";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -115,7 +116,12 @@ export default async function RootLayout({
       lang="es-AR"
       className={`${inter.variable} ${montserrat.variable} ${playfair.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        {/* Analítica F1: Vercel Web Analytics — pageviews + evento wa_click.
+            Sin cookies; los datos viven en el dashboard de Vercel. */}
+        <Analytics />
+      </body>
     </html>
   );
 }
