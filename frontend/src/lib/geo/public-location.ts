@@ -62,12 +62,6 @@ export function resolvePublicLocation(fields: PublicGeoFields): PublicLocation {
   };
 }
 
-/**
- * Deep link gratuito a Google Maps (sin API key) para una ubicacion ya
- * resuelta como publicable. hidden => null.
- */
-export function googleMapsLink(location: PublicLocation): string | null {
-  if (location.kind === "hidden") return null;
-  const p = location.kind === "exact" ? location.point : location.center;
-  return `https://www.google.com/maps?q=${p.latitude},${p.longitude}`;
-}
+// Nota: CORE-GEO-01 es provider-neutral. Links o renderers de mapas
+// (OSM, Google, etc.) pertenecen a la capa de UI del producto (S18-PR3),
+// nunca a este modulo.

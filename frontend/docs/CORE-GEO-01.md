@@ -9,7 +9,7 @@ sin Supabase, sin Next, sin dominio inmobiliario.
 |---|---|
 | `geo/types.ts` | `GeoPoint`, `PublicLocationMode`, `PublicLocation`, límites de radio |
 | `geo/validate.ts` | Validadores puros; espejan los CHECKs de la migración 0013 |
-| `geo/public-location.ts` | `resolvePublicLocation()` (fail-closed) y `googleMapsLink()` |
+| `geo/public-location.ts` | `resolvePublicLocation()` (fail-closed). Provider-neutral: links/renderers de mapas van en la UI del producto (PR3) |
 | `geo/geocoding.ts` | Interfaz `GeocodingProvider` — sin adaptadores en PR1 |
 | `e2e/geo-core-unit.spec.ts` | Unitarios puros en el runner Playwright existente (sin browser) |
 | `supabase/migrations/0013_geo_core.sql` | Columnas + constraints. **NO aplicada** (gate directivo) |

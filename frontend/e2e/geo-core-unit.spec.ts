@@ -157,12 +157,11 @@ test.describe("resolvePublicLocation — fail-closed", () => {
     ).toEqual({ kind: "hidden" });
   });
 
-  test("googleMapsLink: hidden => null; visible => deep link gratuito", () => {
-    const { googleMapsLink } = pub();
-    expect(googleMapsLink({ kind: "hidden" })).toBeNull();
-    expect(
-      googleMapsLink({ kind: "exact", point: { latitude: -27.5, longitude: -58.8 } }),
-    ).toBe("https://www.google.com/maps?q=-27.5,-58.8");
+  test("provider-neutral: el modulo no referencia proveedores de mapas", () => {
+    for (const f of ["types.ts", "validate.ts", "public-location.ts", "geocoding.ts"]) {
+      const src = readFileSync(join(__dirname, "../src/lib/geo", f), "utf8");
+      expect(src).not.toMatch(/google\.com|googleMapsLink|openstreetmap\.org|leaflet/i);
+    }
   });
 });
 

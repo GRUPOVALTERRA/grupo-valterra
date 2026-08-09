@@ -120,7 +120,7 @@ begin
       check ((public_latitude is null) = (public_longitude is null));
   end if;
 
-  -- Radio positivo y razonable: 50 m (no delata parcela) a 5000 m.
+  -- Radio del circulo publico: entero en el rango operativo 50-5000 m.
   if not exists (select 1 from pg_constraint where conname = 'properties_public_radius_range') then
     alter table public.properties
       add constraint properties_public_radius_range
