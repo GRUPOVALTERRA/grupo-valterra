@@ -14,6 +14,8 @@ import { getAgencyWhatsappById } from "@/services/agencies";
 import { DEFAULT_WHATSAPP } from "@/lib/social";
 import { formatPrice, type Property } from "@/services/mock-properties";
 import { WaLink } from "@/components/public/WaLink";
+import { PropertyLocationBlock } from "@/components/public/PropertyLocationBlock";
+import { getPublicLocationByPropertyId } from "@/services/property-public-location";
 
 export const revalidate = 60;
 
@@ -101,6 +103,9 @@ export default async function PropertyDetailPage({ params }: PageProps) {
   const agencyWhatsapp = await getAgencyWhatsappById(property.agencyId);
   const waLink = `https://wa.me/${agencyWhatsapp ?? DEFAULT_WHATSAPP}?text=${waMsg}`;
   const operationLabel = OPERATION_LABEL[property.operation];
+
+  // S18 PR3 · Ubicación publicable (solo columnas public_*, fail-closed).
+  const publicLocation = await getPublicLocationByPropertyId(property.id);
 
   // Galería (Sprint 17): fotos de property_images, cover primero.
   // Si falla o está vacía, la ficha cae a la portada simple de siempre.
@@ -262,6 +267,16 @@ export default async function PropertyDetailPage({ params }: PageProps) {
             </div>
           </div>
         </section>
+
+        {/* S18 PR3 · Mapa público. Solo se renderiza si la ubicación es
+            publicable (exact/approximate con centro cargado). El bloque
+            recibe únicamente el PublicLocation resuelto por CORE-GEO-01. */}
+        <PropertyLocationBlock
+          location={publicLocation}
+          locationLabel={[property.neighborhood, property.city, property.province]
+            .filter(Boolean)
+            .join(", ")}
+        />
 
         {/* Reusa el formulario de contacto · el ContactSection ya detecta #contacto-<slug> */}
         <ContactSection propertySlug={property.slug} propertyTitle={property.title} />
