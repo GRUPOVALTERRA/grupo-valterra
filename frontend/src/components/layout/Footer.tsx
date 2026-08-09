@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { SocialLinks } from "./SocialLinks";
+import { WaLink } from "@/components/public/WaLink";
 
 /**
  * Enlaces del pie.
@@ -69,15 +70,14 @@ export function Footer() {
                 <span className="text-[#C9A86A]">✉️</span>
                 grupovalterraservinmob@gmail.com
               </a>
-              <a
+              <WaLink
                 href="https://wa.me/5493795159096"
-                target="_blank"
-                rel="noopener noreferrer"
+                source="footer"
                 className="flex items-center gap-2.5 hover:text-[#C9A86A]"
               >
                 <span className="text-[#C9A86A]">💬</span>
                 WhatsApp
-              </a>
+              </WaLink>
             </div>
           </div>
 
@@ -90,12 +90,22 @@ export function Footer() {
                 <ul className="mt-4 space-y-2.5">
                   {col.links.map((link) => (
                     <li key={link.href}>
-                      <a
-                        href={link.href}
-                        className="text-sm text-white/75 transition-colors hover:text-white"
-                      >
-                        {link.label}
-                      </a>
+                      {link.href.startsWith("https://wa.me/") ? (
+                        <WaLink
+                          href={link.href}
+                          source="footer-contacto"
+                          className="text-sm text-white/75 transition-colors hover:text-white"
+                        >
+                          {link.label}
+                        </WaLink>
+                      ) : (
+                        <a
+                          href={link.href}
+                          className="text-sm text-white/75 transition-colors hover:text-white"
+                        >
+                          {link.label}
+                        </a>
+                      )}
                     </li>
                   ))}
                 </ul>
