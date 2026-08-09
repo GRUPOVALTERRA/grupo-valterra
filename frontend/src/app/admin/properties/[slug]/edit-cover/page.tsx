@@ -43,7 +43,7 @@ export default async function EditCoverPage({ params }: PageProps) {
           </p>
         </div>
         <Link href="/admin/properties" className="text-xs font-medium text-[#4A5568] hover:text-[#0A2342]">
-          ← Properties
+          ← Propiedades
         </Link>
       </header>
 

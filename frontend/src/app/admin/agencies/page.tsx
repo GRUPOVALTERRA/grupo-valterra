@@ -8,7 +8,7 @@ import { createAgencyAction } from "./actions";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Agencies - Super-admin - Valterra",
+  title: "Agencias - Super-admin - Valterra",
   robots: { index: false, follow: false },
 };
 
@@ -26,11 +26,11 @@ export default async function AgenciesPage() {
             Super-admin · Marketplace
           </span>
           <h1 className="mt-1 text-2xl font-bold text-[#0A2342]" style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}>
-            Agencies
+            Agencias
           </h1>
         </div>
         <Link href="/admin/leads" className="text-xs font-medium text-[#4A5568] hover:text-[#0A2342]">
-          ← Volver a leads
+          ← Volver a consultas
         </Link>
       </header>
 
