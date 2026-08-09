@@ -39,9 +39,8 @@ export interface Property {
   published?: boolean;
   /** Sprint 15-A: estado del ciclo de vida. `published` es su espejo. */
   status?: import("@/lib/property-status").PropertyStatus;
-  /** Geo - opcional - activado en Sprint 11 (mapa Mapbox) */
-  lat?: number;
-  lng?: number;
+  // S18 PR1: lat/lng eliminadas del objeto publico. La ubicacion
+  // publicable se resuelve via lib/geo (PublicLocation) en S18-PR3.
 }
 
 export const MOCK_PROPERTIES: Property[] = [
