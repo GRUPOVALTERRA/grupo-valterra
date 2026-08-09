@@ -112,7 +112,7 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
             <span className="font-semibold text-[#0A2342]">
               {ADMIN_STATUS_FILTER_LABEL[statusFilter]}
             </span>
-            {search ? ` · "${search}"` : ""} · scope: {scopeLabel}
+            {search ? ` · "${search}"` : ""} · ámbito: {scopeLabel}
           </p>
           <p className="mt-1 text-[11px] text-slate-400">
             {statusFilter === DEFAULT_STATUS_FILTER

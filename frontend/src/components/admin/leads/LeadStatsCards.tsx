@@ -21,7 +21,7 @@ interface CardConfig {
 export function LeadStatsCards({ stats }: LeadStatsCardsProps) {
   const cards: CardConfig[] = [
     {
-      label: "Total leads",
+      label: "Total consultas",
       value: stats.total,
       accent: "border-[#0A2342]",
       iconBg: "bg-[#0A2342]",
