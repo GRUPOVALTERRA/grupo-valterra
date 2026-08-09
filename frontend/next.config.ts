@@ -18,7 +18,10 @@ const CSP_DIRECTIVES = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://*.supabase.in",
+  // S18 PR3 · tiles del mapa público/admin (Leaflet + OpenStreetMap).
+  // Sin este host la CSP bloquea las imágenes de tiles y el mapa se ve
+  // gris: fue la causa real de los 503 observados, no el proveedor.
+  "img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://*.supabase.in https://tile.openstreetmap.org https://*.tile.openstreetmap.org",
   "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.ingest.sentry.io https://*.sentry.io",
   "frame-ancestors 'none'",
   "form-action 'self'",

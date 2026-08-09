@@ -63,13 +63,21 @@ test.describe("componentes públicos de mapa", () => {
     expect(map).toContain("location.radiusM");
   });
 
-  test("tiles sin API key y con atribución obligatoria visible", () => {
-    expect(map).toContain("server.arcgisonline.com");
-    expect(map).toContain("attribution:");
-    expect(map).toMatch(/Esri/);
+  test("Leaflet/OSM sin API key y con atribución obligatoria visible", () => {
+    expect(map).toContain("tile.openstreetmap.org");
+    expect(map).toContain("openstreetmap.org/copyright");
     expect(map).toContain("attributionControl: true");
     expect(map).not.toMatch(/api[_-]?key/i);
     expect(map).not.toMatch(/[?&](key|token|apikey)=/i);
+  });
+
+  test("la CSP permite los tiles (regresión: img-src los bloqueaba)", () => {
+    const config = readFileSync(join(__dirname, "../next.config.ts"), "utf8");
+    const imgSrc = config.match(/"img-src[^"]*"/)?.[0] ?? "";
+    expect(imgSrc).toContain("tile.openstreetmap.org");
+    // Y el host que usa el mapa debe estar cubierto por esa whitelist.
+    const tileHost = map.match(/https:\/\/([a-z0-9.*-]+)\/\{z\}/)?.[1] ?? "";
+    expect(imgSrc).toContain(tileHost);
   });
 
   test("carga dinámica sin SSR (Leaflet necesita window)", () => {
