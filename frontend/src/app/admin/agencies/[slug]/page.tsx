@@ -9,7 +9,7 @@ import { inviteMemberAction } from "../actions";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Agency - Super-admin - Valterra",
+  title: "Agencia - Super-admin - Valterra",
   robots: { index: false, follow: false },
 };
 
@@ -42,7 +42,7 @@ export default async function AgencyDetailPage({
           </p>
         </div>
         <Link href="/admin/agencies" className="text-xs font-medium text-[#4A5568] hover:text-[#0A2342]">
-          ← Agencies
+          ← Agencias
         </Link>
       </header>
 

@@ -73,7 +73,7 @@ export function LeadsDashboard({
             className="text-3xl font-bold text-[#0A2342]"
             style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}
           >
-            Bandeja de leads
+            Bandeja de consultas
           </h1>
           <p className="mt-1 text-sm text-[#4A5568]">
             {isFiltered ? (

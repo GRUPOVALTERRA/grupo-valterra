@@ -18,7 +18,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Leads - Valterra Admin",
+  title: "Consultas - Valterra Admin",
   robots: { index: false, follow: false },
 };
 
@@ -103,7 +103,7 @@ export default async function AdminLeadsPage({
               href="/admin/properties"
               className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] transition-colors hover:bg-[#F8F7F4]"
             >
-              Properties
+              Propiedades
             </Link>
           )}
           {ctx.isSuperAdmin && (
@@ -111,7 +111,7 @@ export default async function AdminLeadsPage({
               href="/admin/agencies"
               className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] transition-colors hover:bg-[#F8F7F4]"
             >
-              Agencies
+              Agencias
             </Link>
           )}
           <LogoutButton />

@@ -17,7 +17,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Editar property - Admin - Valterra",
+  title: "Editar propiedad - Admin - Valterra",
   robots: { index: false, follow: false },
 };
 
@@ -92,7 +92,7 @@ export default async function EditPropertyPage({ params }: PageProps) {
       <header className="flex items-center justify-between border-b border-[#D8D8D8] pb-4">
         <div>
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
-            Admin · Editar property
+            Admin · Editar propiedad
           </span>
           <h1
             className="mt-1 text-2xl font-bold text-[#0A2342]"
@@ -112,7 +112,7 @@ export default async function EditPropertyPage({ params }: PageProps) {
             Editar imagen →
           </Link>
           <Link href="/admin/properties" className="text-xs font-medium text-[#4A5568] hover:text-[#0A2342]">
-            ← Properties
+            ← Propiedades
           </Link>
         </div>
       </header>

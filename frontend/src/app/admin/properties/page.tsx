@@ -24,7 +24,7 @@ import { LogoutButton } from "@/app/admin/leads/LogoutButton";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Properties - Admin - Valterra",
+  title: "Propiedades - Admin - Valterra",
   robots: { index: false, follow: false },
 };
 
@@ -91,11 +91,11 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
             </Link>
           )}
           <Link href="/admin/leads" className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]">
-            Leads
+            Consultas
           </Link>
           {ctx.isSuperAdmin && (
             <Link href="/admin/agencies" className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]">
-              Agencies
+              Agencias
             </Link>
           )}
           <LogoutButton />
@@ -105,10 +105,10 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
       <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
         <header className="mb-5">
           <h1 className="text-2xl font-bold text-[#0A2342]" style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}>
-            Properties
+            Propiedades
           </h1>
           <p className="mt-1 text-xs text-slate-500">
-            {total} {total === 1 ? "property visible" : "properties visibles"} ·{" "}
+            {total} {total === 1 ? "propiedad visible" : "propiedades visibles"} ·{" "}
             <span className="font-semibold text-[#0A2342]">
               {ADMIN_STATUS_FILTER_LABEL[statusFilter]}
             </span>
