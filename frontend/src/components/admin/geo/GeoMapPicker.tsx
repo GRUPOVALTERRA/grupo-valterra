@@ -73,6 +73,8 @@ export default function GeoMapPicker({
       dragging: interactive,
       attributionControl: true, // atribución OSM obligatoria: no ocultar
     });
+    // OSM sin API key. El host debe estar en img-src de la CSP
+    // (next.config.ts) o el navegador bloquea los tiles.
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution:
