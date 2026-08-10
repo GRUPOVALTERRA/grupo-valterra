@@ -11,7 +11,9 @@ import {
 } from "@/lib/admin-property-filter";
 import { normalizeSearchTerm } from "@/lib/property-search";
 import { PropertyStatusControls } from "./PropertyStatusControls";
+import { PropertyFeaturedToggle } from "./PropertyFeaturedToggle";
 import { PropertyListFilters } from "./PropertyListFilters";
+import { listAgencies } from "@/services/agencies";
 
 const STATUS_STYLE: Record<PropertyStatus, string> = {
   draft: "bg-amber-100 text-amber-800",
@@ -51,14 +53,32 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
     // propiedades de muestra sobre las que esas acciones no existen.
     allowSampleFallback: false,
   };
-  if (!ctx.isSuperAdmin && ctx.scopedAgencyId) {
-    filters.agencyId = ctx.scopedAgencyId;
-  } else if (ctx.isSuperAdmin && ctx.scopedAgencyId) {
+  // S19 · Ámbito del listado.
+  //
+  // El super-admin puede ver TODAS las inmobiliarias con `?ambito=todas`
+  // (necesario para destacar en portada propiedades de cualquier agencia).
+  // Un miembro común queda siempre restringido a su agencia: el parámetro
+  // se ignora para él, la restricción no depende de la URL.
+  const wantsAllAgencies = ctx.isSuperAdmin && params.ambito === "todas";
+  if (!wantsAllAgencies && ctx.scopedAgencyId) {
     filters.agencyId = ctx.scopedAgencyId;
   }
   const properties = await getAllProperties(filters);
 
-  const scopeLabel = ctx.scopedAgencyName ?? "Sin agency";
+  // Nombre de cada inmobiliaria, para identificar las filas cuando se ven
+  // todas juntas. Solo se consulta en ese modo.
+  const agencyNames = new Map<string, string>();
+  if (wantsAllAgencies) {
+    try {
+      for (const a of await listAgencies()) agencyNames.set(a.id, a.name);
+    } catch {
+      // No bloquea el listado: sin nombres se muestra igual.
+    }
+  }
+
+  const scopeLabel = wantsAllAgencies
+    ? "Todas las inmobiliarias"
+    : ctx.scopedAgencyName ?? "Sin agencia";
 
   // Publicar/archivar queda para los mismos roles que la RLS trata como
   // managers (owner/admin); agent puede editar pero no cambiar visibilidad.
@@ -68,11 +88,15 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
       (m) => m.agencyId === ctx.scopedAgencyId && ["owner", "admin", "agent"].includes(m.role),
     );
 
-  const canManage =
+  // Permiso por fila: el super-admin gestiona cualquier agencia; el resto,
+  // solo aquellas donde es owner/admin. La server action revalida igual.
+  const canManageAgency = (agencyId?: string) =>
     ctx.isSuperAdmin ||
     ctx.memberships.some(
-      (m) => m.agencyId === ctx.scopedAgencyId && ["owner", "admin"].includes(m.role),
+      (m) => m.agencyId === agencyId && ["owner", "admin"].includes(m.role),
     );
+
+  const canManage = canManageAgency(ctx.scopedAgencyId ?? undefined);
   const total = properties.length;
 
   return (
@@ -121,6 +145,34 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
           </p>
         </header>
 
+        {ctx.isSuperAdmin && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-semibold uppercase tracking-[0.12em] text-slate-500">
+              Ámbito
+            </span>
+            <Link
+              href="/admin/properties"
+              className={`inline-flex h-8 items-center rounded-full border px-3 font-semibold transition-colors ${
+                wantsAllAgencies
+                  ? "border-[#D8D8D8] bg-white text-[#4A5568] hover:bg-[#F8F7F4]"
+                  : "border-[#0A2342] bg-[#0A2342] text-white"
+              }`}
+            >
+              {ctx.scopedAgencyName ?? "Mi inmobiliaria"}
+            </Link>
+            <Link
+              href="/admin/properties?ambito=todas"
+              className={`inline-flex h-8 items-center rounded-full border px-3 font-semibold transition-colors ${
+                wantsAllAgencies
+                  ? "border-[#0A2342] bg-[#0A2342] text-white"
+                  : "border-[#D8D8D8] bg-white text-[#4A5568] hover:bg-[#F8F7F4]"
+              }`}
+            >
+              Todas las inmobiliarias
+            </Link>
+          </div>
+        )}
+
         <PropertyListFilters estado={statusFilter} q={search ?? ""} resultCount={total} />
 
         {properties.length === 0 ? (
@@ -162,9 +214,19 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
                     <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${STATUS_STYLE[effectiveStatus(p)]}`}>
                       {STATUS_LABEL[effectiveStatus(p)]}
                     </span>
+                    {p.featured && (
+                      <span className="rounded bg-[#C9A84C]/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#8A6D18]">
+                        ★ Portada
+                      </span>
+                    )}
                   </div>
                   <div className="mt-0.5 truncate text-xs text-slate-500">
                     /{p.slug} · {p.city ?? "-"} · {p.operation} · {p.type}
+                    {wantsAllAgencies && p.agencyId && (
+                      <> · <span className="font-medium text-[#4A5568]">
+                        {agencyNames.get(p.agencyId) ?? "Inmobiliaria"}
+                      </span></>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -180,10 +242,16 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
                   >
                     Editar imagen
                   </Link>
+                  <PropertyFeaturedToggle
+                    slug={p.slug}
+                    featured={p.featured === true}
+                    published={effectiveStatus(p) === "published"}
+                    canManage={canManageAgency(p.agencyId)}
+                  />
                   <PropertyStatusControls
                     slug={p.slug}
                     status={effectiveStatus(p)}
-                    canManage={canManage}
+                    canManage={canManageAgency(p.agencyId)}
                   />
                 </div>
               </li>

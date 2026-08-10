@@ -403,6 +403,51 @@ export async function updateProperty(args: {
 }
 
 /* ==========================================================
+ * S19 · Destacadas de portada
+ * ========================================================== */
+
+/**
+ * Marca o desmarca una propiedad como destacada (portada).
+ *
+ * `featured` es lo que consume la home (`getFeaturedProperties`), que además
+ * exige `published`: destacar un borrador no la publica ni la muestra.
+ * El scoping por agencia lo garantiza el caller (server action); acá se
+ * exige igual el par (id, agency_id) como en el resto de los updates.
+ */
+export async function setPropertyFeatured(args: {
+  id: string;
+  agencyId: string;
+  featured: boolean;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!args.id || !args.agencyId) return { ok: false, error: "id y agencyId requeridos" };
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase no configurado" };
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await withTimeout(
+      supabase
+        .from("properties")
+        .update({ featured: args.featured })
+        .eq("id", args.id)
+        .eq("agency_id", args.agencyId),
+      6000,
+      "properties.setFeatured",
+    );
+    if (error) {
+      log.error("properties", "setFeatured error", { id: args.id, code: error.code ?? "unknown" });
+      return { ok: false, error: "No se pudo cambiar el destaque" };
+    }
+    log.info("properties", "featured actualizado", { id: args.id, featured: args.featured });
+    return { ok: true };
+  } catch (err) {
+    log.error("properties", "setFeatured exception", {
+      id: args.id,
+      kind: err instanceof Error ? err.name : "unknown",
+    });
+    return { ok: false, error: "No se pudo cambiar el destaque" };
+  }
+}
+
+/* ==========================================================
  * Sprint 15-A · Alta y ciclo de vida
  * ========================================================== */
 

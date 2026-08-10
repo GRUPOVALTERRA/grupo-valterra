@@ -9,6 +9,7 @@ import {
   updateProperty,
   createProperty,
   setPropertyStatus,
+  setPropertyFeatured,
 } from "@/services/properties";
 import {
   canTransition,
@@ -427,6 +428,63 @@ export async function setPropertyStatusAction(
   revalidatePath(`/propiedades/${slug}`);
   revalidatePath("/");
   return { ok: true, status: next };
+}
+
+/* ==========================================================
+ * S19 · Destacar en portada
+ * ========================================================== */
+
+export interface SetFeaturedResult {
+  ok: boolean;
+  error?: string;
+  featured?: boolean;
+}
+
+/**
+ * Alterna el destaque de una propiedad (portada del sitio público).
+ *
+ * Mismos permisos que publicar/archivar (owner/admin o super-admin):
+ * cambia lo que ve el visitante en la home. La agencia se resuelve
+ * server-side desde la propiedad; el cliente solo manda slug + valor.
+ */
+export async function setPropertyFeaturedAction(
+  formData: FormData,
+): Promise<SetFeaturedResult> {
+  const ctx = await getAdminContext();
+  if (!ctx.isSuperAdmin && !ctx.scopedAgencyId) {
+    return { ok: false, error: "Sesion no autorizada" };
+  }
+
+  const hdrs = await nextHeaders();
+  const rl = rateLimit(`prop-featured:${getClientIp(hdrs)}`, { limit: 20, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return { ok: false, error: `Demasiados cambios. Reintenta en ${rl.retryAfterSec}s.` };
+  }
+
+  const slug = String(formData.get("slug") ?? "").trim();
+  const featured = String(formData.get("featured") ?? "") === "true";
+  if (!slug) return { ok: false, error: "slug requerido" };
+
+  const property = await getPropertyBySlug(slug, { includeDraft: true });
+  if (!property?.id) return { ok: false, error: "Property no encontrada" };
+  if (!property.agencyId) return { ok: false, error: "Property sin agency_id" };
+
+  const perm = await requireAgencyPermission(ctx, "manage", property.agencyId);
+  if (!perm.ok) return { ok: false, error: perm.error };
+
+  const res = await setPropertyFeatured({
+    id: property.id,
+    agencyId: perm.agencyId,
+    featured,
+  });
+  if (!res.ok) return { ok: false, error: res.error ?? "No se pudo cambiar el destaque" };
+
+  log.info("admin/properties", "featured cambiado", { slug, featured });
+
+  revalidatePath("/admin/properties");
+  revalidatePath("/");
+  revalidatePath("/propiedades");
+  return { ok: true, featured };
 }
 
 /* ==========================================================
