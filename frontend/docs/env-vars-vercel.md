@@ -154,3 +154,42 @@ Procedimiento:
 1. Generar nuevo valor
 2. Vercel → Settings → Env Vars → edit
 3. Save → **Redeploy** (los cambios de env requieren redeploy, no es hot-reload)
+
+---
+
+## `EVENTS_HASH_SALT` — Analítica F2 (Sprint 20)
+
+| Variable | ¿Requerida? | Entornos | Sensitive |
+|---|---|---|---|
+| `EVENTS_HASH_SALT` | No (opcional) | Production · Preview | **ON** |
+
+**Qué hace.** Es la sal del `visit_hash` que escribe `POST /api/events` en la tabla
+`site_events`. El valor se calcula como
+`sha256(ip + user-agent + EVENTS_HASH_SALT + fecha-UTC)` truncado a 16 caracteres.
+
+**Qué es `visit_hash`, con precisión.** Un **identificador pseudónimo diario**
+derivado de IP y user-agent con sal secreta, **sin persistir los valores
+originales**. Como la fecha UTC entra en el material del hash, rota cada día: no
+permite construir un identificador cross-day. Sirve para deduplicar visitas dentro
+de una misma jornada, y para nada más.
+
+**Qué NO es.** No es anonimización. Un pseudónimo derivado de IP+UA sigue siendo un
+dato personal bajo la mayoría de los marcos de privacidad, y quien tenga la sal
+puede confirmar por fuerza bruta si una IP dada produjo un hash dado ese día — el
+espacio de IPs es chico. La sal secreta y la rotación diaria acotan el riesgo; no
+lo eliminan. Por eso la sal es obligatoria para emitir el valor.
+
+**Si falta.** El endpoint sigue funcionando y registra los eventos, pero
+`visit_hash` queda en `NULL`: se pierde la deduplicación diaria, nada más. Es
+preferible a emitir un pseudónimo con sal predecible, que sí sería trivialmente
+reversible. **El dashboard debe tolerar `NULL` y mostrar "Sin datos" en vez de
+inventar un conteo de visitantes únicos.**
+
+**Cómo generarla.** Un valor aleatorio largo, distinto por entorno:
+```bash
+openssl rand -hex 32
+```
+
+**Rotación.** Cada 90 días. Al rotar, los visitantes del día en curso se cuentan
+dos veces (antes y después del cambio). Impacto nulo fuera de eso: ninguna sesión
+ni login depende de esta variable.
