@@ -59,11 +59,11 @@ test.describe("normalizePath", () => {
   });
 
   test("rechaza rutas hostiles o malformadas", () => {
-    expect(normalizePath("//evil.com")).toBeNull();
-    expect(normalizePath("propiedades")).toBeNull();
-    expect(normalizePath("/a/../../etc")).toBeNull();
+    expect(normalizePath("//evil.com")).toBeNull(); // protocol-relative disfrazada
+    expect(normalizePath("propiedades")).toBeNull(); // sin barra inicial
+    expect(normalizePath("/a/../../etc")).toBeNull(); // traversal
     expect(normalizePath("/a\\b")).toBeNull();
-    expect(normalizePath("/a\nb")).toBeNull();
+    expect(normalizePath("/a\nb")).toBeNull(); // log injection
     expect(normalizePath("/" + "x".repeat(400))).toBeNull();
     expect(normalizePath(123)).toBeNull();
     expect(normalizePath("")).toBeNull();
@@ -77,7 +77,7 @@ test.describe("el admin queda fuera del log", () => {
   test("isAdminPath reconoce el panel sin falsos positivos", () => {
     expect(isAdminPath("/admin")).toBe(true);
     expect(isAdminPath("/admin/leads")).toBe(true);
-    expect(isAdminPath("/administracion")).toBe(false);
+    expect(isAdminPath("/administracion")).toBe(false); // no es el panel
     expect(isAdminPath("/propiedades")).toBe(false);
   });
 
@@ -89,17 +89,30 @@ test.describe("el admin queda fuera del log", () => {
     }
   });
 
+  /**
+   * FIX 1 (S20-PR1) — aplicacion y base deben decir EXACTAMENTE lo mismo.
+   *
+   * El check original era `path not like '/admin%'`, mas amplio que
+   * isAdminPath(): habria rechazado /administracion, una ruta publica
+   * legitima. Cuando app y base discrepan, se pierden eventos en silencio.
+   */
   test("FIX 1: el check de la base es equivalente a isAdminPath, no mas amplio", () => {
     expect(MIGRATION).toContain("path <> '/admin' and path not like '/admin/%'");
+    // El prefijo demasiado amplio no debe volver al SQL EJECUTABLE. En los
+    // comentarios si aparece: ahi se explica por que se descarto.
     expect(sqlEjecutable(MIGRATION)).not.toContain("path not like '/admin%'");
   });
 
   test("FIX 1: rutas publicas con prefijo 'admin' se ACEPTAN en ambas capas", () => {
     const publicas = ["/administracion", "/admins", "/administrar-consorcios", "/adminis"];
+
     for (const p of publicas) {
+      // Capa de aplicacion.
       expect(isAdminPath(p)).toBe(false);
       const r = validateEvent({ body: pageview(p) });
       expect(r.valid).toBe(true);
+
+      // Capa de base: simulacion del check SQL tal como quedo escrito.
       const pasaElCheck = p !== "/admin" && !p.startsWith("/admin/");
       expect(pasaElCheck).toBe(true);
     }
@@ -116,12 +129,14 @@ test.describe("el admin queda fuera del log", () => {
       ["/propiedades", false],
       ["/", false],
     ];
+
     for (const [path, esAdmin] of casos) {
+      // normalizePath colapsa "/admin/" -> "/admin" antes de evaluar.
       const normalizado = normalizePath(path)!;
       const app = isAdminPath(normalizado);
       const db = normalizado === "/admin" || normalizado.startsWith("/admin/");
       expect(app).toBe(esAdmin);
-      expect(db).toBe(esAdmin);
+      expect(db).toBe(esAdmin); // misma respuesta en las dos capas
     }
   });
 });
@@ -181,12 +196,30 @@ test.describe("privacidad: nada de PII llega a la tabla", () => {
     expect(r.valid).toBe(true);
     if (!r.valid) return;
     expect(Object.keys(r.event).sort()).toEqual(
-      ["event_type", "path", "property_slug", "referrer_host", "source", "utm_campaign", "utm_medium", "utm_source"].sort(),
+      [
+        "event_type",
+        "path",
+        "property_slug",
+        "referrer_host",
+        "source",
+        "utm_campaign",
+        "utm_medium",
+        "utm_source",
+      ].sort(),
     );
   });
 
   test("campos extra del body se descartan por completo", () => {
-    const r = validateEvent({ body: { ...pageview("/"), ip: "190.1.2.3", email: "alguien@ejemplo.com", userAgent: "Mozilla/5.0", agency_id: "00000000-0000-0000-0000-000000000000", visit_hash: "deadbeefdeadbeef" } });
+    const r = validateEvent({
+      body: {
+        ...pageview("/"),
+        ip: "190.1.2.3",
+        email: "alguien@ejemplo.com",
+        userAgent: "Mozilla/5.0",
+        agency_id: "00000000-0000-0000-0000-000000000000",
+        visit_hash: "deadbeefdeadbeef",
+      },
+    });
     expect(r.valid).toBe(true);
     if (!r.valid) return;
     const serialized = JSON.stringify(r.event);
@@ -205,7 +238,10 @@ test.describe("privacidad: nada de PII llega a la tabla", () => {
   });
 
   test("el referrer_host sale del header, no del body", () => {
-    const r = validateEvent({ body: { ...pageview("/"), referrer_host: "mentira.com", referrerHost: "mentira.com" }, referer: "https://www.instagram.com/grupovalterraar" });
+    const r = validateEvent({
+      body: { ...pageview("/"), referrer_host: "mentira.com", referrerHost: "mentira.com" },
+      referer: "https://www.instagram.com/grupovalterraar",
+    });
     expect(r.valid).toBe(true);
     if (r.valid) expect(r.event.referrer_host).toBe("instagram.com");
   });
@@ -216,8 +252,12 @@ test.describe("privacidad: nada de PII llega a la tabla", () => {
     const hoy = visitHash(ip, ua, "sal-secreta", new Date("2026-08-10T12:00:00Z"));
     const masTarde = visitHash(ip, ua, "sal-secreta", new Date("2026-08-10T23:59:00Z"));
     const manana = visitHash(ip, ua, "sal-secreta", new Date("2026-08-11T00:01:00Z"));
+
     expect(hoy).toHaveLength(16);
+    // Mismo visitante, mismo dia -> mismo valor (permite deduplicar).
     expect(masTarde).toBe(hoy);
+    // Mismo visitante, dia siguiente -> valor distinto. Esta es la garantia
+    // central: no se puede construir un identificador cross-day.
     expect(manana).not.toBe(hoy);
     expect(hoy).not.toContain(ip);
     expect(/^[0-9a-f]{16}$/.test(hoy!)).toBe(true);
@@ -235,11 +275,25 @@ test.describe("privacidad: nada de PII llega a la tabla", () => {
     expect(visitHash("190.1.2.3", "UA", "")).toBeNull();
   });
 
+  /**
+   * FIX 3 (S20-PR1) — terminologia de privacidad honesta.
+   *
+   * visit_hash es un pseudonimo, NO anonimizacion: derivado de IP+UA sigue
+   * siendo dato personal, y con la sal en mano se puede confirmar por
+   * fuerza bruta. Describirlo como "sin PII" o "irreversible" seria falso y
+   * llevaria a tratar la tabla con menos cuidado del que merece.
+   */
   test("FIX 3: la doc describe el hash como pseudonimo, no como anonimo", () => {
-    for (const [nombre, texto] of [["lib/events.ts", EVENTS_LIB], ["migracion 0014", MIGRATION]] as const) {
+    for (const [nombre, texto] of [
+      ["lib/events.ts", EVENTS_LIB],
+      ["migracion 0014", MIGRATION],
+    ] as const) {
       expect(texto, `${nombre}: debe usar el termino pseudonimo`).toMatch(/pseudonim/i);
+      // No debe afirmar anonimato ni irreversibilidad absoluta.
       expect(texto, `${nombre}: no debe afirmar "sin PII"`).not.toMatch(/sin\s+pii/i);
-      expect(texto, `${nombre}: no debe afirmar irreversibilidad`).not.toMatch(/irreversible(?!\s+en\s+sentido\s+absoluto)/i);
+      expect(texto, `${nombre}: no debe afirmar irreversibilidad`).not.toMatch(
+        /irreversible(?!\s+en\s+sentido\s+absoluto)/i,
+      );
     }
   });
 
@@ -254,9 +308,11 @@ test.describe("privacidad: nada de PII llega a la tabla", () => {
   });
 
   test("el endpoint no persiste ip ni user-agent", () => {
+    // Solo la huella va al log; la IP cruda nunca se inserta.
     expect(ROUTE).toContain("ipFingerprint");
     expect(ROUTE).not.toMatch(/insert\([\s\S]*\bip\b\s*:/);
     expect(ROUTE).not.toMatch(/insert\([\s\S]*user_agent/);
+    // La migracion no tiene columnas para eso.
     expect(MIGRATION).not.toMatch(/^\s*ip_address\s/m);
     expect(MIGRATION).not.toMatch(/^\s*user_agent\s/m);
   });
@@ -275,7 +331,9 @@ test.describe("saneo de slug y UTM", () => {
   });
 
   test("las UTM se recortan a la cota de la base", () => {
-    const r = validateEvent({ body: { ...pageview("/"), utmSource: "x".repeat(200), utmMedium: "  bio  " } });
+    const r = validateEvent({
+      body: { ...pageview("/"), utmSource: "x".repeat(200), utmMedium: "  bio  " },
+    });
     expect(r.valid).toBe(true);
     if (!r.valid) return;
     expect(r.event.utm_source!.length).toBe(80);
@@ -289,6 +347,7 @@ test.describe("saneo de slug y UTM", () => {
 test.describe("endpoint POST /api/events", () => {
   test("responde 204 siempre y nunca filtra el motivo al cliente", () => {
     expect(ROUTE).toContain("status: 204");
+    // Ningun otro codigo de estado: un 400/429 seria un oraculo.
     const estados = [...ROUTE.matchAll(/status:\s*(\d{3})/g)].map((m) => m[1]);
     expect([...new Set(estados)]).toEqual(["204"]);
   });
@@ -302,6 +361,7 @@ test.describe("endpoint POST /api/events", () => {
   test("agency_id se resuelve server-side desde el slug", () => {
     expect(ROUTE).toContain('.from("properties")');
     expect(ROUTE).toContain('.select("agency_id")');
+    // Nunca se toma del body.
     expect(ROUTE).not.toMatch(/agency_id:\s*(body|raw|data)\./);
   });
 
@@ -310,26 +370,43 @@ test.describe("endpoint POST /api/events", () => {
     expect(ROUTE).not.toContain("getSupabaseServer");
   });
 
+  /**
+   * FIX 2 (S20-PR1) — logs saneados.
+   *
+   * Los mensajes de error de un driver de base arrastran fragmentos de
+   * query, nombres de columnas y valores de la fila. A los logs va la
+   * operacion y un codigo; nada mas.
+   */
   test("FIX 2: nunca se loguea el mensaje crudo del error de base", () => {
     expect(ROUTE).not.toMatch(/error\.message/);
     expect(ROUTE).not.toMatch(/error\.details/);
     expect(ROUTE).not.toMatch(/error\.hint/);
+    // Tampoco el objeto error entero, que los arrastraria igual.
     expect(ROUTE).not.toMatch(/log\.(error|warn)\([^)]*,\s*error\s*\)/);
   });
 
   test("FIX 2: nunca se loguea el stack ni el error completo de una excepcion", () => {
     expect(ROUTE).not.toMatch(/\.stack/);
     expect(ROUTE).not.toMatch(/err as Error\)/);
+    // Del catch sale solo el NOMBRE de la excepcion.
     expect(ROUTE).toContain("err instanceof Error ? err.name");
   });
 
   test("FIX 2: nunca se loguea el payload recibido", () => {
+    // Se inspeccionan los argumentos de cada log.* : ninguna de las
+    // variables que contienen lo enviado por el cliente puede aparecer como
+    // valor. (Que la palabra "body" salga en un mensaje literal esta bien;
+    // lo que no puede pasar es que se pase la variable.)
     const llamadas = [...ROUTE.matchAll(/log\.\w+\(([\s\S]*?)\);/g)].map((m) => m[1]);
     expect(llamadas.length).toBeGreaterThan(0);
+
     for (const args of llamadas) {
+      // Fuera de los strings literales no debe nombrarse el payload.
       const sinLiterales = args.replace(/"[^"]*"/g, '""');
       for (const variable of ["text", "raw", "event.path"]) {
-        expect(sinLiterales, `log con \`${variable}\`: ${args}`).not.toMatch(new RegExp(`(^|[^.\\w])${variable.replace(".", "\\.")}\\b`));
+        expect(sinLiterales, `log con \`${variable}\`: ${args}`).not.toMatch(
+          new RegExp(`(^|[^.\\w])${variable.replace(".", "\\.")}\\b`),
+        );
       }
     }
   });
@@ -338,19 +415,28 @@ test.describe("endpoint POST /api/events", () => {
     expect(ROUTE).toContain('operation: "insert"');
     expect(ROUTE).toContain('operation: "lookup-agency"');
     expect(ROUTE).toContain("errorCode(error)");
+    // El codigo se valida contra un patron: no se confia en su forma.
     expect(ROUTE).toMatch(/\/\^\[A-Za-z0-9_\]\{1,20\}\$\//);
   });
 
+  /**
+   * FIX 4 (S20-PR1) — cota de body REAL, no un precheck de header.
+   *
+   * Content-Length es opcional (falta en Transfer-Encoding: chunked) y lo
+   * controla el cliente. Como unica defensa seria decorativo.
+   */
   test("FIX 4: la cota se aplica leyendo el stream, no confiando en Content-Length", () => {
     expect(ROUTE).toContain("readBoundedText");
     expect(ROUTE).toContain("getReader()");
     expect(ROUTE).toContain("reader.cancel()");
     expect(ROUTE).toContain("total > maxBytes");
+    // El header ya no se usa como control de tamano.
     expect(ROUTE).not.toContain('headers.get("content-length")');
   });
 
   test("FIX 4: se documenta por que el header no alcanza", () => {
     expect(ROUTE).toMatch(/chunked/i);
+    // Y no queda la afirmacion original de "cota dura" sobre el header.
     expect(ROUTE).not.toMatch(/cota dura del body/i);
   });
 
@@ -362,7 +448,11 @@ test.describe("endpoint POST /api/events", () => {
 test.describe("migracion 0014", () => {
   test("es aditiva e idempotente", () => {
     expect(MIGRATION).toContain("create table if not exists public.site_events");
-    const ejecutable = MIGRATION.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+    // Ningun DROP ni ALTER destructivo EJECUTABLE. El unico `drop table` del
+    // archivo vive comentado, dentro de las instrucciones de rollback.
+    const ejecutable = MIGRATION.split("\n")
+      .filter((l) => !l.trim().startsWith("--"))
+      .join("\n");
     expect(ejecutable).not.toMatch(/\bdrop\b/i);
     expect(ejecutable).not.toMatch(/^\s*alter table public\.(properties|agencies|leads)/im);
   });
@@ -370,11 +460,17 @@ test.describe("migracion 0014", () => {
   test("RLS default-deny sin ninguna politica", () => {
     expect(MIGRATION).toContain("alter table public.site_events enable row level security");
     expect(MIGRATION).toContain("force  row level security");
+    // Ni una sola policy: service_role es el unico camino.
     expect(MIGRATION).not.toMatch(/create policy/i);
   });
 
   test("tiene los indices que el tablero necesita", () => {
-    for (const idx of ["site_events_type_time_idx", "site_events_slug_time_idx", "site_events_agency_time_idx", "site_events_source_time_idx"]) {
+    for (const idx of [
+      "site_events_type_time_idx",
+      "site_events_slug_time_idx",
+      "site_events_agency_time_idx",
+      "site_events_source_time_idx",
+    ]) {
       expect(MIGRATION).toContain(idx);
     }
   });
