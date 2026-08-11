@@ -84,6 +84,35 @@ export type EventRejectReason =
   | "path-admin";
 
 // ============================================================
+// Aislamiento de entorno — guardrail de S20-PR2
+// ============================================================
+
+/** Unico valor de VERCEL_ENV que habilita persistencia. */
+export const INGESTION_ENV = "production";
+
+/**
+ * ¿Este deploy puede escribir en `site_events`?
+ *
+ * Preview y Production comparten la MISMA base de Supabase. Sin este
+ * guardrail, cada branch en Preview, cada corrida de QA y cada `npm run
+ * dev` contra la base real inyectarian filas indistinguibles del trafico
+ * comercial. El tablero mediria nuestro propio ruido.
+ *
+ * FAIL-CLOSED a proposito: solo el literal exacto "production" habilita la
+ * escritura. `undefined` (local, CI, tests), "preview", "development" y
+ * cualquier valor inesperado o con espacios caen del lado seguro. Preferimos
+ * perder telemetria antes que contaminar las metricas.
+ *
+ * La decision es SERVER-SIDE y depende exclusivamente de una variable de
+ * entorno: no hay body, header ni query string que pueda alterarla. Un
+ * parametro controlado por el cliente seria justamente el bypass que
+ * cualquiera usaria para inflar el tablero desde afuera.
+ */
+export function isIngestionEnabled(vercelEnv: string | undefined): boolean {
+  return vercelEnv === INGESTION_ENV;
+}
+
+// ============================================================
 // Normalizadores
 // ============================================================
 
@@ -137,11 +166,14 @@ export function isAdminPath(path: string): boolean {
 }
 
 /**
- * Extrae SOLO el host del header Referer.
+ * Extrae SOLO el host de una URL de referencia.
  *
  * Guardar la URL de referencia completa seria guardar PII de rebote: esas
  * URLs suelen traer identificadores de sesion o de campana personalizados.
  * Del origen del trafico alcanza con saber "vino de instagram.com".
+ *
+ * Se conserva exportada para el saneo defensivo del servidor: si el cliente
+ * mandara una URL entera en vez de un hostname, esto la recorta igual.
  */
 export function referrerHost(referer: unknown): string | null {
   if (typeof referer !== "string" || !referer) return null;
@@ -152,6 +184,51 @@ export function referrerHost(referer: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+/** Hostname plausible: etiquetas alfanumericas separadas por puntos. */
+const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+
+/**
+ * REVALIDACION SERVER-SIDE del referrer_host que manda el cliente.
+ *
+ * POR QUE VIENE DEL CLIENTE (S20-PR2 — correccion de atribucion):
+ *   El header HTTP `Referer` del POST a /api/events NO sirve como fuente:
+ *   el POST lo dispara una pagina de Valterra, asi que el header trae
+ *   nuestra propia URL, no instagram.com. Usarlo destruia la atribucion
+ *   social — todo el trafico parecia venir de nosotros mismos. La unica
+ *   fuente real es `document.referrer` en el navegador.
+ *
+ * QUE SE ACEPTA: un hostname ya normalizado (minusculas, sin `www.`). Si
+ * llegara una URL completa se recorta a hostname igual, por si una version
+ * vieja del cliente queda cacheada en algun navegador.
+ *
+ * QUE NO SE GARANTIZA: veracidad. El cliente puede mentir y esta asumido —
+ * `site_events` es telemetria observada, no antifraude ni contabilidad. Lo
+ * que si se garantiza es la FORMA: nada de URLs, paths, query strings,
+ * emails ni texto arbitrario entrando a la columna.
+ *
+ * `agency_id` sigue siendo server-derived: ahi una mentira si romperia el
+ * scoping multi-agencia del tablero, y por eso no se acepta del cliente.
+ */
+export function cleanReferrerHost(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+
+  let value = raw.trim().toLowerCase();
+  if (!value) return null;
+
+  // Compatibilidad defensiva: si vino una URL, quedarse con el hostname.
+  if (value.includes("/") || value.includes(":")) {
+    const fromUrl = referrerHost(value);
+    if (!fromUrl) return null;
+    value = fromUrl;
+  }
+
+  value = value.replace(/^www\./, "");
+  if (value.length > MAX.referrerHost) return null;
+  if (!HOSTNAME_RE.test(value)) return null;
+
+  return value;
 }
 
 /** Texto corto saneado: sin control chars, recortado, o null. */
@@ -214,8 +291,13 @@ export function visitHash(
 export interface RawEventInput {
   /** Body del request (no confiable). */
   body: Record<string, unknown>;
-  /** Header Referer del request (no confiable, pero no manipulable por JS). */
-  referer?: string | null;
+  /**
+   * Host del propio sitio (del header `Host`). Se usa SOLO para descartar
+   * un referrer interno: una navegacion de /propiedades a la ficha no es
+   * una fuente de trafico, y contarla inflaria "vino de grupovalterra".
+   * El cliente ya filtra lo interno; esto es la red de seguridad.
+   */
+  selfHost?: string | null;
 }
 
 /**
@@ -224,7 +306,7 @@ export interface RawEventInput {
  * Descarta por completo cualquier clave no reconocida del body: la fila
  * insertada se construye campo por campo, nunca por spread del body.
  */
-export function validateEvent({ body, referer }: RawEventInput): EventValidation {
+export function validateEvent({ body, selfHost }: RawEventInput): EventValidation {
   const type = body.type ?? body.event_type;
   if (typeof type !== "string" || !(EVENT_TYPES as readonly string[]).includes(type)) {
     return { valid: false, reason: "tipo-desconocido" };
@@ -248,6 +330,15 @@ export function validateEvent({ body, referer }: RawEventInput): EventValidation
     return { valid: false, reason: "source-en-pageview" };
   }
 
+  // ---- Referrer: viene del cliente (document.referrer) porque el header
+  //      Referer del POST trae nuestra propia URL. Se revalida la FORMA y
+  //      se descarta si resulta interno.
+  let referrer = cleanReferrerHost(body.referrerHost ?? body.referrer_host);
+  if (referrer && typeof selfHost === "string" && selfHost) {
+    const propio = selfHost.split(":")[0].toLowerCase().replace(/^www\./, "");
+    if (referrer === propio) referrer = null;
+  }
+
   return {
     valid: true,
     event: {
@@ -255,8 +346,7 @@ export function validateEvent({ body, referer }: RawEventInput): EventValidation
       path,
       property_slug: cleanPropertySlug(body.propertySlug ?? body.property_slug),
       source,
-      // Derivado del header, NO del body: el cliente no elige su procedencia.
-      referrer_host: referrerHost(referer),
+      referrer_host: referrer,
       utm_source: cleanText(body.utmSource ?? body.utm_source, MAX.utmSource),
       utm_medium: cleanText(body.utmMedium ?? body.utm_medium, MAX.utmMedium),
       utm_campaign: cleanText(body.utmCampaign ?? body.utm_campaign, MAX.utmCampaign),

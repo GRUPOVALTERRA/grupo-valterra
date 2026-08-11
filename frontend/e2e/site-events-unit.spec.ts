@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   validateEvent,
+  isIngestionEnabled,
+  INGESTION_ENV,
   normalizePath,
   isAdminPath,
   referrerHost,
@@ -237,15 +239,6 @@ test.describe("privacidad: nada de PII llega a la tabla", () => {
     expect(referrerHost(null)).toBeNull();
   });
 
-  test("el referrer_host sale del header, no del body", () => {
-    const r = validateEvent({
-      body: { ...pageview("/"), referrer_host: "mentira.com", referrerHost: "mentira.com" },
-      referer: "https://www.instagram.com/grupovalterraar",
-    });
-    expect(r.valid).toBe(true);
-    if (r.valid) expect(r.event.referrer_host).toBe("instagram.com");
-  });
-
   test("visit_hash: pseudonimo diario, estable dentro del dia y NO cross-day", () => {
     const ip = "190.1.2.3";
     const ua = "Mozilla/5.0";
@@ -478,6 +471,91 @@ test.describe("migracion 0014", () => {
   test("documenta el gate de Production y el rollback", () => {
     expect(MIGRATION).toMatch(/GATE/);
     expect(MIGRATION).toMatch(/Rollback/i);
+  });
+});
+
+// ============================================================
+// 7. Aislamiento de entorno — guardrail de S20-PR2
+// ============================================================
+test.describe("solo Production persiste", () => {
+  test("production habilita el camino de persistencia", () => {
+    expect(isIngestionEnabled("production")).toBe(true);
+    expect(INGESTION_ENV).toBe("production");
+  });
+
+  test("preview NO persiste", () => {
+    expect(isIngestionEnabled("preview")).toBe(false);
+  });
+
+  test("development NO persiste", () => {
+    expect(isIngestionEnabled("development")).toBe(false);
+  });
+
+  test("VERCEL_ENV ausente: fail-closed", () => {
+    expect(isIngestionEnabled(undefined)).toBe(false);
+    expect(isIngestionEnabled("")).toBe(false);
+  });
+
+  test("cualquier valor inesperado cae del lado seguro", () => {
+    for (const v of [
+      "test",
+      "staging",
+      "prod",
+      "PRODUCTION", // mayusculas: no se normaliza a proposito
+      " production", // espacio al inicio
+      "production ",
+      "production-preview",
+      "true",
+      "1",
+    ]) {
+      expect(isIngestionEnabled(v), `VERCEL_ENV=${JSON.stringify(v)}`).toBe(false);
+    }
+  });
+
+  test("el guard corre ANTES de leer el body o consumir rate limit", () => {
+    // Se mide DENTRO del handler: readBoundedText tambien aparece antes,
+    // pero como definicion de funcion, no como llamada.
+    const handler = ROUTE.slice(ROUTE.indexOf("export async function POST"));
+    const guardIdx = handler.indexOf("isIngestionEnabled(process.env.VERCEL_ENV)");
+    const bodyIdx = handler.indexOf("await readBoundedText(request");
+    const rlIdx = handler.indexOf("rateLimit(`events:");
+    expect(guardIdx).toBeGreaterThan(-1);
+    expect(bodyIdx).toBeGreaterThan(-1);
+    expect(rlIdx).toBeGreaterThan(-1);
+    expect(guardIdx).toBeLessThan(bodyIdx);
+    expect(guardIdx).toBeLessThan(rlIdx);
+  });
+
+  test("la decision es server-side: no hay bypass por body, header ni query", () => {
+    // El guard se alimenta SOLO de process.env.VERCEL_ENV.
+    expect(ROUTE).toContain("isIngestionEnabled(process.env.VERCEL_ENV)");
+    // Ninguna variante que lea el entorno desde el request.
+    expect(ROUTE).not.toMatch(/isIngestionEnabled\(\s*(body|raw|request|headers|url|searchParams)/);
+    expect(ROUTE).not.toMatch(/headers\.get\(["'](x-)?vercel-env["']\)/i);
+    expect(ROUTE).not.toMatch(/searchParams/);
+    // Y el modulo puro no lee process.env por su cuenta: lo recibe como argumento.
+    expect(EVENTS_LIB).not.toContain("process.env");
+  });
+
+  test("aun deshabilitado responde 204 (Preview y Production indistinguibles)", () => {
+    // El unico return del early-exit del guard es noContent().
+    const bloque = ROUTE.slice(
+      ROUTE.indexOf("if (!isIngestionEnabled"),
+      ROUTE.indexOf("const rl = rateLimit"),
+    );
+    expect(bloque).toContain("return noContent();");
+    expect(bloque).not.toMatch(/status:\s*(?!204)\d{3}/);
+  });
+
+  test("no se loguea nada sensible al descartar por entorno", () => {
+    const bloque = ROUTE.slice(
+      ROUTE.indexOf("if (!isIngestionEnabled"),
+      ROUTE.indexOf("const rl = rateLimit"),
+    );
+    // Solo la huella de IP y el nombre del entorno.
+    expect(bloque).toContain("ipFp");
+    expect(bloque).not.toMatch(/\bip\b\s*[,)}]/);
+    expect(bloque).not.toMatch(/user-agent/i);
   });
 });
 

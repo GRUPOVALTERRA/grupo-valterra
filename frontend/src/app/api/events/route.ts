@@ -1,5 +1,10 @@
 import { NextResponse, after, type NextRequest } from "next/server";
-import { validateEvent, visitHash, type SiteEventRow } from "@/lib/events";
+import {
+  validateEvent,
+  visitHash,
+  isIngestionEnabled,
+  type SiteEventRow,
+} from "@/lib/events";
 import { rateLimit, getClientIp, ipFingerprint } from "@/lib/rate-limit";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { log } from "@/lib/logger";
@@ -26,7 +31,15 @@ import { log } from "@/lib/logger";
  *    visitas a la agencia que quisiera y el tablero multi-agencia dejaria
  *    de ser confiable.
  *
- * 3. LOS LOGS VAN SANEADOS. Nunca se registra el mensaje crudo de Supabase,
+ * 3. SOLO PRODUCTION PERSISTE (S20-PR2). Preview y Production comparten la
+ *    misma base de Supabase. Sin este guardrail, cada branch en Preview y
+ *    cada corrida de QA inyectaria filas indistinguibles del trafico real y
+ *    el tablero mediria nuestro propio ruido. El chequeo es fail-closed y
+ *    server-side: depende solo de VERCEL_ENV, nunca de algo que el cliente
+ *    pueda mandar. La respuesta sigue siendo 204, asi que desde afuera un
+ *    Preview y Production son indistinguibles.
+ *
+ * 4. LOS LOGS VAN SANEADOS. Nunca se registra el mensaje crudo de Supabase,
  *    ni el stack, ni el payload recibido: los mensajes de error de un
  *    driver de base pueden arrastrar fragmentos de query, nombres de
  *    columnas y hasta valores de la fila. A los logs va la operacion y un
@@ -120,6 +133,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // NUNCA se guarda ni se loguea: a los logs va solo su huella.
   const ipFp = ipFingerprint(ip);
 
+  // ---- GUARDRAIL DE ENTORNO (S20-PR2, ver decision 4).
+  //      Va PRIMERO: si este deploy no puede escribir, no tiene sentido
+  //      leer el body ni consumir cupo de rate limit. Fail-closed.
+  //      NOTA: en local (`npm run dev`) VERCEL_ENV no existe, asi que el
+  //      endpoint responde 204 sin escribir. Es deliberado — el desarrollo
+  //      no debe ensuciar las metricas comerciales.
+  if (!isIngestionEnabled(process.env.VERCEL_ENV)) {
+    log.debug("api/events", "ingesta deshabilitada en este entorno", {
+      ipFp,
+      // El nombre del entorno NO es un secreto y no identifica a nadie.
+      env: process.env.VERCEL_ENV ?? "unset",
+    });
+    return noContent();
+  }
+
   const rl = rateLimit(`events:${ip}`, RATE_LIMIT);
   if (!rl.allowed) {
     log.warn("api/events", "rate limit", { ipFp });
@@ -151,7 +179,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ---- Validacion contra allowlists (lib/events.ts).
   const result = validateEvent({
     body: raw as Record<string, unknown>,
-    referer: request.headers.get("referer"),
+    // NO se pasa el header Referer: el POST sale de una pagina de Valterra,
+    // asi que ese header trae nuestra propia URL y destruia la atribucion
+    // (todo el trafico parecia venir de nosotros mismos). El referrer real
+    // llega en el body desde document.referrer, ya reducido a hostname.
+    // `Host` se usa solo para descartar un referrer interno.
+    selfHost: request.headers.get("host"),
   });
 
   if (!result.valid) {
