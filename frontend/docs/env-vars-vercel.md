@@ -23,7 +23,7 @@ Referencia operativa de cada env var que el proyecto necesita en producción.
 URL del proyecto Supabase. Pública, OK estar en logs.
 
 **Cómo obtener**:
-```bash
+```
 Supabase Dashboard → tu proyecto → Settings → API → Project URL
 → https://abcdefgh.supabase.co
 ```
@@ -39,7 +39,7 @@ Supabase Dashboard → tu proyecto → Settings → API → Project URL
 JWT con permisos full (bypassa RLS). **NUNCA exponer al cliente**.
 
 **Cómo obtener**:
-```bash
+```
 Supabase Dashboard → Settings → API → Project API Keys → service_role
 ↓ click "Reveal" → copiar
 ```
@@ -108,7 +108,7 @@ URL pública del deploy. Se inyecta al cliente (prefix `NEXT_PUBLIC_`).
 
 ## Cómo cargarlas en Vercel
 
-```bash
+```
 Vercel → tu proyecto → Settings → Environment Variables
 ↓ click "Add New"
 ↓ Key = SUPABASE_URL
