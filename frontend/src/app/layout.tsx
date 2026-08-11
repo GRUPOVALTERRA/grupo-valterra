@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Montserrat, Playfair_Display } from "next/font/google";
 import { headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
+import { PageviewTracker } from "@/components/analytics/PageviewTracker";
 import "./globals.css";
 
 const inter = Inter({
@@ -121,6 +122,10 @@ export default async function RootLayout({
         {/* Analítica F1: Vercel Web Analytics — pageviews + evento wa_click.
             Sin cookies; los datos viven en el dashboard de Vercel. */}
         <Analytics />
+        {/* Analítica F2 (S20-PR2): pageviews del log propio en Supabase.
+            NO reemplaza a Vercel — conviven. Excluye /admin y no emite
+            nada en Preview ni en local (guard server-side por VERCEL_ENV). */}
+        <PageviewTracker />
       </body>
     </html>
   );
