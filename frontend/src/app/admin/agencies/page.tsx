@@ -29,6 +29,9 @@ export default async function AgenciesPage() {
             Agencias
           </h1>
         </div>
+        <Link href="/admin/estadisticas" className="text-xs font-medium text-[#4A5568] hover:text-[#0A2342]">
+          Estadísticas
+        </Link>
         <Link href="/admin/leads" className="text-xs font-medium text-[#4A5568] hover:text-[#0A2342]">
           ← Volver a consultas
         </Link>

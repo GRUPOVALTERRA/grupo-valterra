@@ -114,6 +114,9 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
               + Nueva propiedad
             </Link>
           )}
+          <Link href="/admin/estadisticas" className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]">
+            Estadísticas
+          </Link>
           <Link href="/admin/leads" className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]">
             Consultas
           </Link>
