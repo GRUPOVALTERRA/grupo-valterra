@@ -44,6 +44,34 @@ function getCached<T>(map: Map<string, { value: T; at: number }>, key: string): 
 }
 
 // ---------- Valterra (MF4) ----------
+
+/**
+ * Slug de la agencia CANONICA de Grupo Valterra.
+ *
+ * HOTFIX S20.5 (12-08-2026) — antes decia "valterra".
+ *
+ * Production tenia DOS filas llamadas "Grupo Valterra":
+ *   grupovalterra  f8418ade…  creada el 07-08  <- canonica
+ *   valterra       b1b8b5e3…  creada el 24-05  <- seed original
+ *
+ * Este lookup resolvia la del seed, mientras la propiedad publicada, sus
+ * imagenes, el unico lead real y el unico evento de analitica colgaban de la
+ * otra. Consecuencia: el contexto admin quedaba scoped a una agencia vacia y
+ * /admin/estadisticas mostraba cero actividad propia aunque la hubiera. El
+ * scoping funcionaba bien; la identidad del tenant estaba mal.
+ *
+ * DEUDA REGISTRADA — PEND-CANONICAL-AGENCY-CONFIG: un slug hardcodeado sigue
+ * siendo una dependencia operativa. Que la identidad canonica del negocio
+ * dependa de una cadena en el codigo significa que renombrar un slug en la
+ * base rompe el panel sin que nada lo avise. La solucion real es una marca
+ * explicita en la tabla (o configuracion), y va en un sprint aparte: este
+ * cambio corrige Production sin ampliar el alcance.
+ */
+export const CANONICAL_AGENCY_SLUG = "grupovalterra";
+
+/** Slug del seed original. Documentado para que nadie lo reintroduzca. */
+export const LEGACY_AGENCY_SLUG = "valterra";
+
 export async function getValterraAgency(): Promise<AgencyLite | null> {
   if (cachedValterra) return cachedValterra;
   if (Date.now() - cachedValterraFailedAt < FAIL_TTL_MS) return null;
@@ -52,7 +80,11 @@ export async function getValterraAgency(): Promise<AgencyLite | null> {
   try {
     const supabase = getSupabaseAdmin();
     const { data, error } = await withTimeout(
-      supabase.from("agencies").select("id, slug, name").eq("slug", "valterra").maybeSingle(),
+      supabase
+        .from("agencies")
+        .select("id, slug, name")
+        .eq("slug", CANONICAL_AGENCY_SLUG)
+        .maybeSingle(),
       4000,
       "agencies.valterra",
     );
