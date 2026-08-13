@@ -193,6 +193,38 @@ export function campaignLabel(r: CampaignRow): string {
 }
 
 // ============================================================
+// Redes sociales (S20-PR4)
+// ============================================================
+
+export interface SocialRow {
+  /** Id de red tal como lo devuelve `analytics_social`. */
+  network: string;
+  pageviews: number;
+  waClicks: number;
+}
+
+/**
+ * Ordena por consultas de WhatsApp y después por visitas.
+ *
+ * Mismo criterio que el ranking de propiedades: lo que importa
+ * comercialmente es de qué red salen consultas, no cuál trajo más
+ * curiosos.
+ */
+export function sortSocial(rows: SocialRow[]): SocialRow[] {
+  return [...rows].sort(
+    (a, b) => b.waClicks - a.waClicks || b.pageviews - a.pageviews || a.network.localeCompare(b.network),
+  );
+}
+
+/** Suma de un conjunto de filas de red, para la fila de total. */
+export function totalSocial(rows: SocialRow[]): { pageviews: number; waClicks: number } {
+  return rows.reduce(
+    (acc, r) => ({ pageviews: acc.pageviews + r.pageviews, waClicks: acc.waClicks + r.waClicks }),
+    { pageviews: 0, waClicks: 0 },
+  );
+}
+
+// ============================================================
 // Propiedades
 // ============================================================
 

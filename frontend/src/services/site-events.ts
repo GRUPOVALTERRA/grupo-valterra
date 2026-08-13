@@ -7,6 +7,7 @@ import type {
   PropertyRow,
   Scope,
   ScopeTotals,
+  SocialRow,
 } from "@/lib/analytics-metrics";
 import { EMPTY_TOTALS } from "@/lib/analytics-metrics";
 
@@ -172,6 +173,41 @@ export async function getAnalyticsProperties(
     return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
       slug: String(row.property_slug),
       title: row.property_title == null ? null : String(row.property_title),
+      pageviews: n(row.pageviews),
+      waClicks: n(row.wa_clicks),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================
+// Redes sociales (S20-PR4)
+// ============================================================
+
+/**
+ * Pageviews y clicks de WhatsApp por red de origen (migración 0016).
+ *
+ * Si la RPC no existe todavía —código desplegado antes de aplicar 0016—
+ * `logRpcError` lo registra y se devuelve lista vacía. La pestaña muestra
+ * su estado vacío en vez de romper la página entera.
+ */
+export async function getAnalyticsSocial(
+  scope: AnalyticsScope,
+  range: AnalyticsRange,
+): Promise<SocialRow[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const { data, error } = await getSupabaseAdmin().rpc(
+      "analytics_social",
+      rpcArgs(scope, range),
+    );
+    if (error) {
+      logRpcError("analytics_social", error);
+      return [];
+    }
+    return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+      network: String(row.network),
       pageviews: n(row.pageviews),
       waClicks: n(row.wa_clicks),
     }));
