@@ -21,6 +21,9 @@ const ALLOWED_URLS = [
   "https://www.instagram.com/grupovalterraar",
   "https://www.tiktok.com/@grupovalterra_ok",
   "https://x.com/grupovalterraar",
+  // facebook.com/1182768651594251 redirige a profile.php?id=61593004700771: es la misma pagina.
+  "https://www.facebook.com/1182768651594251",
+  "https://www.youtube.com/@grupovalterra",
 ];
 
 test.describe("enlaces sociales publicos", () => {
