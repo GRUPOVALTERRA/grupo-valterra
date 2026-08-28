@@ -1,4 +1,4 @@
-import dynamic from "next/dynamic";
+import PropertyPublicMap from "@/components/public/PropertyPublicMapLazy";
 import type { PublicLocation } from "@/lib/geo/types";
 
 /**
@@ -6,20 +6,13 @@ import type { PublicLocation } from "@/lib/geo/types";
  *
  * Server component: decide si la sección existe. Con `hidden` no se
  * renderiza nada (ni el contenedor), así que el navegador jamás recibe
- * coordenadas. El mapa se carga con dynamic ssr:false porque Leaflet
- * necesita `window`.
+ * coordenadas.
+ *
+ * El mapa llega por `PropertyPublicMapLazy`, que es quien aplica
+ * `ssr: false` — Leaflet necesita `window` y ese flag no puede declararse
+ * desde acá, porque App Router lo prohíbe dentro de un Server Component.
+ * Ver el encabezado de ese archivo.
  */
-
-const PropertyPublicMap = dynamic(
-  () => import("@/components/public/PropertyPublicMap"),
-  {
-    loading: () => (
-      <div className="flex h-80 w-full items-center justify-center rounded-2xl border border-[#D8D8D8] bg-slate-50 text-xs text-slate-400">
-        Cargando mapa…
-      </div>
-    ),
-  },
-);
 
 interface Props {
   location: PublicLocation;

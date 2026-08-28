@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
+import { AdminBreadcrumbs } from "@/components/admin/nav/AdminBreadcrumbs";
 import { PropertyCreateForm } from "./PropertyCreateForm";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,18 @@ export default async function NewPropertyPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <Link href="/admin/properties" className="text-xs font-semibold text-slate-500 hover:text-[#0A2342]">
-        ← Volver al listado
+      <AdminBreadcrumbs
+        items={[
+          { label: "Panel", href: "/admin" },
+          { label: "Propiedades", href: "/admin/properties" },
+          { label: "Nueva propiedad" },
+        ]}
+      />
+      <Link
+        href="/admin/properties"
+        className="mt-2 inline-block text-xs font-semibold text-slate-500 hover:text-[#0A2342]"
+      >
+        ← Volver a Propiedades
       </Link>
       <h1 className="mt-3 text-2xl font-bold text-[#0A2342]">Nueva propiedad</h1>
       <p className="mt-1 text-xs text-slate-500">
