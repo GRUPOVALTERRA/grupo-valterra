@@ -6,9 +6,13 @@ import {
   getAnalyticsDaily,
   getAnalyticsProperties,
   getAnalyticsCampaigns,
+  getAnalyticsSocial,
   getAnalyticsWeb,
   pickDimension,
 } from "@/services/site-events";
+import { getAllProperties } from "@/services/properties";
+import { networkLabel } from "@/lib/social-utm";
+import { UtmBuilder, type DestinoOption } from "@/components/admin/estadisticas/UtmBuilder";
 import {
   parsePeriod,
   periodRange,
@@ -22,7 +26,10 @@ import {
   splitCampaigns,
   campaignLabel,
   sortProperties,
+  sortSocial,
+  totalSocial,
   propertyDisplayName,
+  type SocialRow,
   PERIODS,
   type Period,
 } from "@/lib/analytics-metrics";
@@ -59,8 +66,11 @@ const TABS: TabDef[] = [
   { id: "web", label: "Web", disponible: true },
   { id: "propiedades", label: "Propiedades", disponible: true },
   { id: "campanas", label: "Campañas", disponible: true },
-  { id: "redes", label: "Redes sociales", disponible: false },
+  { id: "redes", label: "Redes sociales", disponible: true },
 ];
+
+/** Origen público del sitio, para armar los enlaces del generador UTM. */
+const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 const SIN_DATOS_AUN = "El sistema de analítica acaba de entrar en producción: es normal ver poco o nada todavía.";
 
@@ -90,7 +100,7 @@ export default async function EstadisticasPage({ searchParams }: PageProps) {
     return `/admin/estadisticas?${sp.toString()}`;
   };
 
-  const [summary, daily, propiedades, campanas, web] = await Promise.all([
+  const [summary, daily, propiedades, campanas, web, redes, publicadas] = await Promise.all([
     getAnalyticsSummary(scope, range),
     getAnalyticsDaily(scope, range),
     tab === "propiedades" || tab === "resumen"
@@ -98,6 +108,12 @@ export default async function EstadisticasPage({ searchParams }: PageProps) {
       : Promise.resolve([]),
     tab === "campanas" ? getAnalyticsCampaigns(scope, range) : Promise.resolve([]),
     tab === "web" || tab === "resumen" ? getAnalyticsWeb(scope, range, 10) : Promise.resolve([]),
+    tab === "redes" ? getAnalyticsSocial(scope, range) : Promise.resolve([]),
+    // Destinos del generador de enlaces. Sólo propiedades publicadas: no
+    // tiene sentido ofrecer promocionar una ficha que el público no ve.
+    tab === "redes"
+      ? getAllProperties(scope.mode === "agency" && scope.agencyId ? { agencyId: scope.agencyId } : {})
+      : Promise.resolve([]),
   ]);
 
   const ag = summary.agency;
@@ -326,7 +342,17 @@ export default async function EstadisticasPage({ searchParams }: PageProps) {
 
           {/* ---------------- REDES ---------------- */}
           {tab === "redes" ? (
-            <EmptyState titulo="Disponible en próxima etapa" detalle="Las métricas de redes sociales llegan en la siguiente fase." />
+            <RedesSection
+              rows={redes}
+              destinos={[
+                { path: "/", label: "Inicio" },
+                { path: "/propiedades", label: "Listado de propiedades" },
+                ...publicadas.map<DestinoOption>((p) => ({
+                  path: `/propiedades/${p.slug}`,
+                  label: p.title,
+                })),
+              ]}
+            />
           ) : null}
         </div>
       </div>
@@ -349,6 +375,58 @@ function mergeDaily(
     });
   }
   return [...m.values()].sort((x, y) => x.day.localeCompare(y.day));
+}
+
+/**
+ * Pestaña "Redes sociales" (S20-PR4).
+ *
+ * Muestra de qué red vino cada visita y cuántas consultas de WhatsApp
+ * generó. El tráfico directo NO aparece: no vino de ninguna red, y sumarlo
+ * falsearía la conversión de las que sí trajeron gente.
+ */
+function RedesSection({ rows, destinos }: { rows: SocialRow[]; destinos: DestinoOption[] }) {
+  const ordenadas = sortSocial(rows);
+  const total = totalSocial(ordenadas);
+
+  return (
+    <>
+      <SectionCard
+        titulo="Tráfico por red social"
+        descripcion="Origen declarado en el enlace (utm_source) o, si no viene, el sitio de referencia. No incluye el tráfico directo."
+      >
+        <ConversionTable
+          colNombre="Red"
+          rows={ordenadas.map<ConversionRow>((r) => ({
+            key: r.network,
+            nombre: networkLabel(r.network),
+            pageviews: r.pageviews,
+            waClicks: r.waClicks,
+            conversion: conversionRate(r.waClicks, r.pageviews),
+          }))}
+          vacio={
+            <EmptyState
+              titulo="Todavía no llegaron visitas desde redes"
+              detalle="Publicá los enlaces con el generador de abajo: Instagram y Facebook ocultan el origen en buena parte del tráfico móvil, y sin etiquetar esas visitas se cuentan como directas."
+            />
+          }
+        />
+        {ordenadas.length > 1 ? (
+          <p className="mt-3 text-[11px] text-[#6B7280]">
+            Total desde redes: {formatCount(total.pageviews)} visitas ·{" "}
+            {formatCount(total.waClicks)} consultas ·{" "}
+            {formatPercent(conversionRate(total.waClicks, total.pageviews))} de conversión.
+          </p>
+        ) : null}
+      </SectionCard>
+
+      <SectionCard
+        titulo="Generador de enlaces"
+        descripcion="Armá el enlace acá y pegalo en la publicación. Es lo que hace que la tabla de arriba tenga datos."
+      >
+        <UtmBuilder baseUrl={SITE_ORIGIN} destinos={destinos} />
+      </SectionCard>
+    </>
+  );
 }
 
 function CampaignsSection({ rows }: { rows: Parameters<typeof splitCampaigns>[0] }) {
