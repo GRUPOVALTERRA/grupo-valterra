@@ -21,8 +21,6 @@ const STATUS_STYLE: Record<PropertyStatus, string> = {
   unpublished: "bg-slate-200 text-slate-700",
   archived: "bg-red-100 text-red-800",
 };
-import { LogoutButton } from "@/app/admin/leads/LogoutButton";
-
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -96,41 +94,15 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
       (m) => m.agencyId === agencyId && ["owner", "admin"].includes(m.role),
     );
 
-  const canManage = canManageAgency(ctx.scopedAgencyId ?? undefined);
   const total = properties.length;
 
   return (
     <>
-      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-[#D8D8D8] bg-white/95 px-4 py-2 backdrop-blur lg:px-8">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">Admin</span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0A2342] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-            <span className="text-[#C9A86A]">Scope:</span> {scopeLabel}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {canCreate && (
-            <Link href="/admin/properties/new" className="inline-flex h-9 items-center rounded-md bg-[#0A2342] px-3 text-xs font-semibold text-white hover:brightness-110">
-              + Nueva propiedad
-            </Link>
-          )}
-          <Link href="/admin/estadisticas" className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]">
-            Estadísticas
-          </Link>
-          <Link href="/admin/leads" className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]">
-            Consultas
-          </Link>
-          {ctx.isSuperAdmin && (
-            <Link href="/admin/agencies" className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]">
-              Agencias
-            </Link>
-          )}
-          <LogoutButton />
-        </div>
-      </div>
-
+      {/* Rediseño de navegación (27/08/2026): la barra superior propia salió;
+          la navegación vive en el AdminHeader del layout de /admin. */}
       <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
-        <header className="mb-5">
+        <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div>
           <h1 className="text-2xl font-bold text-[#0A2342]" style={{ fontFamily: "var(--font-montserrat), Inter, sans-serif" }}>
             Propiedades
           </h1>
@@ -146,6 +118,15 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
               ? "Las archivadas quedan fuera del listado operativo: se ven eligiendo Archivadas o Todas."
               : "Alta como borrador, publicacion y archivado. Galeria y mapa en proximas entregas."}
           </p>
+          </div>
+          {canCreate && (
+            <Link
+              href="/admin/properties/new"
+              className="inline-flex h-9 shrink-0 items-center gap-1 rounded-md bg-[#0A2342] px-3 text-xs font-semibold text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A2342]"
+            >
+              + Nueva propiedad
+            </Link>
+          )}
         </header>
 
         {ctx.isSuperAdmin && (

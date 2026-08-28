@@ -8,6 +8,7 @@ import { PropertyEditForm } from "./PropertyEditForm";
 import { listPropertyImages } from "@/services/property-images";
 import { getPropertyAdminGeo, type PropertyAdminGeo } from "@/services/property-geo-admin";
 import { PropertyLocationSection } from "@/components/admin/properties/PropertyLocationSection";
+import { AdminBreadcrumbs } from "@/components/admin/nav/AdminBreadcrumbs";
 import { canManageGallery } from "@/lib/property-gallery";
 import {
   PropertyGallerySection,
@@ -89,7 +90,14 @@ export default async function EditPropertyPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:px-8">
-      <header className="flex items-center justify-between border-b border-[#D8D8D8] pb-4">
+      <AdminBreadcrumbs
+        items={[
+          { label: "Panel", href: "/admin" },
+          { label: "Propiedades", href: "/admin/properties" },
+          { label: "Editar propiedad" },
+        ]}
+      />
+      <header className="mt-3 flex items-center justify-between border-b border-[#D8D8D8] pb-4">
         <div>
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
             Admin · Editar propiedad
@@ -112,7 +120,7 @@ export default async function EditPropertyPage({ params }: PageProps) {
             Editar imagen →
           </Link>
           <Link href="/admin/properties" className="text-xs font-medium text-[#4A5568] hover:text-[#0A2342]">
-            ← Propiedades
+            ← Volver a Propiedades
           </Link>
         </div>
       </header>

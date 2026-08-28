@@ -4,6 +4,7 @@ import { getAdminContext } from "@/lib/admin-context";
 import { getAgencyBySlug, listAgencyMembers } from "@/services/agencies";
 import { InviteMemberForm } from "./InviteMemberForm";
 import { AgencySettingsForm } from "./AgencySettingsForm";
+import { AdminBreadcrumbs } from "@/components/admin/nav/AdminBreadcrumbs";
 import { inviteMemberAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,14 @@ export default async function AgencyDetailPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:px-8">
-      <header className="flex items-center justify-between border-b border-[#D8D8D8] pb-4">
+      <AdminBreadcrumbs
+        items={[
+          { label: "Panel", href: "/admin" },
+          { label: "Agencias", href: "/admin/agencies" },
+          { label: agency.name },
+        ]}
+      />
+      <header className="mt-3 flex items-center justify-between border-b border-[#D8D8D8] pb-4">
         <div>
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
             Super-admin · Agency
@@ -42,7 +50,7 @@ export default async function AgencyDetailPage({
           </p>
         </div>
         <Link href="/admin/agencies" className="text-xs font-medium text-[#4A5568] hover:text-[#0A2342]">
-          ← Agencias
+          ← Volver a Agencias
         </Link>
       </header>
 

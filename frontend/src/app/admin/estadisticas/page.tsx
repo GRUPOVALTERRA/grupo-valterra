@@ -121,20 +121,8 @@ export default async function EstadisticasPage({ searchParams }: PageProps) {
               {label} · {periodLabel(period)}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/admin/properties"
-              className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
-            >
-              Propiedades
-            </Link>
-            <Link
-              href="/admin/leads"
-              className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] hover:bg-[#F8F7F4]"
-            >
-              Consultas
-            </Link>
-          </div>
+          {/* Rediseño de navegación (27/08/2026): los accesos a Propiedades y
+              Consultas que vivían acá pasaron al AdminHeader del layout. */}
         </header>
 
         {/* Controles */}
