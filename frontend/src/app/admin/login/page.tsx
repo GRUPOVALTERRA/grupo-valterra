@@ -45,7 +45,7 @@ export default async function LoginPage({
         <LoginForm
           legacyAction={loginAction}
           magicAction={requestMagicLink}
-          nextPath={sp.next ?? "/admin/leads"}
+          nextPath={sp.next ?? "/admin"}
           initialError={sp.error}
         />
 

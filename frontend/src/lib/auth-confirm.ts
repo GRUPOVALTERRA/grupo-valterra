@@ -27,7 +27,7 @@ export const ALLOWED_OTP_TYPES = ["email", "invite"] as const;
 export type AllowedOtpType = (typeof ALLOWED_OTP_TYPES)[number];
 
 /** Ruta segura por defecto tras el login. */
-export const DEFAULT_NEXT = "/admin/leads";
+export const DEFAULT_NEXT = "/admin";
 
 /**
  * Valida que `type` sea uno de los EmailOtpType permitidos.

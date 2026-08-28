@@ -57,10 +57,10 @@ test.describe("token_hash /auth/confirm — requiere build con feature (E2E_CONF
     }
   });
 
-  test("escenario 8 — next externo se sanea a /admin/leads en el form", async ({ page }) => {
+  test("escenario 8 — next externo se sanea a /admin en el form", async ({ page }) => {
     await page.goto("/auth/confirm?token_hash=fake_hash_123&type=email&next=https://evil.com/admin");
     const nextVal = await page.locator('input[name="next"]').inputValue();
-    expect(nextVal).toBe("/admin/leads");
+    expect(nextVal).toBe("/admin");
   });
 
   test("escenario 1 — PREFETCH: GET con params válidos muestra botón y NO verifica ni crea sesión", async ({ page }) => {
@@ -146,7 +146,7 @@ test.describe("token_hash /auth/confirm — requiere build con feature (E2E_CONF
     await page.goto(
       `/auth/confirm?token_hash=fake_hash_123&type=invite&invite_id=${VALID_INVITE_ID}&next=https://evil.com/admin`,
     );
-    expect(await page.locator('input[name="next"]').inputValue()).toBe("/admin/leads");
+    expect(await page.locator('input[name="next"]').inputValue()).toBe("/admin");
   });
 
   test("invite 7 — headers de seguridad también con type=invite", async ({ request }) => {
