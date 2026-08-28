@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getAdminContext } from "@/lib/admin-context";
 import { getPropertyBySlug } from "@/services/properties";
 import { updatePropertyCoverAction } from "../../actions";
+import { AdminBreadcrumbs } from "@/components/admin/nav/AdminBreadcrumbs";
 import { EditCoverForm } from "./EditCoverForm";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,14 @@ export default async function EditCoverPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:px-8">
-      <header className="flex items-center justify-between border-b border-[#D8D8D8] pb-4">
+      <AdminBreadcrumbs
+        items={[
+          { label: "Panel", href: "/admin" },
+          { label: "Propiedades", href: "/admin/properties" },
+          { label: "Editar portada" },
+        ]}
+      />
+      <header className="mt-3 flex items-center justify-between border-b border-[#D8D8D8] pb-4">
         <div>
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
             Admin · Cover image
@@ -43,7 +51,7 @@ export default async function EditCoverPage({ params }: PageProps) {
           </p>
         </div>
         <Link href="/admin/properties" className="text-xs font-medium text-[#4A5568] hover:text-[#0A2342]">
-          ← Propiedades
+          ← Volver a Propiedades
         </Link>
       </header>
 

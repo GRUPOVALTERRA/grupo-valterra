@@ -2,13 +2,7 @@ import { notFound } from "next/navigation";
 import { LeadsDashboard } from "@/components/admin/leads/LeadsDashboard";
 import { getAllLeads, computeStats, type Lead } from "@/services/mock-leads";
 import { log } from "@/lib/logger";
-import Link from "next/link";
-import { LogoutButton } from "./LogoutButton";
-import { OwnerInviteSection } from "./OwnerInviteSection";
-import { MembersSection } from "./MembersSection";
 import { getAdminContext } from "@/lib/admin-context";
-import { ownerInviteMemberAction, updateMemberRoleAction, removeMemberAction } from "@/app/admin/agencies/actions";
-import { listAgencyMembers, type AgencyMemberLite } from "@/services/agencies";
 import {
   applyLeadFilters,
   countAttention,
@@ -22,6 +16,15 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * /admin/leads — bandeja de consultas.
+ *
+ * Rediseño de navegación (27/08/2026): la barra superior propia y las
+ * secciones de equipo (miembros + invitar) salieron de esta página. La
+ * navegación vive en el AdminHeader del layout compartido de /admin y la
+ * gestión de equipo en /admin/equipo. Esta página queda enfocada en lo suyo:
+ * las consultas.
+ */
 export default async function AdminLeadsPage({
   searchParams,
 }: {
@@ -53,10 +56,6 @@ export default async function AdminLeadsPage({
   const attentionCount = countAttention(leads);
 
   const stats = computeStats(visibleLeads);
-  const scopeLabel = ctx.scopedAgencyName ?? "Sin agency";
-  const isOwner = ctx.memberships.some(
-    (m) => m.agencyId === ctx.scopedAgencyId && m.role === "owner",
-  );
   // S16-LEAD-OBS PR3 — VISIBILIDAD del reintento (owner/admin del scope o
   // super-admin), resuelta de la sesión. La autorización real la repite la
   // server action contra la agencia del lead; ocultar el botón no autoriza.
@@ -66,86 +65,12 @@ export default async function AdminLeadsPage({
       (m) => m.agencyId === ctx.scopedAgencyId && (m.role === "owner" || m.role === "admin"),
     );
 
-  let members: AgencyMemberLite[] = [];
-  if (isOwner && ctx.scopedAgencyId) {
-    try {
-      members = await listAgencyMembers(ctx.scopedAgencyId);
-    } catch {
-      // non-blocking: members quedará vacío
-    }
-  }
-  const scopeRoleTag = ctx.isSuperAdmin
-    ? "Super-admin"
-    : ctx.userEmail
-      ? ctx.userEmail
-      : "Sin auth";
-
   return (
     <>
-      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-[#D8D8D8] bg-white/95 px-4 py-2 backdrop-blur lg:px-8">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#C9A86A]">
-            Admin
-          </span>
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#0A2342] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white"
-            title={ctx.isSuperAdmin ? "Acceso super-admin Valterra" : `Membership: ${ctx.memberships[0]?.role ?? "?"}`}
-          >
-            <span className="text-[#C9A86A]">Ámbito:</span> {scopeLabel}
-          </span>
-          <span className="hidden text-[11px] text-slate-500 sm:inline">
-            {scopeRoleTag}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {(ctx.scopedAgencyId || ctx.isSuperAdmin) && (
-            <>
-            <Link
-              href="/admin/estadisticas"
-              className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] transition-colors hover:bg-[#F8F7F4]"
-            >
-              Estadísticas
-            </Link>
-            <Link
-              href="/admin/properties"
-              className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] transition-colors hover:bg-[#F8F7F4]"
-            >
-              Propiedades
-            </Link>
-            </>
-          )}
-          {ctx.isSuperAdmin && (
-            <Link
-              href="/admin/agencies"
-              className="inline-flex h-9 items-center rounded-md border border-[#D8D8D8] bg-white px-3 text-xs font-semibold text-[#0A2342] transition-colors hover:bg-[#F8F7F4]"
-            >
-              Agencias
-            </Link>
-          )}
-          <LogoutButton />
-        </div>
-      </div>
-
       {dbError !== null && (
         <div className="bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Error cargando leads: {dbError}
         </div>
-      )}
-
-      {isOwner && (
-        <MembersSection
-          members={members}
-          currentUserId={ctx.userId}
-          updateAction={updateMemberRoleAction}
-          removeAction={removeMemberAction}
-        />
-      )}
-
-      {isOwner && (
-        <OwnerInviteSection
-          action={ownerInviteMemberAction}
-          agencyName={scopeLabel}
-        />
       )}
 
       <LeadsDashboard
