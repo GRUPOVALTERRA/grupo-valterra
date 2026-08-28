@@ -153,7 +153,7 @@ test.describe("sitio publico", () => {
 
   test("el sitemap no pide borradores", () => {
     const sitemap = codeOf(read("app/sitemap.ts"));
-    expect(sitemap).toContain("getAllProperties()");
+    expect(sitemap).toContain("getAllProperties({ allowSampleFallback: false })");
     expect(sitemap).not.toContain("includeDraft");
   });
 });
