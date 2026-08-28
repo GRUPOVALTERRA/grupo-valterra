@@ -34,10 +34,10 @@ export async function loginAction(formData: FormData): Promise<{ ok: false; erro
   }
 
   const password = String(formData.get("password") ?? "").trim();
-  const nextPath = String(formData.get("next") ?? "/admin/leads");
+  const nextPath = String(formData.get("next") ?? "/admin");
   const safeNext = nextPath.startsWith("/admin") && !nextPath.startsWith("/admin/login")
     ? nextPath
-    : "/admin/leads";
+    : "/admin";
 
   const hdrs = await nextHeaders();
   const ip = getClientIp(hdrs);
@@ -80,10 +80,10 @@ export async function requestMagicLink(
   }
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const nextPath = String(formData.get("next") ?? "/admin/leads");
+  const nextPath = String(formData.get("next") ?? "/admin");
   const safeNext = nextPath.startsWith("/admin") && !nextPath.startsWith("/admin/login")
     ? nextPath
-    : "/admin/leads";
+    : "/admin";
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: "Email invalido" };
