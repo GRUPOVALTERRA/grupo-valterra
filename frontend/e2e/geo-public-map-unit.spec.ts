@@ -10,6 +10,21 @@ import { join } from "node:path";
 const SRC = join(__dirname, "../src");
 const read = (p: string) => readFileSync(join(SRC, p), "utf8");
 
+/**
+ * El archivo sin comentarios.
+ *
+ * Las guardas de comportamiento tienen que mirar el codigo que se ejecuta.
+ * Los encabezados de estos modulos explican por que hace falta `ssr: false`,
+ * asi que un match sobre el archivo entero da verde aunque el flag no este
+ * en el codigo: exactamente el agujero por el que se colo esta regresion.
+ */
+const code = (p: string) =>
+  read(p)
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .filter((l) => !l.trim().startsWith("//"))
+    .join("\n");
+
 test.describe("servicio público de ubicación", () => {
   const svc = read("services/property-public-location.ts");
 
@@ -81,9 +96,54 @@ test.describe("componentes públicos de mapa", () => {
   });
 
   test("carga dinámica sin SSR (Leaflet necesita window)", () => {
-    expect(block).toContain('dynamic(');
-    expect(block).toContain('import("@/components/public/PropertyPublicMap")');
+    // REGRESION: esta guarda solo verificaba que existiera `dynamic(`, y
+    // quedo verde mientras faltaba `ssr: false`. El modulo de Leaflet se
+    // evaluaba en el prerender del servidor y tiraba
+    // `ReferenceError: window is not defined` en cada visita a una ficha
+    // con ubicacion visible. La request seguia en 200 —Next servia el
+    // loading y montaba el mapa en cliente— asi que solo se veia en los
+    // logs de runtime.
+    const lazy = code("components/public/PropertyPublicMapLazy.tsx");
+
+    expect(lazy).toContain('"use client"');
+    expect(lazy).toContain("dynamic(");
+    expect(lazy).toContain('import("@/components/public/PropertyPublicMap")');
+    expect(lazy).toMatch(/ssr:\s*false/);
+
+    // El bloque es Server Component y NO puede declarar ssr: false:
+    // App Router lo prohibe. Debe delegar en el wrapper cliente.
+    const blockCode = code("components/public/PropertyLocationBlock.tsx");
+    expect(blockCode).not.toContain('"use client"');
+    expect(blockCode).not.toContain("next/dynamic");
+    expect(blockCode).toContain("PropertyPublicMapLazy");
+
     expect(map).toContain('"use client"');
+  });
+
+  test("todo consumidor de Leaflet se monta sin SSR", () => {
+    // Generaliza la guarda anterior: cualquier modulo que importe leaflet
+    // en el nivel superior tiene que llegar por un dynamic con ssr:false.
+    // Sin esto, el mismo bug puede reaparecer en un componente nuevo.
+    const consumidores = [
+      "components/public/PropertyPublicMap.tsx",
+      "components/admin/geo/GeoMapPicker.tsx",
+    ];
+    const wrappers = [
+      "components/public/PropertyPublicMapLazy.tsx",
+      "components/admin/properties/PropertyLocationSection.tsx",
+    ];
+
+    for (const c of consumidores) {
+      const src = code(c);
+      expect(src).toMatch(/^import L from "leaflet";$/m);
+      expect(src).toContain('"use client"');
+    }
+
+    for (const w of wrappers) {
+      const src = code(w);
+      expect(src).toContain('"use client"');
+      expect(src).toMatch(/ssr:\s*false/);
+    }
   });
 
   test("aviso comercial presente (no reemplaza mensura/título/plano)", () => {
