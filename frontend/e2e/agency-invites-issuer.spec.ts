@@ -135,7 +135,7 @@ test.describe("buildInviteConfirmLink", () => {
         inviteId: row().id, next: bad,
       });
       const next = new URL(link).searchParams.get("next");
-      expect(next).toBe("/admin/leads");
+      expect(next).toBe("/admin");
     }
   });
 });
