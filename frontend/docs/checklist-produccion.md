@@ -52,8 +52,8 @@ Lista de verificación final antes y después de deployar.
 - [ ] **Env vars** (4) cargadas:
   - [ ] `SUPABASE_URL`
   - [ ] `SUPABASE_SERVICE_ROLE_KEY` (Sensitive ✓)
-  - [ ] `ADMIN_PASSWORD` (Sensitive ✓)
-  - [ ] `ADMIN_TOKEN` (Sensitive ✓)
+  - [ ] `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - [ ] `SUPER_ADMIN_EMAILS`
 - [ ] (Opcional) `NEXT_PUBLIC_SITE_URL` con la URL del deploy
 
 ---
@@ -65,7 +65,7 @@ Lista de verificación final antes y después de deployar.
 - [ ] `[REQ]` `https://<dominio>/api/health` → `status: "ok"` + `db: "connected"`
 - [ ] `[REQ]` `https://<dominio>/api/health` → `auth_middleware: "active"`
 - [ ] `[REQ]` `https://<dominio>/admin/leads` redirige a `/admin/login`
-- [ ] `[REQ]` Login con `ADMIN_PASSWORD` → entra al panel
+- [ ] `[REQ]` Login por magic link → entra al panel
 - [ ] `[REQ]` Form de contacto envía lead → aparece en `/admin/leads` (refresh)
 - [ ] `[REQ]` Logout → cookie limpia → redirect a login
 - [ ] Favicon Valterra visible en pestaña
@@ -98,9 +98,9 @@ Lista de verificación final antes y después de deployar.
 ## H · Security audit final (5 min)
 
 - [ ] `[REQ]` `SUPABASE_SERVICE_ROLE_KEY` marcada Sensitive en Vercel
-- [ ] `[REQ]` `ADMIN_PASSWORD` y `ADMIN_TOKEN` marcadas Sensitive
+- [ ] `[REQ]` Cookie forjada `valterra-admin-session` NO pasa el guard (S23)
 - [ ] `[REQ]` `.env.local` NO commiteado (en `.gitignore`)
-- [ ] Cookie admin: HttpOnly + Secure + SameSite=Strict
+- [ ] Cookies de sesión Supabase: HttpOnly + Secure
 - [ ] Rate limit /api/contact verificado (probar 6 envíos seguidos → 6° devuelve 429)
 - [ ] Honeypot verificado (curl con `website: spam` → 400)
 - [ ] Robots: `/admin/*` con `index: false` en metadata
@@ -136,6 +136,6 @@ Lista de verificación final antes y después de deployar.
 **Tiempo estimado total**: 60-90 min de operación humana, sin contar propagación DNS.
 
 **Bloqueantes hard antes de demo a inversores**:
-1. Env vars `ADMIN_TOKEN` + `SUPABASE_SERVICE_ROLE_KEY` en Vercel
+1. Env vars de Supabase (`SERVICE_ROLE_KEY` + `NEXT_PUBLIC_*`) y `SUPER_ADMIN_EMAILS` en Vercel
 2. `/api/health` devolviendo `status: "ok"` desde el dominio público
 3. Smoke test E2E completo verificado

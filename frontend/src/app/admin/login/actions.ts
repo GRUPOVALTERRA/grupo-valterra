@@ -7,65 +7,16 @@ import { log } from "@/lib/logger";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 /**
- * Server actions de login admin - Sprint 10 MF3.
+ * Server actions de login admin - Sprint 10 MF3 · actualizado por SPEC-S23.
  *
- * Dos paths coexistentes:
- *   1. loginAction (legacy): password contra ADMIN_PASSWORD env -> cookie ADMIN_TOKEN
- *      Sigue siendo el path del super-admin Valterra. NO se rompe.
- *   2. requestMagicLink (nuevo): Supabase Auth signInWithOtp -> email magic link
- *      Para owner/admin/agent de agencies (Sprint 10 MF4+).
+ * Un unico path de acceso:
+ *   requestMagicLink: Supabase Auth signInWithOtp -> email magic link.
+ *   Para super-admin Valterra (SUPER_ADMIN_EMAILS) y owner/admin/agent de agencies.
  *
- * logoutAction limpia ambos paths.
+ * S23 retiro loginAction (password -> cookie ADMIN_TOKEN) y con el la unica via
+ * de acceso que no tenia identidad de usuario. logoutAction cierra la sesion
+ * Supabase, que ahora es la unica que existe.
  */
-
-const COOKIE_NAME = "valterra-admin-session";
-const COOKIE_MAX_AGE = 60 * 60; // 1h — emergency fallback only
-
-/* ---------------------------------------------------------- */
-/* Legacy: password + ADMIN_TOKEN cookie (super-admin path)   */
-/* ---------------------------------------------------------- */
-export async function loginAction(formData: FormData): Promise<{ ok: false; error: string } | void> {
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  const adminToken = process.env.ADMIN_TOKEN;
-
-  if (!adminPassword || !adminToken) {
-    log.warn("admin/login", "ADMIN_PASSWORD o ADMIN_TOKEN no configurados");
-    return { ok: false, error: "Auth no configurado en el servidor" };
-  }
-
-  const password = String(formData.get("password") ?? "").trim();
-  const nextPath = String(formData.get("next") ?? "/admin");
-  const safeNext = nextPath.startsWith("/admin") && !nextPath.startsWith("/admin/login")
-    ? nextPath
-    : "/admin";
-
-  const hdrs = await nextHeaders();
-  const ip = getClientIp(hdrs);
-  const rl = rateLimit(`login:${ip}`, { limit: 5, windowMs: 5 * 60_000 });
-  if (!rl.allowed) {
-    log.warn("admin/login", "rate limit", { ip, retryAfterSec: rl.retryAfterSec });
-    return { ok: false, error: `Demasiados intentos. Reintenta en ${rl.retryAfterSec}s.` };
-  }
-
-  if (!password || password !== adminPassword) {
-    log.warn("admin/login", "intento fallido", { ip });
-    return { ok: false, error: "Contraseña incorrecta" };
-  }
-
-  const cookieStore = await cookies();
-  cookieStore.set({
-    name: COOKIE_NAME,
-    value: adminToken,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/",
-    maxAge: COOKIE_MAX_AGE,
-  });
-
-  log.warn("admin/login", "⚠ ADMIN_TOKEN legacy usado — emergency fallback activo", { ip });
-  redirect(safeNext);
-}
 
 /* ---------------------------------------------------------- */
 /* Magic link: Supabase Auth signInWithOtp                    */
@@ -145,13 +96,10 @@ export async function requestMagicLink(
 }
 
 /* ---------------------------------------------------------- */
-/* Logout: limpia ambos paths                                 */
+/* Logout: cierra la sesion Supabase                          */
 /* ---------------------------------------------------------- */
 export async function logoutAction() {
   const cookieStore = await cookies();
-
-  // Limpiar cookie ADMIN_TOKEN legacy
-  cookieStore.delete(COOKIE_NAME);
 
   // Limpiar Supabase Auth session si esta activa
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

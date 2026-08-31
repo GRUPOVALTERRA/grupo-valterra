@@ -2,6 +2,8 @@
 
 Referencia operativa de cada env var que el proyecto necesita en producción.
 
+> **SPEC-S23 (30/08/2026):** el acceso de emergencia por `ADMIN_TOKEN` / `ADMIN_PASSWORD` fue retirado. El único acceso al panel es el magic link de Supabase Auth. Las referencias que quedan abajo son históricas.
+
 ---
 
 ## Tabla maestra
@@ -10,8 +12,9 @@ Referencia operativa de cada env var que el proyecto necesita en producción.
 |---|---|---|---|---|
 | `SUPABASE_URL` | URL HTTPS | prod + preview + dev | No | Supabase Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | JWT largo | prod + preview | **Sí** | Supabase Settings → API |
-| `ADMIN_PASSWORD` | string 12+ chars | prod + preview | **Sí** | Generación manual |
-| `ADMIN_TOKEN` | hex 64 chars | prod + preview | **Sí** | `openssl rand -hex 32` |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL HTTPS | prod + preview + dev | No | Supabase Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | JWT publishable | prod + preview + dev | No | Supabase Settings → API |
+| `SUPER_ADMIN_EMAILS` | emails separados por coma | prod + preview | No | Definición manual |
 | `NEXT_PUBLIC_SITE_URL` | URL HTTPS | prod | No | URL pública del deploy |
 
 ---
@@ -52,43 +55,17 @@ Supabase Dashboard → Settings → API → Project API Keys → service_role
 
 ---
 
-### 3. `ADMIN_PASSWORD`
+### 3-4. `ADMIN_PASSWORD` / `ADMIN_TOKEN` — RETIRADAS (SPEC-S23)
 
-Password plaintext que se compara en `loginAction`. Mínimo 12 chars.
+El par password + cookie `valterra-admin-session` era el break-glass de super-admin: otorgaba
+el panel completo **sin identidad de usuario**. SPEC-S23 lo eliminó del código.
 
-**Generación recomendada**:
-```bash
-# Linux/Mac/Git Bash
-openssl rand -base64 18
-# o también
-node -e "console.log(require('crypto').randomBytes(16).toString('base64'))"
+- El middleware ya no lee ninguna cookie propia para autorizar `/admin/*`.
+- `loginAction` y la pestaña "Emergencia" de `/admin/login` ya no existen.
+- Ambas env vars quedan **sin uso**: se borran de Vercel *después* del deploy verificado
+  (paso QA-3 de S23), nunca antes — hasta ese momento el revert del PR restaura el break-glass.
 
-# Windows PowerShell
-[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((Get-Random)))
-```
-
-**Dónde se usa**: `src/app/admin/login/actions.ts` comparación con input.
-
-**Si falta en Vercel**: el middleware queda en modo permisivo (cualquiera entra a `/admin`). **Bloqueante para producción.**
-
----
-
-### 4. `ADMIN_TOKEN`
-
-Valor que se guarda en la cookie del admin loggeado. Cuando el middleware ve esa cookie y matchea con la env var, deja pasar.
-
-**Generación**:
-```bash
-openssl rand -hex 32
-# → e.g. "8f3acb29...c901a4f7"
-```
-
-**Características**:
-- 64 caracteres hex (256 bits entropy)
-- Rotación invalida todas las sesiones admin activas
-- HttpOnly, Secure (prod), SameSite=Strict
-
-**Dónde se usa**: `src/middleware.ts` + `src/app/admin/login/actions.ts`.
+Acceso hoy: magic link de Supabase Auth. El rol super-admin sale de `SUPER_ADMIN_EMAILS`.
 
 ---
 
@@ -119,7 +96,7 @@ Vercel → tu proyecto → Settings → Environment Variables
 (repetir para cada variable)
 ```
 
-⚠ Marcar **Sensitive = ON** para `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, `ADMIN_TOKEN`.
+⚠ Marcar **Sensitive = ON** para `SUPABASE_SERVICE_ROLE_KEY`.
 
 ---
 
@@ -136,9 +113,9 @@ curl -s https://<dominio>/api/health | jq '.checks'
 ```
 
 - `supabase.configured = true` → SUPABASE_URL + SERVICE_ROLE_KEY presentes ✓
-- `auth_middleware = "active"` → ADMIN_TOKEN presente ✓
+- `auth_middleware = "active"` → `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` presentes ✓
 - Si `supabase.configured = false` → SUPABASE_URL falta
-- Si `auth_middleware = "permissive"` → ADMIN_TOKEN falta (**bloqueante prod**)
+- Si `auth_middleware = "permissive"` → falta alguna env de Supabase Auth (**bloqueante prod**: sin ellas nadie puede loguearse)
 
 ---
 
@@ -147,8 +124,7 @@ curl -s https://<dominio>/api/health | jq '.checks'
 | Secret | Frecuencia | Impacto al rotar |
 |---|---|---|
 | `SUPABASE_SERVICE_ROLE_KEY` | cada 90 días o si filtra | downtime ~30s entre reset y redeploy |
-| `ADMIN_PASSWORD` | cada 90 días | sólo afecta nuevos logins |
-| `ADMIN_TOKEN` | cada 30 días o si filtra | **invalida todas las sesiones admin activas** → usuarios deben re-loguear |
+| `SUPER_ADMIN_EMAILS` | al cambiar el titular | el super-admin saliente pierde el scope global en su próximo request |
 
 Procedimiento:
 1. Generar nuevo valor

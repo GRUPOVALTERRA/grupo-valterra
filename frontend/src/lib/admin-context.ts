@@ -1,25 +1,23 @@
-import { cookies } from "next/headers";
 import { getCurrentUser, getCurrentMemberships, type Membership } from "@/lib/auth";
 import { getValterraAgency, type AgencyLite } from "@/services/agencies";
 import { log } from "@/lib/logger";
 
 /**
- * Admin context resolver - Sprint 10 MF4.
+ * Admin context resolver - Sprint 10 MF4 · actualizado por SPEC-S23.
  *
  * Determina QUIEN esta entrando al panel admin y a QUE agency esta scoped.
  *
- * Dos paths coexistentes (los mismos del middleware):
- *   1. ADMIN_TOKEN cookie match env ADMIN_TOKEN
+ * S23 retiro el path por cookie ADMIN_TOKEN: toda identidad sale de Supabase
+ * Auth. Quedan dos paths, ambos con user identificado:
+ *   1. Supabase Auth user cuyo email esta en SUPER_ADMIN_EMAILS
  *      -> super-admin Valterra
  *      -> scope = Grupo Valterra (read all Valterra data)
  *
  *   2. Supabase Auth user con al menos 1 membership
  *      -> scope = primera membership (multi-agency switching: MF6+)
  *
- *   3. Sin auth valida -> null (middleware redirige antes de llegar aca)
+ *   3. Sin auth valida -> EMPTY (middleware redirige antes de llegar aca)
  */
-
-const ADMIN_COOKIE = "valterra-admin-session";
 
 export interface AdminContext {
   isSuperAdmin: boolean;
@@ -49,30 +47,7 @@ export const EMPTY_ADMIN_CONTEXT: AdminContext = {
  */
 export async function getAdminContext(): Promise<AdminContext> {
   // ============================================================
-  // Path 1: ADMIN_TOKEN cookie (super-admin legacy)
-  // ============================================================
-  const adminToken = process.env.ADMIN_TOKEN;
-  if (adminToken) {
-    const cookieStore = await cookies();
-    const tokenCookie = cookieStore.get(ADMIN_COOKIE)?.value;
-
-    if (tokenCookie && tokenCookie === adminToken) {
-      log.warn("admin-context", "⚠ ADMIN_TOKEN legacy activo — emergency fallback en uso");
-      const valterra: AgencyLite | null = await getValterraAgency();
-      return {
-        isSuperAdmin: true,
-        userId: null,
-        userEmail: null,
-        memberships: [],
-        scopedAgencyId: valterra?.id ?? null,
-        scopedAgencyName: valterra?.name ?? "Grupo Valterra",
-        scopedAgencySlug: valterra?.slug ?? "valterra",
-      };
-    }
-  }
-
-  // ============================================================
-  // Path 2: Supabase Auth user + memberships
+  // Path 1: super-admin por SUPER_ADMIN_EMAILS / Path 2: memberships
   // ============================================================
   const user = await getCurrentUser();
   if (user) {
@@ -110,7 +85,7 @@ export async function getAdminContext(): Promise<AdminContext> {
   }
 
   // ============================================================
-  // Path 3: Sin auth -> EMPTY (middleware deberia haber redirigido)
+  // Sin auth -> EMPTY (middleware deberia haber redirigido)
   // ============================================================
   return EMPTY_ADMIN_CONTEXT;
 }

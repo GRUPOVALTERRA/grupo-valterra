@@ -47,8 +47,9 @@ Antes de hacer el primer Deploy, pestaña **Environment Variables** → agregar 
 |---|---|---|
 | `SUPABASE_URL` | No | Production · Preview · Development |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Yes** | Production · Preview |
-| `ADMIN_PASSWORD` | **Yes** | Production · Preview |
-| `ADMIN_TOKEN` | **Yes** | Production · Preview |
+| `NEXT_PUBLIC_SUPABASE_URL` | No | Production · Preview · Development |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | No | Production · Preview · Development |
+| `SUPER_ADMIN_EMAILS` | No | Production · Preview |
 
 ---
 
@@ -103,7 +104,7 @@ curl -sI https://<dominio>/admin/leads | head -3
 #    a) Abrir https://<dominio>/
 #    b) Scrollear a ContactSection
 #    c) Completar form → enviar
-#    d) Login con ADMIN_PASSWORD en /admin/login
+#    d) Login por magic link en /admin/login
 #    e) Ver el lead recién creado en /admin/leads
 ```
 
@@ -175,7 +176,7 @@ Sin downtime.
 |---|---|---|
 | Build falla en Vercel pero pasa local | Root Directory mal configurado | Setear a `frontend` |
 | `/api/health` → `db: "fallback"` | Env vars no aplicadas | Redeploy después de setear vars |
-| `/admin/leads` no redirige | `ADMIN_TOKEN` faltante | Setear var + redeploy |
+| `/admin/leads` no redirige | Envs de Supabase Auth faltantes | Setear `NEXT_PUBLIC_SUPABASE_*` + redeploy |
 | Form falla con 500 | Supabase service-role inválida o expirada | Rotar key, actualizar Vercel env |
 | Hydration mismatch | Cache `.next` stale | Redeploy sin build cache |
 

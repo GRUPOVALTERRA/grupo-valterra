@@ -2,20 +2,20 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 /**
- * Middleware - Sprint 10 MF3.
+ * Middleware - Sprint 10 MF3 · actualizado por SPEC-S23.
  *
  * Responsabilidades:
  *  1. Propagar x-pathname (server components leen pathname actual)
  *  2. Refresh de Supabase Auth session (cookies se rotan automaticamente)
- *  3. Guard /admin/* aceptando dos paths:
- *     - cookie ADMIN_TOKEN legacy (super-admin)
- *     - Supabase Auth session valida (cualquier user logueado)
+ *  3. Guard /admin/*: UNICO path de autorizacion = sesion Supabase Auth valida.
+ *
+ *  S23 retiro el break-glass por cookie: ninguna cookie propia autoriza el
+ *  panel. La unica cookie que cuenta es la de sesion de Supabase, y vale
+ *  porque getUser() la valida contra Supabase Auth, no por su mero valor.
  *
  *  /admin/login se excluye del guard (evita loop).
- *  /auth/callback se excluye (procesa magic link).
+ *  /auth/callback y /auth/confirm procesan el magic link y no son /admin/*.
  */
-
-const ADMIN_COOKIE = "valterra-admin-session";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -29,8 +29,6 @@ export async function middleware(request: NextRequest) {
 
   // ============================================================
   // Supabase session refresh (rota cookies si esta cerca de expirar)
-  // Si las env vars no estan, skip silencioso - el ADMIN_TOKEN path
-  // sigue funcionando como antes.
   // ============================================================
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -61,20 +59,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================================
-  // Guard /admin/* (excluyendo /admin/login y /auth/callback)
+  // Guard /admin/* (excluyendo /admin/login)
   // ============================================================
   const isAdminPath = pathname.startsWith("/admin") && !pathname.startsWith("/admin/login");
 
   if (isAdminPath) {
-    const adminToken = process.env.ADMIN_TOKEN;
-    const tokenCookie = request.cookies.get(ADMIN_COOKIE)?.value;
-
-    const hasLegacyAccess = Boolean(adminToken && tokenCookie === adminToken);
     const hasSupabaseAccess = Boolean(supabaseUserId);
-    // Bypass solo en dev cuando no hay vars configuradas. En production, bloquear siempre.
-    const noAuthConfigured = process.env.NODE_ENV !== "production" && !adminToken && !url;
+    // Bypass solo en dev cuando Supabase no esta configurado. En production, bloquear siempre.
+    const noAuthConfigured = process.env.NODE_ENV !== "production" && !url;
 
-    if (!hasLegacyAccess && !hasSupabaseAccess && !noAuthConfigured) {
+    if (!hasSupabaseAccess && !noAuthConfigured) {
       const loginUrl = new URL("/admin/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);

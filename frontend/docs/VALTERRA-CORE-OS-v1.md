@@ -172,14 +172,14 @@ Receta operativa para lanzar PatiFeliz o cualquier producto vertical futuro **si
 
 ### Fase 7 · Deploy + envs (~3h · día 9)
 
-- Setear envs en Vercel (Production + Preview): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (Sensitive), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ADMIN_PASSWORD`, `ADMIN_TOKEN` (Sensitive), `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `RESEND_API_KEY` (Sensitive), `NOTIFICATION_EMAIL`
+- Setear envs en Vercel (Production + Preview): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (Sensitive), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPER_ADMIN_EMAILS`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `RESEND_API_KEY` (Sensitive), `NOTIFICATION_EMAIL`
 - `git push` → Vercel auto-deploy
 - Esperar build verde
 
 ### Fase 8 · Smoke test prod (~2h · día 9-10)
 
 - `/api/health` → `status: ok` · `checks.sentry: active`
-- `/admin/login` con `ADMIN_PASSWORD` → entra
+- `/admin/login` con magic link → entra
 - `/admin/<entity>` → muestra el tenant + scope badge
 - Crear primera entidad de prueba desde admin
 - Lead desde public form → email llega
@@ -254,7 +254,7 @@ Receta operativa para lanzar PatiFeliz o cualquier producto vertical futuro **si
 |---|---|
 | `.env.local` | NUNCA committeado. Está en `.gitignore`. |
 | `.env.example` | Documenta TODOS los envs requeridos con valores placeholder. Versionado en repo. |
-| Vercel envs Sensitive | Marcar siempre: `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_TOKEN`, `ADMIN_PASSWORD`, `RESEND_API_KEY`. |
+| Vercel envs Sensitive | Marcar siempre: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`. |
 | Rotation | Si se filtra → rotar inmediato + audit Sentry/logs. Documentar incident. |
 | Multi-product | Cada producto tiene su propio set de envs. NUNCA compartir keys de Supabase entre productos. |
 

@@ -13,7 +13,7 @@
 
 ```
 □ 1.  Abrir preview en INCÓGNITO              (zero cache · zero Router Cache · zero prefetch)
-□ 2.  Login admin                              (ADMIN_PASSWORD o magic link según rol)
+□ 2.  Login admin                              (magic link Supabase — único método desde S23)
 □ 3.  /admin/properties                        (lista scoped per agency · scope badge visible)
 □ 4.  Editar imagen                            (click "Editar imagen" en cualquier property)
 □ 5.  Seleccionar archivo                      (JPG/PNG/WEBP <5MB · respeta requisitos premium)

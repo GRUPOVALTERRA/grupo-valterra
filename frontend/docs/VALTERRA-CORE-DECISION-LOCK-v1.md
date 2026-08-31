@@ -20,7 +20,7 @@
 | **L6** | **CSP enforce + Sentry + UptimeRobot son requisitos pre-prod no negociables.** | Sin los 3, no se llama "deploy productivo". |
 | **L7** | **TypeScript strict + 0 `any` en code review.** | Casting va con `as unknown as T` + comentario justificando. |
 | **L8** | **Migraciones SQL prefijadas (`CORE_NNNN` / `VERTICAL_NNNN`) con rollback header copy-paste-ready.** | Si no podés escribir el rollback, no aplicás la migración. |
-| **L9** | **ADMIN_TOKEN dual auth coexistente preservado en todo producto.** | Super-admin path es Core. Cada vertical hereda el dual guard. |
+| **L9** | ~~**ADMIN_TOKEN dual auth coexistente preservado en todo producto.**~~ **SUPERADO por SPEC-S23 (30/08/2026):** auth única por Supabase Auth. | El break-glass por cookie se retiró: daba super-admin sin identidad de usuario. Super-admin se resuelve por `SUPER_ADMIN_EMAILS`. |
 | **L10** | **Promotion Scorecard >= 4/5 obligatorio para mover algo a `src/platform/`.** | PR de promoción incluye scorecard adjunto. Sin scorecard = no promotion. |
 
 ---
@@ -62,7 +62,7 @@ Estos 20 temas están cerrados. Si vuelven a aparecer en cualquier conversación
 | 12 | ¿Storybook con todos los componentes Core? | NO. Sin equipo de 5+ developers no hay ROI. |
 | 13 | ¿Design system custom (Radix + tokens propios)? | NO. Tailwind v4 es el design system. |
 | 14 | ¿State management library (Zustand/Redux)? | NO. Server components + URL state alcanzan. |
-| 15 | ¿Cambiar el modelo de auth dual (ADMIN_TOKEN + Supabase Auth)? | NO. Funciona. Coexiste por diseño. |
+| 15 | ¿Cambiar el modelo de auth dual (ADMIN_TOKEN + Supabase Auth)? | ~~NO~~ → **RESUELTO (S23)**: el path ADMIN_TOKEN se retiró. Auth única por Supabase. |
 | 16 | ¿Renombrar `agencies` -> `tenants` en DB ahora? | NO. Refactor cuando aparezca el segundo vertical real. |
 | 17 | ¿Construir Admin Page Generator desde JSON schema? | NO. Sirena low-code. ROI negativo hasta producto #5. |
 | 18 | ¿Tests E2E con Playwright AHORA? | NO. Sprint 13. Hoy no hay producto suficientemente estable. |
