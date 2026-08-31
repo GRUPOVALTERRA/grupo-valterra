@@ -102,7 +102,11 @@ export async function GET() {
         latencyMs: supabaseLatency,
         ...(supabaseError ? { error: supabaseError } : {}),
       },
-      auth_middleware: process.env.ADMIN_TOKEN ? "active" : "permissive",
+      // S23: el guard de /admin/* depende de Supabase Auth, no de ADMIN_TOKEN.
+      auth_middleware:
+        process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+          ? "active"
+          : "permissive",
       sentry: process.env.SENTRY_DSN ? "active" : "disabled",
     },
   };

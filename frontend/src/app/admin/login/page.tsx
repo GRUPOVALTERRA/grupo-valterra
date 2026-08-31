@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { LoginForm } from "./LoginForm";
-import { loginAction, requestMagicLink } from "./actions";
+import { requestMagicLink } from "./actions";
 
 export const metadata = {
   title: "Admin - Login - Valterra",
@@ -39,18 +39,17 @@ export default async function LoginPage({
           Iniciar sesion
         </h1>
         <p className="mt-1 text-sm text-[#4A5568]">
-          Elegi tu metodo de acceso.
+          Te enviamos un link de acceso por email.
         </p>
 
         <LoginForm
-          legacyAction={loginAction}
           magicAction={requestMagicLink}
           nextPath={sp.next ?? "/admin"}
           initialError={sp.error}
         />
 
         <p className="mt-6 text-center text-[11px] text-slate-400">
-          Sprint 10 MF3 - magic link + legacy super-admin coexisten.
+          Acceso unico por magic link de Supabase Auth.
         </p>
       </div>
     </div>

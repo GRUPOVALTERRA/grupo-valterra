@@ -15,8 +15,8 @@ import type { User } from "@supabase/supabase-js";
  * Hoy estos helpers retornan null / [] porque no hay user autenticado todavia
  * (no existe login UI Supabase). Eso es intencional y no rompe nada.
  *
- * El admin path actual via ADMIN_TOKEN sigue intacto - NO depende de estos
- * helpers. Coexistencia limpia.
+ * Desde SPEC-S23 estos helpers son la unica fuente de identidad del panel:
+ * el break-glass por cookie ADMIN_TOKEN fue retirado.
  */
 
 export type AgencyRole = "owner" | "admin" | "agent" | "viewer";

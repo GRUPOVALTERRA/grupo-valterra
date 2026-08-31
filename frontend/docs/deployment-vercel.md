@@ -12,8 +12,8 @@ Guía operativa de producción. Cubre deploy, rotación de secrets, troubleshoot
 | Vercel account con GitHub integration | requerido |
 | Proyecto Supabase con tabla `leads` | ver `supabase-setup.md` |
 | `SUPABASE_SERVICE_ROLE_KEY` generada | Project Settings → API → service_role |
-| `ADMIN_PASSWORD` definido | strong, ≥12 chars |
-| `ADMIN_TOKEN` generado | `openssl rand -hex 32` |
+| Supabase Auth configurado | `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| `SUPER_ADMIN_EMAILS` definido | emails del super-admin, separados por coma |
 
 ## 2. Deploy inicial
 
@@ -34,8 +34,9 @@ Vercel → **Settings → Environment Variables**
 |---|---|---|---|
 | `SUPABASE_URL` | `https://xxxx.supabase.co` | Production · Preview · Development | No |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbGci...` | Production · Preview | **Yes** |
-| `ADMIN_PASSWORD` | password fuerte | Production · Preview | **Yes** |
-| `ADMIN_TOKEN` | hex 32 bytes | Production · Preview | **Yes** |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxx.supabase.co` | Production · Preview · Development | No |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | JWT publishable | Production · Preview · Development | No |
+| `SUPER_ADMIN_EMAILS` | `a@x.com,b@y.com` | Production · Preview | No |
 
 ⚠ **Crítico**:
 - Nunca prefijo `NEXT_PUBLIC_` para `SUPABASE_SERVICE_ROLE_KEY` ni `ADMIN_*`
@@ -89,21 +90,11 @@ Vercel → Settings → Env Vars → editar SUPABASE_SERVICE_ROLE_KEY
 
 ⚠ **Ventana de downtime**: ~30s entre rotación y redeploy. Hacerlo fuera de horario pico.
 
-### Rotar `ADMIN_TOKEN`
+### Rotar credenciales de admin
 
-Equivale a invalidar **todas las sesiones admin activas**.
-
-```bash
-# Generar nuevo token
-NEW=$(openssl rand -hex 32)
-echo $NEW
-# Pegar en Vercel env vars → Redeploy
-# Todos los admins deben volver a loguear
-```
-
-### Rotar `ADMIN_PASSWORD`
-
-Mismo flow. No invalida sesiones existentes (sólo afecta nuevos logins).
+Ya no hay secreto de admin que rotar: el acceso es por magic link de Supabase Auth
+(SPEC-S23 retiró `ADMIN_TOKEN` / `ADMIN_PASSWORD`). Para sacarle el panel a alguien,
+quitar su email de `SUPER_ADMIN_EMAILS` o su membership en `agency_members`.
 
 ## 7. Troubleshooting
 
@@ -138,7 +129,7 @@ Si están seteadas pero el health dice fallback → redeploy (cambios en env req
 
 | Causa | Fix |
 |---|---|
-| `ADMIN_TOKEN` no seteado en Vercel | Setear env var + redeploy |
+| Envs de Supabase Auth faltantes | Setear `NEXT_PUBLIC_SUPABASE_*` + redeploy |
 | Cookie no se guarda (cross-domain o http) | Forzar HTTPS, verificar `secure: true` en prod |
 | `next` param malicioso | El whitelist `nextPath.startsWith("/admin")` ya filtra |
 
@@ -226,7 +217,7 @@ Tiempo: ~10 segundos. Sin downtime.
 
 - [ ] `/api/health` devuelve `status: "ok"` desde el dominio real
 - [ ] Cookie HttpOnly + Secure en `/admin/leads`
-- [ ] Login funciona con ADMIN_PASSWORD productivo (no el de dev)
+- [ ] Login por magic link funciona contra el proyecto Supabase productivo
 - [ ] Lead enviado desde mobile (iPhone Safari) llega al admin
 - [ ] Supabase tiene backup automático activo
 - [ ] UptimeRobot configurado

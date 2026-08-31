@@ -67,7 +67,7 @@ Validar visualmente:
 - [ ] Navbar transparente que se vuelve blanca al scrollear
 - [ ] Sección contacto envía form → success
 - [ ] `http://localhost:3000/api/health` → JSON con `db: "fallback"` (sin .env.local) o `db: "connected"` (con .env.local)
-- [ ] `http://localhost:3000/admin/leads` → si ADMIN_TOKEN está, redirige a login
+- [ ] `http://localhost:3000/admin/leads` → sin sesión Supabase, redirige a login
 
 Cerrar dev con `Ctrl+C`.
 
@@ -94,8 +94,8 @@ Cerrar dev con `Ctrl+C`.
 # En Git Bash
 echo "SUPABASE_URL=$(echo 'https://TU-REF.supabase.co')"   # ← reemplazar TU-REF
 echo "SUPABASE_SERVICE_ROLE_KEY=eyJ...   # ← copiar de Supabase Settings → API"
-echo "ADMIN_PASSWORD=$(openssl rand -base64 18)"
-echo "ADMIN_TOKEN=$(openssl rand -hex 32)"
+echo "NEXT_PUBLIC_SUPABASE_URL=https://TU-REF.supabase.co"
+echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...   # ← publishable key de Supabase"
 ```
 
 Guardar los 4 valores en un password manager. **No commitearlos.**
@@ -168,7 +168,7 @@ Desde tu celular (Safari iPhone preferido):
 - [ ] Tap en propiedad → WhatsApp directo a +54 9 379 515-9096
 - [ ] Tap en ContactSection → completar form → recibir success
 - [ ] Volver a desktop → abrir `https://<dominio>/admin/leads`
-- [ ] Login con ADMIN_PASSWORD → ver el lead recién creado del mobile
+- [ ] Login por magic link → ver el lead recién creado del mobile
 
 ---
 
