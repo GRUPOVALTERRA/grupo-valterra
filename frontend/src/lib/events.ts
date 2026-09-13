@@ -35,6 +35,7 @@ export const WA_SOURCES = [
   "cta-home",
   "footer",
   "footer-contacto",
+  "card-mapa",
 ] as const;
 export type EventSource = (typeof WA_SOURCES)[number];
 

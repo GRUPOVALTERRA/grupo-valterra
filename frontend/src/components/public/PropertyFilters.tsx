@@ -12,6 +12,10 @@ interface CurrentFilters {
 
 interface PropertyFiltersProps {
   currentFilters: CurrentFilters;
+  /** Ruta destino. S26: /mapa reusa este mismo componente. */
+  basePath?: string;
+  /** Parametros que sobreviven al filtrado (ej: vista=mapa). */
+  keepParams?: Record<string, string>;
 }
 
 const OPERATION_OPTIONS: { value: "" | PropertyOperation; label: string }[] = [
@@ -33,56 +37,77 @@ const TYPE_OPTIONS: { value: "" | PropertyType; label: string }[] = [
   { value: "country", label: "Country" },
 ];
 
-function buildUrl(filters: {
-  operationType?: string;
-  propertyType?: string;
-  city?: string;
-}): string {
+function buildUrl(
+  filters: {
+    operationType?: string;
+    propertyType?: string;
+    city?: string;
+  },
+  basePath: string,
+  keepParams?: Record<string, string>,
+): string {
   const params = new URLSearchParams();
   if (filters.operationType) params.set("operationType", filters.operationType);
   if (filters.propertyType) params.set("propertyType", filters.propertyType);
   if (filters.city?.trim()) params.set("city", filters.city.trim());
+  for (const [k, v] of Object.entries(keepParams ?? {})) params.set(k, v);
   const qs = params.toString();
-  return `/propiedades${qs ? `?${qs}` : ""}`;
+  return `${basePath}${qs ? `?${qs}` : ""}`;
 }
 
-export function PropertyFilters({ currentFilters }: PropertyFiltersProps) {
+export function PropertyFilters({
+  currentFilters,
+  basePath = "/propiedades",
+  keepParams,
+}: PropertyFiltersProps) {
   const router = useRouter();
   const cityRef = useRef<HTMLInputElement>(null);
 
   function handleOperationChange(e: ChangeEvent<HTMLSelectElement>) {
     router.push(
-      buildUrl({
-        operationType: e.target.value || undefined,
-        propertyType: currentFilters.propertyType,
-        city: cityRef.current?.value || undefined,
-      }),
+      buildUrl(
+        {
+          operationType: e.target.value || undefined,
+          propertyType: currentFilters.propertyType,
+          city: cityRef.current?.value || undefined,
+        },
+        basePath,
+        keepParams,
+      ),
     );
   }
 
   function handleTypeChange(e: ChangeEvent<HTMLSelectElement>) {
     router.push(
-      buildUrl({
-        operationType: currentFilters.operationType,
-        propertyType: e.target.value || undefined,
-        city: cityRef.current?.value || undefined,
-      }),
+      buildUrl(
+        {
+          operationType: currentFilters.operationType,
+          propertyType: e.target.value || undefined,
+          city: cityRef.current?.value || undefined,
+        },
+        basePath,
+        keepParams,
+      ),
     );
   }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     router.push(
-      buildUrl({
-        operationType: currentFilters.operationType,
-        propertyType: currentFilters.propertyType,
-        city: cityRef.current?.value || undefined,
-      }),
+      buildUrl(
+        {
+          operationType: currentFilters.operationType,
+          propertyType: currentFilters.propertyType,
+          city: cityRef.current?.value || undefined,
+        },
+        basePath,
+        keepParams,
+      ),
     );
   }
 
   function handleClear() {
-    router.push("/propiedades");
+    router.push(buildUrl({}, basePath, keepParams));
   }
 
   const hasFilters = Boolean(

@@ -552,5 +552,6 @@ export async function updateAgencyAction(
 
   revalidatePath(`/admin/agencies/${slug}`);
   revalidatePath("/admin/agencies");
+  revalidatePath("/admin/agencia");
   return { ok: true };
 }

@@ -36,7 +36,8 @@ export type WaSource =
   | "ficha"
   | "cta-home"
   | "footer"
-  | "footer-contacto";
+  | "footer-contacto"
+  | "card-mapa";
 
 interface WaLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   href: string;

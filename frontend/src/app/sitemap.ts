@@ -17,6 +17,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
       changeFrequency: "daily",
     },
+    {
+      url: `${SITE_URL}/mapa`,
+      priority: 0.8,
+      changeFrequency: "daily",
+    },
   ];
 
   let propertyRoutes: MetadataRoute.Sitemap = [];
