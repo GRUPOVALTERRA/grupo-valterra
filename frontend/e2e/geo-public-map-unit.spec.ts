@@ -127,10 +127,12 @@ test.describe("componentes públicos de mapa", () => {
     const consumidores = [
       "components/public/PropertyPublicMap.tsx",
       "components/admin/geo/GeoMapPicker.tsx",
+      "components/public/PropertiesMap.tsx", // S26
     ];
     const wrappers = [
       "components/public/PropertyPublicMapLazy.tsx",
       "components/admin/properties/PropertyLocationSection.tsx",
+      "components/public/PropertiesMapView.tsx", // S26
     ];
 
     for (const c of consumidores) {

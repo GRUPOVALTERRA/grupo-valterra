@@ -362,8 +362,8 @@ test.describe("WaLink dual emit", () => {
     expect(WALINK).toContain('trackSiteEvent("wa_click"');
   });
 
-  test("N · las 6 superficies siguen exactas, sin renombrar", () => {
-    expect(WA_SOURCES.length).toBe(6);
+  test("N · las 7 superficies siguen exactas, sin renombrar", () => {
+    expect(WA_SOURCES.length).toBe(7);
     for (const s of [
       "card-listado",
       "card-home",
@@ -371,6 +371,7 @@ test.describe("WaLink dual emit", () => {
       "cta-home",
       "footer",
       "footer-contacto",
+      "card-mapa", // S26 · tarjeta del mapa estrategico
     ]) {
       expect(WALINK).toContain(`"${s}"`);
       expect(WA_SOURCES as readonly string[]).toContain(s);
