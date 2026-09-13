@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { WA_SOURCES } from "../src/lib/events";
 import { mapWhatsappMessage } from "../src/lib/map/wa";
+import { shouldShowMapFab } from "../src/lib/map/fab";
 
 /**
  * S26-MAP-01 — guardas estaticas del mapa estrategico.
@@ -34,6 +35,8 @@ const WALINK = read("src/components/public/WaLink.tsx");
 const PAGE = read("src/app/mapa/page.tsx");
 const LISTADO = read("src/app/propiedades/page.tsx");
 const MIG = read("supabase/migrations/0017_site_events_source_mapa.sql");
+const FAB = read("src/components/layout/MapFab.tsx");
+const LAYOUT = read("src/app/layout.tsx");
 
 const SVC_CODE = codigo(SVC);
 const MAP_CODE = codigo(MAP);
@@ -225,5 +228,36 @@ test.describe("rutas del mapa", () => {
     expect(LISTADO).toContain("parseVista");
     expect(LISTADO).toContain("PropertiesMapView");
     expect(LISTADO).toContain("parsePublicFilters");
+  });
+});
+
+// ============================================================
+// S26-MAP-03 · Boton flotante "Mapa" (decision del titular 13/09)
+// ============================================================
+test.describe("boton flotante Mapa", () => {
+  test("se muestra en el sitio publico y nunca en admin, auth ni en el propio mapa", () => {
+    expect(shouldShowMapFab("/", null)).toBe(true);
+    expect(shouldShowMapFab("/propiedades", null)).toBe(true);
+    expect(shouldShowMapFab("/propiedades/casa-x", null)).toBe(true);
+    expect(shouldShowMapFab("/propiedades", "mapa")).toBe(false);
+    expect(shouldShowMapFab("/mapa", null)).toBe(false);
+    expect(shouldShowMapFab("/admin", null)).toBe(false);
+    expect(shouldShowMapFab("/admin/leads", null)).toBe(false);
+    expect(shouldShowMapFab("/auth/confirm", null)).toBe(false);
+    expect(shouldShowMapFab(null, null)).toBe(false);
+    // /administracion es publica: la regla es la misma que la analitica.
+    expect(shouldShowMapFab("/administracion", null)).toBe(true);
+  });
+
+  test("es un link a /mapa, accesible, fijo abajo a la derecha, montado en el layout raiz", () => {
+    expect(FAB).toContain('href="/mapa"');
+    expect(FAB).toContain("aria-label=");
+    expect(FAB).toMatch(/className="fixed right-/);
+    expect(FAB).toContain("safe-area-inset-bottom");
+    expect(LAYOUT).toContain("<MapFab />");
+    expect(LAYOUT).toContain("<Suspense fallback={null}>");
+    // La regla de visibilidad vive en un modulo puro y el componente la usa.
+    expect(FAB).toContain('from "@/lib/map/fab"');
+    expect(FAB).toContain("shouldShowMapFab(");
   });
 });

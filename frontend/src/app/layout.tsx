@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Montserrat, Playfair_Display } from "next/font/google";
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import { PageviewTracker } from "@/components/analytics/PageviewTracker";
+import { MapFab } from "@/components/layout/MapFab";
 import "./globals.css";
 
 const inter = Inter({
@@ -126,6 +128,12 @@ export default async function RootLayout({
             NO reemplaza a Vercel — conviven. Excluye /admin y no emite
             nada en Preview ni en local (guard server-side por VERCEL_ENV). */}
         <PageviewTracker />
+        {/* S26-MAP-03: boton flotante "Mapa" en todo el sitio publico (se
+            oculta solo en admin, auth y en el propio mapa). Suspense: usa
+            useSearchParams. */}
+        <Suspense fallback={null}>
+          <MapFab />
+        </Suspense>
       </body>
     </html>
   );
