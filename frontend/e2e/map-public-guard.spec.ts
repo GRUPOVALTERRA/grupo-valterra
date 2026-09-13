@@ -189,6 +189,26 @@ test.describe("render del mapa", () => {
     expect(MAP).toContain("L.circle(");
     expect(MAP).toContain("location.radiusM");
   });
+
+  test("control cruzado A1: el encuadre espera tamaño real y la seleccion panea", () => {
+    // Montado oculto (toggle movil) Leaflet encuadra con 0x0 px: zoom absurdo.
+    expect(MAP).toContain("if (!map || !sizeReady) return;");
+    expect(MAP).toContain("}, [boundsKey, sizeReady]);");
+    expect(MAP).toContain("map.panTo(");
+  });
+
+  test("control cruzado M1: hover/seleccion NO reconstruyen los marcadores", () => {
+    // Safari iOS cancela el click del toque si el DOM bajo el dedo cambia.
+    expect(MAP).toContain("}, [points, zoom, badgesByAgency]);");
+    expect(MAP).toContain('setAttribute("data-active"');
+    expect(MAP_CODE).not.toMatch(/\[points, zoom, selectedId, hoveredId/);
+  });
+
+  test("control cruzado M2: pines operables por teclado y tarjeta cerrable con Escape", () => {
+    expect(MAP).toContain('marker.on("keydown"');
+    expect(MAP).toContain("keyboard: true");
+    expect(CARD).toContain('e.key === "Escape"');
+  });
 });
 
 // ============================================================

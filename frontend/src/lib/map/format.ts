@@ -19,17 +19,19 @@ export function compactPrice(amount: number, currency: Property["currency"]): st
   const symbol = SYMBOL[currency] ?? "$";
   if (!Number.isFinite(amount) || amount <= 0) return "Consultar";
 
+  // Siempre hacia ABAJO (floor): "U$S 430 mil" para 430.600, "1,4 M" para
+  // 1.460.000. Redondear al mas cercano mostraria un precio menor al real.
   if (amount >= 1_000_000) {
-    const millions = amount / 1_000_000;
+    const decimas = Math.floor(amount / 100_000); // 14 para 1.460.000
+    const enteras = Math.floor(decimas / 10);
+    const resto = decimas % 10;
     const label =
-      Number.isInteger(millions) || millions >= 10
-        ? String(Math.round(millions))
-        : millions.toFixed(1).replace(".", ",");
+      resto === 0 || enteras >= 10 ? String(enteras) : `${enteras},${resto}`;
     return `${symbol} ${label} M`;
   }
 
   if (amount >= 10_000) {
-    return `${symbol} ${Math.round(amount / 1000)} mil`;
+    return `${symbol} ${Math.floor(amount / 1000)} mil`;
   }
 
   return `${symbol} ${new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount)}`;

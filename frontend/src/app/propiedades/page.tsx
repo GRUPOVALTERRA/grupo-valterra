@@ -10,6 +10,7 @@ import { getAllProperties } from "@/services/properties";
 import { getMapProperties } from "@/services/property-map";
 import { getAgencyWhatsappMap } from "@/services/agencies";
 import { getAgencyBadgeMap } from "@/services/agency-badges";
+import { agencyIdsIn, pickAgencies } from "@/lib/map/types";
 import {
   hasAnyFilter,
   parsePublicFilters,
@@ -76,7 +77,9 @@ export default async function PropiedadesPage({ searchParams }: PageProps) {
 
   // Las dos vistas leen el MISMO filtro; solo cambia la lectura.
   const mapa = esMapa ? await getMapProperties(currentFilters) : null;
-  const badgesByAgency = esMapa ? await getAgencyBadgeMap() : {};
+  // En la vista mapa, al cliente viajan solo las agencias con algo publicado.
+  const presentes = mapa ? agencyIdsIn(mapa.points, mapa.withoutLocation) : new Set<string>();
+  const badgesByAgency = esMapa ? pickAgencies(await getAgencyBadgeMap(), presentes) : {};
   const properties = esMapa
     ? []
     : await getAllProperties({
@@ -145,7 +148,7 @@ export default async function PropiedadesPage({ searchParams }: PageProps) {
             <PropertiesMapView
               points={mapa.points}
               withoutLocation={mapa.withoutLocation}
-              whatsappByAgency={whatsappByAgency}
+              whatsappByAgency={pickAgencies(whatsappByAgency, presentes)}
               badgesByAgency={badgesByAgency}
             />
           </section>

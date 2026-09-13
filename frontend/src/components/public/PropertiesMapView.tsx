@@ -197,11 +197,12 @@ export function PropertiesMapView({
         </div>
       </div>
 
-      {/* Alternador solo movil: nunca los dos peleando por la pantalla. */}
+      {/* Alternador solo movil: nunca los dos peleando por la pantalla.
+          Arriba a la derecha: abajo tapaba la tarjeta (sheet) y la atribucion. */}
       <button
         type="button"
         onClick={() => setMobilePane(mobilePane === "lista" ? "mapa" : "lista")}
-        className="absolute bottom-4 left-1/2 z-[1200] -translate-x-1/2 rounded-full bg-[#0A2342] px-5 py-2.5 text-sm font-semibold text-white shadow-lg lg:hidden"
+        className="absolute right-3 top-3 z-[1200] rounded-full bg-[#0A2342] px-4 py-2 text-sm font-semibold text-white shadow-lg lg:hidden"
       >
         {mobilePane === "lista" ? "Ver mapa" : "Ver lista"}
       </button>

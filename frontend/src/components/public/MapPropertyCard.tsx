@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { formatPrice } from "@/services/mock-properties";
 import { WaLink } from "@/components/public/WaLink";
 import { buildMapWhatsappLink } from "@/lib/map/wa";
@@ -46,6 +47,16 @@ interface Props {
 }
 
 export function MapPropertyCard({ property, whatsapp, badge, onClose }: Props) {
+  // Teclado: Escape cierra la tarjeta (control cruzado, M2).
+  useEffect(() => {
+    if (!onClose) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const waLink = buildMapWhatsappLink(property.title, whatsapp);
   const insignia = badge ? pinBadgeFor(badge) : null;
   const location = [property.neighborhood, property.city].filter(Boolean).join(", ");

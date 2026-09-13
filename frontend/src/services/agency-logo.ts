@@ -92,6 +92,7 @@ export async function setAgencyLogo(args: {
   try {
     const oldPath = await readCurrentLogoPath(args.agencyId);
     const path = agencyLogoStoragePath(args.agencyId, randomUUID(), extensionFor(inspection.type));
+    if (!path) return { ok: false, code: "rejected", reason: "agencyId" };
 
     const uploaded = await uploadObject({
       bucket: BUCKET,

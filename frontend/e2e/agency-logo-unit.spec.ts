@@ -74,6 +74,15 @@ test.describe("reglas del logo", () => {
     expect(isAgencyLogoPath(path)).toBe(true);
   });
 
+  test("identificadores sin forma de uuid o extension rara no producen path", () => {
+    // Control cruzado B8: un path que la lectura no reconoceria seria una
+    // subida "exitosa" invisible.
+    expect(agencyLogoStoragePath("valterra", RND, "png")).toBeNull();
+    expect(agencyLogoStoragePath(AG, "logo", "png")).toBeNull();
+    expect(agencyLogoStoragePath(AG, RND, "svg")).toBeNull();
+    expect(agencyLogoStoragePath(`${AG}/../x`, RND, "png")).toBeNull();
+  });
+
   test("cualquier otro valor en logo_url NO se resuelve a imagen", () => {
     expect(isAgencyLogoPath("https://evil.example/logo.png")).toBe(false);
     expect(isAgencyLogoPath(`agency/${AG}/logo/../../secreto.png`)).toBe(false);

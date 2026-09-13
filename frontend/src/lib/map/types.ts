@@ -64,6 +64,24 @@ export interface MapBounds {
 }
 
 /**
+ * Agencias presentes en las listas dadas. Sirve para mandar al cliente
+ * SOLO las insignias/WhatsApp de las agencias que tienen algo publicado
+ * (minimizacion de datos; control cruzado, B1).
+ */
+export function agencyIdsIn(...lists: ReadonlyArray<readonly { agencyId?: string }[]>): Set<string> {
+  const ids = new Set<string>();
+  for (const list of lists) for (const it of list) if (it.agencyId) ids.add(it.agencyId);
+  return ids;
+}
+
+/** Subconjunto de un mapa por agencia, restringido a las agencias presentes. */
+export function pickAgencies<T>(map: Record<string, T>, ids: ReadonlySet<string>): Record<string, T> {
+  const out: Record<string, T> = {};
+  for (const id of ids) if (id in map) out[id] = map[id];
+  return out;
+}
+
+/**
  * Encuadre que cubre todos los puntos. null con lista vacia: quien
  * renderiza decide el fallback (no se hardcodea un centro acá).
  */

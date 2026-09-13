@@ -6,7 +6,7 @@ import {
   TARGET_CELL_PX,
   type ClusterableItem,
 } from "../src/lib/map/cluster";
-import { boundsOf, type MapPoint } from "../src/lib/map/types";
+import { agencyIdsIn, boundsOf, pickAgencies, type MapPoint } from "../src/lib/map/types";
 import { compactPrice } from "../src/lib/map/format";
 import { buildMapWhatsappLink, mapWhatsappMessage } from "../src/lib/map/wa";
 import { initialOf, isSafeLogoSrc, pinBadgeFor } from "../src/lib/map/badge";
@@ -133,12 +133,29 @@ test.describe("encuadre", () => {
   });
 });
 
+test.describe("minimizacion de datos hacia el cliente", () => {
+  test("solo viajan las agencias presentes en la vista", () => {
+    const ids = agencyIdsIn([{ agencyId: "a" }, { agencyId: "b" }, {}], [{ agencyId: "c" }]);
+    expect([...ids].sort()).toEqual(["a", "b", "c"]);
+    const map = { a: 1, b: 2, c: 3, d: 4 };
+    expect(pickAgencies(map, ids)).toEqual({ a: 1, b: 2, c: 3 });
+    expect(pickAgencies(map, new Set())).toEqual({});
+  });
+});
+
 test.describe("pastilla de precio", () => {
   test("abrevia sin exagerar y nunca hacia arriba", () => {
     expect(compactPrice(430000, "USD")).toBe("U$S 430 mil");
     expect(compactPrice(19000, "USD")).toBe("U$S 19 mil");
     expect(compactPrice(1500000, "USD")).toBe("U$S 1,5 M");
     expect(compactPrice(75000000, "ARS")).toBe("$ 75 M");
+    // Control cruzado B2: redondear al mas cercano mostraria un precio
+    // MENOR al real. Siempre piso.
+    expect(compactPrice(430600, "USD")).toBe("U$S 430 mil");
+    expect(compactPrice(999999, "USD")).toBe("U$S 999 mil");
+    expect(compactPrice(1460000, "USD")).toBe("U$S 1,4 M");
+    expect(compactPrice(1999999, "USD")).toBe("U$S 1,9 M");
+    expect(compactPrice(12600000, "USD")).toBe("U$S 12 M");
   });
 
   test("montos chicos se muestran completos (no se maquillan)", () => {

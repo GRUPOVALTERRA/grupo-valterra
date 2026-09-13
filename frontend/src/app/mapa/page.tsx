@@ -7,6 +7,7 @@ import { getMapProperties } from "@/services/property-map";
 import { getAgencyWhatsappMap } from "@/services/agencies";
 import { getAgencyBadgeMap } from "@/services/agency-badges";
 import { hasAnyFilter, parsePublicFilters } from "@/lib/public-filters";
+import { agencyIdsIn, pickAgencies } from "@/lib/map/types";
 
 /**
  * S26-MAP-01 — mapa estrategico a pantalla completa.
@@ -55,11 +56,15 @@ export default async function MapaPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const filters = parsePublicFilters(params);
 
-  const [{ points, withoutLocation }, whatsappByAgency, badgesByAgency] = await Promise.all([
+  const [{ points, withoutLocation }, whatsappAll, badgesAll] = await Promise.all([
     getMapProperties(filters),
     getAgencyWhatsappMap(),
     getAgencyBadgeMap(),
   ]);
+  // Al cliente viajan solo las agencias con algo publicado en esta vista.
+  const presentes = agencyIdsIn(points, withoutLocation);
+  const whatsappByAgency = pickAgencies(whatsappAll, presentes);
+  const badgesByAgency = pickAgencies(badgesAll, presentes);
 
   const total = points.length + withoutLocation.length;
   const listadoHref = hasAnyFilter(filters)

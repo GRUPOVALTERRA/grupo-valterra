@@ -24,6 +24,10 @@ import { MapPropertyCard } from "@/components/public/MapPropertyCard";
  * DECISIONES DE DIBUJO
  * - Pastilla de precio en lugar de alfiler generico: el precio es el dato
  *   que decide si alguien hace click.
+ * - El estado activo (hover/seleccion) se aplica con un atributo sobre el
+ *   elemento existente (`data-active`), NUNCA reconstruyendo el marcador:
+ *   Safari iOS cancela el click de un toque si el DOM bajo el dedo cambia
+ *   durante el `mouseover` de compatibilidad (control cruzado, M1).
  * - El circulo del modo aproximado se dibuja SOLO en el pin activo. Ocho
  *   circulos simultaneos tapan el mapa y no comunican nada.
  * - La tarjeta es un overlay de React, no un popup de Leaflet: asi
@@ -31,6 +35,9 @@ import { MapPropertyCard } from "@/components/public/MapPropertyCard";
  * - Ningun texto libre (titulo, barrio) entra por innerHTML: en los
  *   iconos solo viajan el precio formateado y la insignia de agencia
  *   (URL validada por `pinBadgeFor` + inicial), todo escapado.
+ * - El encuadre espera a que el contenedor tenga tamaño: montado oculto
+ *   (toggle Lista/Mapa en movil) Leaflet calcula un zoom absurdo con
+ *   0x0 px (control cruzado, A1).
  */
 
 const FALLBACK_CENTER: [number, number] = [-27.4692, -58.8306]; // Corrientes Capital
@@ -38,8 +45,20 @@ const FALLBACK_ZOOM = 12;
 const SHEET_BREAKPOINT_PX = 640;
 const CARD_WIDTH_PX = 288;
 const CARD_HEIGHT_PX = 360;
-const GOLD = "#C9A84C";
-const NAVY = "#0A2342";
+const EMPTY_BADGES: Record<string, AgencyBadge> = {};
+
+const PIN_CSS = `
+.vt-pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;transition:transform .15s;cursor:pointer}
+.vt-pin .vt-pill{display:flex;align-items:center;gap:6px;background:#0A2342;color:#FFFFFF;font:600 12px/1 system-ui,sans-serif;padding:4px 10px 4px 4px;border-radius:999px;white-space:nowrap;border:1.5px solid rgba(255,255,255,.9);box-shadow:0 2px 10px rgba(10,35,66,.35)}
+.vt-pin .vt-badge{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;overflow:hidden;background:#C9A84C;color:#0A2342;font:700 11px/1 system-ui,sans-serif}
+.vt-pin .vt-badge img{display:block;width:22px;height:22px;object-fit:cover;border-radius:999px}
+.vt-pin .vt-dot{width:8px;height:8px;margin-top:-2px;border-radius:999px;background:#0A2342;border:1.5px solid #fff}
+.vt-pin[data-active="1"]{transform:translate(-50%,-100%) scale(1.08)}
+.vt-pin[data-active="1"] .vt-pill{background:#C9A84C;color:#0A2342}
+.vt-pin[data-active="1"] .vt-badge{background:#0A2342;color:#FFFFFF}
+.vt-pin[data-active="1"] .vt-dot{background:#C9A84C}
+.vt-cluster{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:999px;background:#0A2342;color:#fff;font:700 13px/1 system-ui,sans-serif;border:2px solid #C9A84C;box-shadow:0 2px 10px rgba(10,35,66,.4);cursor:pointer}
+`;
 
 interface Props {
   points: MapPoint[];
@@ -61,36 +80,24 @@ function escapeHtml(value: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-function priceIcon(label: string, active: boolean, badge: PinBadge): L.DivIcon {
-  const bg = active ? GOLD : NAVY;
-  const fg = active ? NAVY : "#FFFFFF";
-  const badgeBg = active ? NAVY : GOLD;
-  const badgeFg = active ? "#FFFFFF" : NAVY;
-  const scale = active ? 1.08 : 1;
+function priceIcon(label: string, badge: PinBadge): L.DivIcon {
   // Insignia: logo validado (pinBadgeFor) o inicial. Ambos escapados.
   const insignia = badge.src
-    ? `<img src="${escapeHtml(badge.src)}" alt="" width="22" height="22" ` +
-      `style="display:block;width:22px;height:22px;object-fit:cover;border-radius:999px">`
+    ? `<img src="${escapeHtml(badge.src)}" alt="" width="22" height="22">`
     : escapeHtml(badge.initial);
   return L.divIcon({
     className: "",
     iconSize: [0, 0],
     iconAnchor: [0, 0],
     html:
-      `<div style="position:absolute;transform:translate(-50%,-100%) scale(${scale});` +
-      `display:flex;flex-direction:column;align-items:center;transition:transform .15s">` +
-      `<span style="display:flex;align-items:center;gap:6px;background:${bg};color:${fg};` +
-      `font:600 12px/1 system-ui,sans-serif;padding:4px 10px 4px 4px;border-radius:999px;` +
-      `white-space:nowrap;border:1.5px solid rgba(255,255,255,.9);box-shadow:0 2px 10px rgba(10,35,66,.35)">` +
-      `<span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;` +
-      `border-radius:999px;overflow:hidden;background:${badgeBg};color:${badgeFg};font:700 11px/1 system-ui,sans-serif">` +
-      `${insignia}</span>` +
+      `<div class="vt-pin" data-active="0">` +
+      `<span class="vt-pill"><span class="vt-badge">${insignia}</span>` +
       `<span>${escapeHtml(label)}</span></span>` +
-      `<span style="width:8px;height:8px;margin-top:-2px;border-radius:999px;` +
-      `background:${bg};border:1.5px solid #fff"></span></div>`,
+      `<span class="vt-dot"></span></div>`,
   });
 }
 
@@ -99,19 +106,20 @@ function clusterIcon(count: number): L.DivIcon {
     className: "",
     iconSize: [0, 0],
     iconAnchor: [0, 0],
-    html:
-      `<div style="position:absolute;transform:translate(-50%,-50%);` +
-      `display:flex;align-items:center;justify-content:center;width:40px;height:40px;` +
-      `border-radius:999px;background:${NAVY};color:#fff;font:700 13px/1 system-ui,sans-serif;` +
-      `border:2px solid ${GOLD};box-shadow:0 2px 10px rgba(10,35,66,.4)">` +
-      `${escapeHtml(String(count))}</div>`,
+    html: `<div class="vt-cluster">${escapeHtml(String(count))}</div>`,
   });
+}
+
+function setActive(marker: L.Marker, active: boolean): void {
+  const root = marker.getElement()?.firstElementChild;
+  if (root) root.setAttribute("data-active", active ? "1" : "0");
+  marker.setZIndexOffset(active ? 600 : 0);
 }
 
 export default function PropertiesMap({
   points,
   whatsappByAgency,
-  badgesByAgency = {},
+  badgesByAgency = EMPTY_BADGES,
   selectedId,
   onSelect,
   hoveredId = null,
@@ -122,17 +130,25 @@ export default function PropertiesMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const activeLayerRef = useRef<L.LayerGroup | null>(null);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const onSelectRef = useRef(onSelect);
   const onHoverRef = useRef(onHover);
+  const selectedRef = useRef(selectedId);
+  const hoveredRef = useRef(hoveredId);
 
   const [zoom, setZoom] = useState(FALLBACK_ZOOM);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [cardPos, setCardPos] = useState<{ x: number; y: number } | null>(null);
 
+  const sizeReady = size.w > 0 && size.h > 0;
+
   useEffect(() => {
     onSelectRef.current = onSelect;
     onHoverRef.current = onHover;
-  }, [onSelect, onHover]);
+    selectedRef.current = selectedId;
+    hoveredRef.current = hoveredId;
+  }, [onSelect, onHover, selectedId, hoveredId]);
 
   /* -------- init -------- */
   useEffect(() => {
@@ -150,6 +166,7 @@ export default function PropertiesMap({
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
+    activeLayerRef.current = L.layerGroup().addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
 
     const syncZoom = () => setZoom(map.getZoom());
@@ -166,6 +183,8 @@ export default function PropertiesMap({
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
+      activeLayerRef.current = null;
+      markersRef.current = new Map();
     };
   }, [scrollWheelZoom]);
 
@@ -184,11 +203,11 @@ export default function PropertiesMap({
     return () => ro.disconnect();
   }, []);
 
-  /* -------- encuadre: siempre derivado de los puntos, nunca fijo -------- */
+  /* -------- encuadre: derivado de los puntos, y solo con tamaño real -------- */
   const boundsKey = useMemo(() => points.map((p) => p.id).join("|"), [points]);
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !sizeReady) return;
     const b = boundsOf(points);
     if (!b) {
       map.setView(FALLBACK_CENTER, FALLBACK_ZOOM);
@@ -198,19 +217,21 @@ export default function PropertiesMap({
       L.latLngBounds([b.south, b.west], [b.north, b.east]),
       { padding: [48, 48], maxZoom: 15 },
     );
-    // points se recalcula en cada render del padre; boundsKey es la
-    // identidad real del conjunto y evita re-encuadrar mientras el
-    // usuario navega el mapa.
+    // `points` cambia de identidad en cada render del padre; boundsKey es la
+    // identidad real del conjunto y evita re-encuadrar mientras el usuario
+    // navega. `sizeReady` re-encuadra cuando el contenedor pasa de oculto
+    // a visible (movil).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boundsKey]);
+  }, [boundsKey, sizeReady]);
 
-  /* -------- pines y clusters -------- */
+  /* -------- pines y clusters (NO se reconstruyen por hover/seleccion) -------- */
   useEffect(() => {
     const map = mapRef.current;
     const layer = layerRef.current;
     if (!map || !layer) return;
 
     layer.clearLayers();
+    const registry = new Map<string, L.Marker>();
     const groups = clusterByGrid(points, cellSizeDegForZoom(zoom));
 
     for (const group of groups) {
@@ -220,42 +241,72 @@ export default function PropertiesMap({
           keyboard: true,
           title: `${group.items.length} propiedades en esta zona`,
         });
-        marker.on("click", () => {
+        const acercar = () => {
           map.flyTo([group.latitude, group.longitude], Math.min(map.getZoom() + 2, 18));
+        };
+        marker.on("click", acercar);
+        marker.on("keydown", (e) => {
+          const key = (e as L.LeafletKeyboardEvent).originalEvent.key;
+          if (key === "Enter" || key === " ") {
+            (e as L.LeafletKeyboardEvent).originalEvent.preventDefault();
+            acercar();
+          }
         });
         marker.addTo(layer);
         continue;
       }
 
       const p = group.items[0];
-      const active = p.id === selectedId || p.id === hoveredId;
-
-      if (active && p.location.kind === "approximate") {
-        L.circle([p.latitude, p.longitude], {
-          radius: p.location.radiusM,
-          color: GOLD,
-          fillColor: GOLD,
-          fillOpacity: 0.15,
-          weight: 2,
-        }).addTo(layer);
-      }
-
       const badge = pinBadgeFor(p.agencyId ? badgesByAgency[p.agencyId] : null);
       const marker = L.marker([p.latitude, p.longitude], {
-        icon: priceIcon(compactPrice(p.price, p.currency), active, badge),
+        icon: priceIcon(compactPrice(p.price, p.currency), badge),
         keyboard: true,
         title: p.title,
         alt: p.title,
-        zIndexOffset: active ? 600 : 0,
       });
       marker.on("click", () => onSelectRef.current(p.id));
+      marker.on("keydown", (e) => {
+        const key = (e as L.LeafletKeyboardEvent).originalEvent.key;
+        if (key === "Enter" || key === " ") {
+          (e as L.LeafletKeyboardEvent).originalEvent.preventDefault();
+          onSelectRef.current(p.id);
+        }
+      });
       marker.on("mouseover", () => onHoverRef.current?.(p.id));
       marker.on("mouseout", () => onHoverRef.current?.(null));
       marker.addTo(layer);
+      registry.set(p.id, marker);
+      // Un pin recien construido hereda el estado activo vigente.
+      setActive(marker, p.id === selectedRef.current || p.id === hoveredRef.current);
     }
-  }, [points, zoom, selectedId, hoveredId, badgesByAgency]);
+    markersRef.current = registry;
+  }, [points, zoom, badgesByAgency]);
 
-  /* -------- posicion de la tarjeta -------- */
+  /* -------- estado activo: atributo sobre el pin existente + circulo -------- */
+  useEffect(() => {
+    const activeLayer = activeLayerRef.current;
+    if (!activeLayer) return;
+
+    for (const [id, marker] of markersRef.current) {
+      setActive(marker, id === selectedId || id === hoveredId);
+    }
+
+    activeLayer.clearLayers();
+    const focoId = selectedId ?? hoveredId;
+    const foco = focoId ? points.find((p) => p.id === focoId) : undefined;
+    if (foco && foco.location.kind === "approximate") {
+      L.circle([foco.latitude, foco.longitude], {
+        radius: foco.location.radiusM,
+        color: "#C9A84C",
+        fillColor: "#C9A84C",
+        fillOpacity: 0.15,
+        weight: 2,
+        interactive: false, // el click dentro del radio no debe cerrar la tarjeta
+      }).addTo(activeLayer);
+    }
+  }, [selectedId, hoveredId, points, zoom]);
+
+  /* -------- seleccion: paneo si quedo afuera + posicion de la tarjeta -------- */
   const selected = useMemo(
     () => points.find((p) => p.id === selectedId) ?? null,
     [points, selectedId],
@@ -263,12 +314,15 @@ export default function PropertiesMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !selected) {
+    if (!map || !selected || !sizeReady) {
       setCardPos(null);
       return;
     }
+    const ll = L.latLng(selected.latitude, selected.longitude);
+    if (!map.getBounds().contains(ll)) map.panTo(ll);
+
     const update = () => {
-      const pt = map.latLngToContainerPoint([selected.latitude, selected.longitude]);
+      const pt = map.latLngToContainerPoint(ll);
       setCardPos({ x: pt.x, y: pt.y });
     };
     update();
@@ -280,19 +334,22 @@ export default function PropertiesMap({
       map.off("zoom", update);
       map.off("resize", update);
     };
-  }, [selected]);
+  }, [selected, sizeReady]);
 
-  const sheet = size.w > 0 && size.w < SHEET_BREAKPOINT_PX;
+  const sheet = sizeReady && size.w < SHEET_BREAKPOINT_PX;
 
   let anchored: { left: number; top: number; transform: string } | null = null;
-  if (selected && cardPos && !sheet) {
+  if (selected && cardPos && sizeReady && !sheet) {
     const half = CARD_WIDTH_PX / 2;
     const maxX = Math.max(size.w - half - 8, half + 8);
     const left = Math.min(Math.max(cardPos.x, half + 8), maxX);
     const above = cardPos.y > CARD_HEIGHT_PX + 24;
+    const top = above
+      ? cardPos.y - 16
+      : Math.min(cardPos.y + 16, Math.max(8, size.h - CARD_HEIGHT_PX - 8));
     anchored = {
       left,
-      top: above ? cardPos.y - 16 : cardPos.y + 16,
+      top,
       transform: above ? "translate(-50%,-100%)" : "translate(-50%,0)",
     };
   }
@@ -301,6 +358,7 @@ export default function PropertiesMap({
 
   return (
     <div className={`relative ${className ?? ""}`}>
+      <style>{PIN_CSS}</style>
       <div ref={containerRef} className="h-full w-full" aria-label="Mapa de propiedades" />
 
       {selected && sheet && (

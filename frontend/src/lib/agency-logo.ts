@@ -50,14 +50,21 @@ export function canManageAgencyLogo(role: AgencyRole | string | null | undefined
 }
 
 const UUID_RX = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const UUID_EXACT_RX = new RegExp(`^${UUID_RX}$`);
 const LOGO_PATH_RX = new RegExp(`^agency/${UUID_RX}/logo/${UUID_RX}\\.(png|jpg|webp)$`);
 
 /**
  * Path dentro del bucket `properties`, bajo el prefijo de la agencia (el
  * mismo que exige el CHECK de property_images: `agency/%`). Nombre
  * aleatorio: nunca el nombre original del archivo.
+ *
+ * null si alguno de los identificadores no tiene forma de uuid: un path
+ * que despues `isAgencyLogoPath` no reconoceria seria una subida "exitosa"
+ * que nadie ve (control cruzado, B8).
  */
-export function agencyLogoStoragePath(agencyId: string, randomName: string, ext: string): string {
+export function agencyLogoStoragePath(agencyId: string, randomName: string, ext: string): string | null {
+  if (!UUID_EXACT_RX.test(agencyId) || !UUID_EXACT_RX.test(randomName)) return null;
+  if (!/^(png|jpg|webp)$/.test(ext)) return null;
   return `agency/${agencyId}/logo/${randomName}.${ext}`;
 }
 
