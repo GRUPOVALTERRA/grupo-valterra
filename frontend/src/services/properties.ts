@@ -89,7 +89,7 @@ function toNumberOrUndefined(v: number | string | null | undefined): number | un
  * Preserva URLs absolutas legacy + resuelve Storage paths nuevos.
  * Order: null -> http(s) -> /asset -> data: -> Supabase Storage path
  */
-function resolveCoverImageUrl(value: string | null): string | null {
+export function resolveCoverImageUrl(value: string | null): string | null {
   if (!value) return null;
   if (value.startsWith("http://") || value.startsWith("https://")) return value;
   if (value.startsWith("/")) return value;

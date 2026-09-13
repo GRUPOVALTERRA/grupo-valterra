@@ -5,9 +5,19 @@ import { Footer } from "@/components/layout/Footer";
 import { AvailableBanner } from "@/components/public/AvailableBanner";
 import { PropertyFilters } from "@/components/public/PropertyFilters";
 import { PublicPropertyCard } from "@/components/public/PublicPropertyCard";
+import { PropertiesMapView } from "@/components/public/PropertiesMapView";
 import { getAllProperties } from "@/services/properties";
+import { getMapProperties } from "@/services/property-map";
 import { getAgencyWhatsappMap } from "@/services/agencies";
-import type { PropertyOperation, PropertyType } from "@/services/mock-properties";
+import { getAgencyBadgeMap } from "@/services/agency-badges";
+import { agencyIdsIn, pickAgencies } from "@/lib/map/types";
+import {
+  hasAnyFilter,
+  parsePublicFilters,
+  parseVista,
+  type PublicFilters,
+  type PublicVista,
+} from "@/lib/public-filters";
 
 export const revalidate = 60;
 
@@ -37,39 +47,16 @@ export const metadata: Metadata = {
   },
 };
 
-/* ---------- Validation helpers ---------- */
+/* ---------- Vista lista | mapa (S26) ---------- */
 
-const VALID_OPERATIONS: PropertyOperation[] = ["venta", "alquiler", "alquiler-temporal"];
-const VALID_TYPES: PropertyType[] = [
-  "casa",
-  "departamento",
-  "ph",
-  "terreno",
-  "local",
-  "oficina",
-  "campo",
-  "country",
-];
-
-function parseOperation(v: unknown): PropertyOperation | undefined {
-  if (typeof v === "string" && VALID_OPERATIONS.includes(v as PropertyOperation)) {
-    return v as PropertyOperation;
-  }
-  return undefined;
-}
-
-function parsePropertyType(v: unknown): PropertyType | undefined {
-  if (typeof v === "string" && VALID_TYPES.includes(v as PropertyType)) {
-    return v as PropertyType;
-  }
-  return undefined;
-}
-
-function parseCity(v: unknown): string | undefined {
-  if (typeof v === "string" && v.trim().length > 0) {
-    return v.trim().slice(0, 100);
-  }
-  return undefined;
+function hrefConVista(filters: PublicFilters, vista: PublicVista): string {
+  const params = new URLSearchParams();
+  if (filters.operationType) params.set("operationType", filters.operationType);
+  if (filters.propertyType) params.set("propertyType", filters.propertyType);
+  if (filters.city) params.set("city", filters.city);
+  if (vista === "mapa") params.set("vista", "mapa");
+  const qs = params.toString();
+  return `/propiedades${qs ? `?${qs}` : ""}`;
 }
 
 /* ---------- Page ---------- */
@@ -81,26 +68,30 @@ interface PageProps {
 export default async function PropiedadesPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  const operationType = parseOperation(params.operationType);
-  const propertyType = parsePropertyType(params.propertyType);
-  const city = parseCity(params.city);
-
-  const properties = await getAllProperties({
-    operationType,
-    propertyType,
-    city,
-    limit: 50,
-    // Sin propiedades reales publicadas el sitio no muestra el snapshot de
-    // muestra: en su lugar se muestra el banner DISPONIBLE de Grupo Valterra.
-    allowSampleFallback: false,
-  });
+  const currentFilters = parsePublicFilters(params);
+  const vista = parseVista(params.vista);
+  const esMapa = vista === "mapa";
 
   // WhatsApp por agency: cada card consulta a la inmobiliaria dueña.
   const whatsappByAgency = await getAgencyWhatsappMap();
 
-  const currentFilters = { operationType, propertyType, city };
-  const hasFilters = Boolean(operationType ?? propertyType ?? city);
-  const count = properties.length;
+  // Las dos vistas leen el MISMO filtro; solo cambia la lectura.
+  const mapa = esMapa ? await getMapProperties(currentFilters) : null;
+  // En la vista mapa, al cliente viajan solo las agencias con algo publicado.
+  const presentes = mapa ? agencyIdsIn(mapa.points, mapa.withoutLocation) : new Set<string>();
+  const badgesByAgency = esMapa ? pickAgencies(await getAgencyBadgeMap(), presentes) : {};
+  const properties = esMapa
+    ? []
+    : await getAllProperties({
+        ...currentFilters,
+        limit: 50,
+        // Sin propiedades reales publicadas el sitio no muestra el snapshot de
+        // muestra: en su lugar se muestra el banner DISPONIBLE de Grupo Valterra.
+        allowSampleFallback: false,
+      });
+
+  const hasFilters = hasAnyFilter(currentFilters);
+  const count = mapa ? mapa.points.length + mapa.withoutLocation.length : properties.length;
 
   return (
     <div className="min-h-screen bg-[#F8F7F4] text-[#0A2342]">
@@ -124,10 +115,45 @@ export default async function PropiedadesPage({ searchParams }: PageProps) {
 
         {/* Filters */}
         <section className="mx-auto max-w-7xl px-4 pb-8 lg:px-8">
-          <PropertyFilters currentFilters={currentFilters} />
+          <PropertyFilters
+            currentFilters={currentFilters}
+            keepParams={esMapa ? { vista: "mapa" } : undefined}
+          />
+
+          <div className="mt-4 inline-flex rounded-lg border border-[#D8D8D8] bg-white p-1">
+            <Link
+              href={hrefConVista(currentFilters, "lista")}
+              aria-current={!esMapa ? "page" : undefined}
+              className={`inline-flex h-9 items-center rounded-md px-4 text-sm font-semibold transition-colors ${
+                !esMapa ? "bg-[#0A2342] text-white" : "text-[#0A2342] hover:bg-[#0A2342]/5"
+              }`}
+            >
+              Lista
+            </Link>
+            <Link
+              href={hrefConVista(currentFilters, "mapa")}
+              aria-current={esMapa ? "page" : undefined}
+              className={`inline-flex h-9 items-center rounded-md px-4 text-sm font-semibold transition-colors ${
+                esMapa ? "bg-[#0A2342] text-white" : "text-[#0A2342] hover:bg-[#0A2342]/5"
+              }`}
+            >
+              Mapa
+            </Link>
+          </div>
         </section>
 
-        {/* Grid or empty state */}
+        {/* S26 · vista mapa */}
+        {esMapa && mapa ? (
+          <section className="mx-auto max-w-[1600px] px-4 pb-16 lg:px-8">
+            <PropertiesMapView
+              points={mapa.points}
+              withoutLocation={mapa.withoutLocation}
+              whatsappByAgency={pickAgencies(whatsappByAgency, presentes)}
+              badgesByAgency={badgesByAgency}
+            />
+          </section>
+        ) : (
+        /* Grid or empty state */
         <section className="mx-auto max-w-7xl px-4 pb-24 lg:px-8">
           {count > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -180,6 +206,7 @@ export default async function PropiedadesPage({ searchParams }: PageProps) {
             </div>
           )}
         </section>
+        )}
       </main>
 
       <Footer />

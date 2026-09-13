@@ -45,6 +45,7 @@ export default async function AdminLayout({
     { href: "/admin/leads", label: "Consultas" },
     { href: "/admin/estadisticas", label: "Estadísticas" },
   ];
+  if (ctx.scopedAgencyId) items.push({ href: "/admin/agencia", label: "Mi agencia" });
   if (isOwner) items.push({ href: "/admin/equipo", label: "Equipo" });
   if (ctx.isSuperAdmin) items.push({ href: "/admin/agencies", label: "Agencias" });
 

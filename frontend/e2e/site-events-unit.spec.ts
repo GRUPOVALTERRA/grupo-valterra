@@ -26,6 +26,12 @@ import {
 
 const ROOT = join(__dirname, "..");
 const MIGRATION = readFileSync(join(ROOT, "supabase/migrations/0014_site_events.sql"), "utf8");
+// S26: la allowlist VIGENTE de `source` vive en la ultima migracion que
+// redefine el CHECK. 0014 conserva la coherencia wa_click <-> source.
+const MIGRATION_SOURCES = readFileSync(
+  join(ROOT, "supabase/migrations/0017_site_events_source_mapa.sql"),
+  "utf8",
+);
 const ROUTE = readFileSync(join(ROOT, "src/app/api/events/route.ts"), "utf8");
 const EVENTS_LIB = readFileSync(join(ROOT, "src/lib/events.ts"), "utf8");
 const WALINK = readFileSync(join(ROOT, "src/components/public/WaLink.tsx"), "utf8");
@@ -154,9 +160,9 @@ test.describe("allowlists de tipo y superficie", () => {
     if (!r.valid) expect(r.reason).toBe("tipo-desconocido");
   });
 
-  test("las 6 superficies son exactamente las de WaSource en WaLink", () => {
+  test("las 7 superficies son exactamente las de WaSource en WaLink", () => {
     for (const s of WA_SOURCES) expect(WALINK).toContain(`"${s}"`);
-    expect(WA_SOURCES.length).toBe(6);
+    expect(WA_SOURCES.length).toBe(7);
   });
 
   test("cada superficie valida se acepta en un wa_click", () => {
@@ -184,7 +190,8 @@ test.describe("allowlists de tipo y superficie", () => {
   });
 
   test("la base repite la allowlist de superficies (defensa en profundidad)", () => {
-    for (const s of WA_SOURCES) expect(MIGRATION).toContain(`'${s}'`);
+    for (const s of WA_SOURCES) expect(MIGRATION_SOURCES).toContain(`'${s}'`);
+    expect(MIGRATION_SOURCES).toContain("site_events_source_check");
     expect(MIGRATION).toContain("site_events_source_coherente");
   });
 });

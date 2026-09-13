@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Resend } from "resend";
 import { log } from "@/lib/logger";
 import { getAdminContext } from "@/lib/admin-context";
+import { invalidateAgencyBadgeCache } from "@/services/agency-badges";
 import {
   createAgency,
   getAgencyBySlug,
@@ -550,7 +551,10 @@ export async function updateAgencyAction(
   });
   if (!res.ok) return { ok: false, error: res.error ?? "No se pudo guardar" };
 
+  // El nombre alimenta la inicial/"Publica X" del mapa (S26): invalidar.
+  invalidateAgencyBadgeCache();
   revalidatePath(`/admin/agencies/${slug}`);
   revalidatePath("/admin/agencies");
+  revalidatePath("/admin/agencia");
   return { ok: true };
 }

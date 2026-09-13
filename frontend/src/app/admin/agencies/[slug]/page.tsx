@@ -4,6 +4,8 @@ import { getAdminContext } from "@/lib/admin-context";
 import { getAgencyBySlug, listAgencyMembers } from "@/services/agencies";
 import { InviteMemberForm } from "./InviteMemberForm";
 import { AgencySettingsForm } from "./AgencySettingsForm";
+import { AgencyLogoUploader } from "@/components/admin/agencies/AgencyLogoUploader";
+import { getAgencyLogoProfile } from "@/services/agency-badges";
 import { AdminBreadcrumbs } from "@/components/admin/nav/AdminBreadcrumbs";
 import { inviteMemberAction } from "../actions";
 
@@ -27,6 +29,7 @@ export default async function AgencyDetailPage({
   if (!agency) notFound();
 
   const members = await listAgencyMembers(agency.id);
+  const logoProfile = await getAgencyLogoProfile(agency.id);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:px-8">
@@ -90,6 +93,17 @@ export default async function AgencyDetailPage({
             El email de contacto es el destino de los avisos de consultas.
           </p>
           <div className="mt-3">
+            <div className="mb-6">
+              <h2 className="text-sm font-semibold text-[#0A2342]">Logo miniatura (pin del mapa)</h2>
+              <div className="mt-3">
+                <AgencyLogoUploader
+                  slug={agency.slug}
+                  agencyName={agency.name}
+                  currentLogoUrl={logoProfile?.logoUrl ?? null}
+                  canEdit
+                />
+              </div>
+            </div>
             <AgencySettingsForm
               slug={agency.slug}
               initial={{
