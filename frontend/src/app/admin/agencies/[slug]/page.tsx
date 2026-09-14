@@ -99,7 +99,8 @@ export default async function AgencyDetailPage({
                 <AgencyLogoUploader
                   slug={agency.slug}
                   agencyName={agency.name}
-                  currentLogoUrl={logoProfile?.logoUrl ?? null}
+                  currentLogoUrl={logoProfile?.ownLogoUrl ?? null}
+                  fallbackLogoUrl={logoProfile?.portalDefaultUrl ?? null}
                   canEdit
                 />
               </div>

@@ -9,7 +9,14 @@ import {
 import { agencyIdsIn, boundsOf, pickAgencies, type MapPoint } from "../src/lib/map/types";
 import { compactPrice } from "../src/lib/map/format";
 import { buildMapWhatsappLink, mapWhatsappMessage } from "../src/lib/map/wa";
-import { initialOf, isSafeLogoSrc, pinBadgeFor } from "../src/lib/map/badge";
+import {
+  effectiveAgencyLogo,
+  initialOf,
+  isSafeLogoSrc,
+  pinBadgeFor,
+  PORTAL_BADGE_SRC,
+} from "../src/lib/map/badge";
+import { escapeAction, fullscreenLabel } from "../src/lib/map/fullscreen";
 import {
   hasAnyFilter,
   parseCity,
@@ -274,5 +281,44 @@ test.describe("insignia de agencia en el pin", () => {
       initial: "M",
     });
     expect(pinBadgeFor(null)).toEqual({ src: null, initial: "·" });
+  });
+});
+
+test.describe("insignia por defecto del portal (MAP-04)", () => {
+  test("la agencia canonica sin logo usa el isotipo del kit; las demas, no", () => {
+    expect(effectiveAgencyLogo("grupovalterra", null, "grupovalterra")).toBe(PORTAL_BADGE_SRC);
+    expect(effectiveAgencyLogo("banadonorte", null, "grupovalterra")).toBeNull();
+    expect(effectiveAgencyLogo("masservicios", null, "grupovalterra")).toBeNull();
+    expect(effectiveAgencyLogo(null, null, "grupovalterra")).toBeNull();
+    expect(effectiveAgencyLogo(undefined, null, "grupovalterra")).toBeNull();
+  });
+
+  test("un logo subido siempre gana sobre el valor por defecto", () => {
+    const propio = "https://x.supabase.co/storage/v1/object/public/properties/agency/a/logo/b.png";
+    expect(effectiveAgencyLogo("grupovalterra", propio, "grupovalterra")).toBe(propio);
+    expect(effectiveAgencyLogo("banadonorte", propio, "grupovalterra")).toBe(propio);
+  });
+
+  test("el isotipo es una ruta propia que pasa el validador del pin", () => {
+    expect(PORTAL_BADGE_SRC.startsWith("/brand/")).toBe(true);
+    expect(isSafeLogoSrc(PORTAL_BADGE_SRC)).toBe(true);
+    expect(pinBadgeFor({ name: "Grupo Valterra", logoUrl: PORTAL_BADGE_SRC })).toEqual({
+      src: PORTAL_BADGE_SRC,
+      initial: "G",
+    });
+  });
+});
+
+test.describe("pantalla completa (MAP-05)", () => {
+  test("Escape cierra primero la tarjeta y recien despues sale de pantalla completa", () => {
+    expect(escapeAction({ fullscreen: true, hasSelection: true })).toBe("close-card");
+    expect(escapeAction({ fullscreen: true, hasSelection: false })).toBe("exit-fullscreen");
+    expect(escapeAction({ fullscreen: false, hasSelection: true })).toBe("close-card");
+    expect(escapeAction({ fullscreen: false, hasSelection: false })).toBe("none");
+  });
+
+  test("la etiqueta accesible describe la accion que viene, no el estado", () => {
+    expect(fullscreenLabel(false)).toBe("Pantalla completa");
+    expect(fullscreenLabel(true)).toBe("Salir de pantalla completa");
   });
 });

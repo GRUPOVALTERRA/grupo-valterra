@@ -2,7 +2,8 @@ import { getSupabaseAdmin, isSupabaseConfigured, withTimeout } from "@/lib/supab
 import { log } from "@/lib/logger";
 import { resolvePublicUrl } from "@/lib/storage";
 import { isAgencyLogoPath } from "@/lib/agency-logo";
-import type { AgencyBadge } from "@/lib/map/badge";
+import { effectiveAgencyLogo, PORTAL_BADGE_SRC, type AgencyBadge } from "@/lib/map/badge";
+import { CANONICAL_AGENCY_SLUG } from "@/services/agencies";
 
 /**
  * S26-MAP-02 — lectura PUBLICA de la insignia de cada agencia
@@ -24,6 +25,7 @@ let cache: { value: Record<string, AgencyBadge>; at: number } | null = null;
 
 interface BadgeRow {
   id: string;
+  slug: string;
   name: string;
   logo_url: string | null;
 }
@@ -41,7 +43,7 @@ export async function getAgencyBadgeMap(): Promise<Record<string, AgencyBadge>> 
   try {
     const supabase = getSupabaseAdmin();
     const { data, error } = await withTimeout(
-      supabase.from("agencies").select("id, name, logo_url"),
+      supabase.from("agencies").select("id, slug, name, logo_url"),
       4000,
       "agencies.badgeMap",
     );
@@ -51,7 +53,11 @@ export async function getAgencyBadgeMap(): Promise<Record<string, AgencyBadge>> 
     }
     const map: Record<string, AgencyBadge> = {};
     for (const row of data as BadgeRow[]) {
-      map[row.id] = { name: row.name, logoUrl: resolveAgencyLogoUrl(row.logo_url) };
+      map[row.id] = {
+        name: row.name,
+        // S26-MAP-04: la agencia canonica sin logo propio usa el isotipo del kit.
+        logoUrl: effectiveAgencyLogo(row.slug, resolveAgencyLogoUrl(row.logo_url), CANONICAL_AGENCY_SLUG),
+      };
     }
     cache = { value: map, at: Date.now() };
     return map;
@@ -72,6 +78,11 @@ export interface AgencyLogoProfile {
   id: string;
   slug: string;
   name: string;
+  /** Logo subido por la agencia (path del bucket resuelto), o null. */
+  ownLogoUrl: string | null;
+  /** Isotipo del portal: solo para la agencia canonica (S26-MAP-04). */
+  portalDefaultUrl: string | null;
+  /** Lo que efectivamente se dibuja: propio ?? portal ?? null (inicial). */
   logoUrl: string | null;
 }
 
@@ -85,16 +96,20 @@ export async function getAgencyLogoProfile(agencyId: string): Promise<AgencyLogo
         .from("agencies")
         .select("id, slug, name, logo_url")
         .eq("id", agencyId)
-        .maybeSingle<BadgeRow & { slug: string }>(),
+        .maybeSingle<BadgeRow>(),
       4000,
       "agencies.logoProfile",
     );
     if (error || !data) return null;
+    const ownLogoUrl = resolveAgencyLogoUrl(data.logo_url);
+    const portalDefaultUrl = data.slug === CANONICAL_AGENCY_SLUG ? PORTAL_BADGE_SRC : null;
     return {
       id: data.id,
       slug: data.slug,
       name: data.name,
-      logoUrl: resolveAgencyLogoUrl(data.logo_url),
+      ownLogoUrl,
+      portalDefaultUrl,
+      logoUrl: ownLogoUrl ?? portalDefaultUrl,
     };
   } catch {
     return null;

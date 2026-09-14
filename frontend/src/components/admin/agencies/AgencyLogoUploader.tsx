@@ -28,6 +28,8 @@ interface Props {
   slug: string;
   agencyName: string;
   currentLogoUrl: string | null;
+  /** Insignia mientras no haya logo propio (isotipo del portal para la agencia canonica, S26-MAP-04). */
+  fallbackLogoUrl?: string | null;
   canEdit: boolean;
 }
 
@@ -109,7 +111,13 @@ function PinPreview({ src, initial }: { src: string | null; initial: string }) {
   );
 }
 
-export function AgencyLogoUploader({ slug, agencyName, currentLogoUrl, canEdit }: Props) {
+export function AgencyLogoUploader({
+  slug,
+  agencyName,
+  currentLogoUrl,
+  fallbackLogoUrl = null,
+  canEdit,
+}: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -178,7 +186,8 @@ export function AgencyLogoUploader({ slug, agencyName, currentLogoUrl, canEdit }
     router.refresh();
   }
 
-  const shown = preview ?? currentLogoUrl;
+  const shown = preview ?? currentLogoUrl ?? fallbackLogoUrl;
+  const usaPortal = !preview && !currentLogoUrl && !!fallbackLogoUrl;
 
   return (
     <div className="space-y-4 rounded-lg border border-[#D8D8D8] bg-white p-4">
@@ -198,6 +207,11 @@ export function AgencyLogoUploader({ slug, agencyName, currentLogoUrl, canEdit }
           </div>
           {preview && (
             <p className="mt-2 text-[11px] text-slate-500">Vista previa: todavía no está guardado.</p>
+          )}
+          {usaPortal && (
+            <p className="mt-2 text-[11px] text-slate-500">
+              Insignia por defecto del portal (isotipo del kit). Subí una propia para reemplazarla.
+            </p>
           )}
         </div>
       </div>

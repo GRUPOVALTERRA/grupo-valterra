@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { WA_SOURCES } from "../src/lib/events";
 import { mapWhatsappMessage } from "../src/lib/map/wa";
 import { shouldShowMapFab } from "../src/lib/map/fab";
+import { PORTAL_BADGE_SRC } from "../src/lib/map/badge";
 
 /**
  * S26-MAP-01 — guardas estaticas del mapa estrategico.
@@ -37,6 +38,9 @@ const LISTADO = read("src/app/propiedades/page.tsx");
 const MIG = read("supabase/migrations/0017_site_events_source_mapa.sql");
 const FAB = read("src/components/layout/MapFab.tsx");
 const LAYOUT = read("src/app/layout.tsx");
+const BADGES = read("src/services/agency-badges.ts");
+const FICHA_MAP = read("src/components/public/PropertyPublicMap.tsx");
+const FICHA_PAGE = read("src/app/propiedades/[slug]/page.tsx");
 
 const SVC_CODE = codigo(SVC);
 const MAP_CODE = codigo(MAP);
@@ -259,5 +263,59 @@ test.describe("boton flotante Mapa", () => {
     // La regla de visibilidad vive en un modulo puro y el componente la usa.
     expect(FAB).toContain('from "@/lib/map/fab"');
     expect(FAB).toContain("shouldShowMapFab(");
+  });
+});
+
+// ============================================================
+// S26B · MAP-04 insignia por defecto del portal · MAP-05 pantalla completa
+// ============================================================
+
+test.describe("insignia por defecto del portal (MAP-04)", () => {
+  test("el servicio aplica el default SOLO via la funcion pura y con la agencia canonica", () => {
+    expect(codigo(BADGES)).toContain(
+      "effectiveAgencyLogo(row.slug, resolveAgencyLogoUrl(row.logo_url), CANONICAL_AGENCY_SLUG)",
+    );
+    expect(BADGES).toContain('from "@/services/agencies"');
+    expect(BADGES).toContain('select("id, slug, name, logo_url")');
+    // El perfil del admin distingue lo propio del default: sin eso "Quitar logo" apareceria sin logo.
+    expect(BADGES).toContain("logoUrl: ownLogoUrl ?? portalDefaultUrl");
+  });
+
+  test("el isotipo del kit existe en los assets publicos del sitio", () => {
+    expect(existsSync(join(ROOT, "public", PORTAL_BADGE_SRC))).toBe(true);
+  });
+
+  test("la ficha dibuja la insignia en el alfiler exacto, validada y escapada; la aproximada sigue sin marcador", () => {
+    expect(FICHA_PAGE).toContain("getAgencyBadgeMap(");
+    expect(FICHA_PAGE).toContain("pinBadgeFor(");
+    expect(FICHA_PAGE).toContain("badge={agencyBadge}");
+    const ficha = codigo(FICHA_MAP);
+    expect(ficha).toContain('src="${escapeHtml(badge.src)}"');
+    expect(ficha).toContain("escapeHtml(badge.initial)");
+    expect((ficha.match(/L\.marker\(/g) ?? []).length).toBe(1);
+    expect(ficha).toMatch(/kind === "exact"\) \{\s*L\.marker\(/);
+  });
+});
+
+test.describe("pantalla completa (MAP-05)", () => {
+  test("el mapa usa la regla pura de Escape y un control de Leaflet que no propaga clicks", () => {
+    expect(MAP).toContain('from "@/lib/map/fullscreen"');
+    expect(MAP_CODE).toContain(
+      "escapeAction({ fullscreen: fullscreenRef.current, hasSelection: selectedRef.current !== null })",
+    );
+    expect(MAP_CODE).toContain("L.DomEvent.disableClickPropagation(bar)");
+    expect(MAP_CODE).toContain('position: "topleft"');
+  });
+
+  test("a pantalla completa el contenedor cubre el viewport y la pagina no scrollea; al salir se restaura", () => {
+    expect(MAP_CODE).toContain('fullscreen ? "fixed inset-0 z-[1400] bg-white"');
+    expect(MAP_CODE).toContain('document.body.style.overflow = "hidden"');
+    expect(MAP_CODE).toContain("document.body.style.overflow = prev");
+    expect(MAP_CODE).toContain("data-map-fullscreen=");
+  });
+
+  test("el boton es accesible: etiqueta y estado presionado cambian con el modo", () => {
+    expect(MAP_CODE).toContain('btn.setAttribute("aria-pressed", fullscreen ? "true" : "false")');
+    expect(MAP_CODE).toContain('btn.setAttribute("aria-label", fullscreenLabel(fullscreen))');
   });
 });
