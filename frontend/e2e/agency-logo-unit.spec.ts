@@ -151,8 +151,9 @@ test.describe("servicio de escritura", () => {
 });
 
 test.describe("lectura publica de insignias", () => {
-  test("selecciona solo id, name y logo_url (nada sensible)", () => {
-    expect(BADGES).toContain('select("id, name, logo_url")');
+  test("selecciona solo id, slug, name y logo_url (nada sensible)", () => {
+    // S26-MAP-04: slug entra para decidir el isotipo por defecto de la agencia canonica.
+    expect(BADGES).toContain('select("id, slug, name, logo_url")');
     expect(codigo(BADGES)).not.toMatch(/cuit|contact_email|contact_phone|whatsapp|address/);
   });
 
