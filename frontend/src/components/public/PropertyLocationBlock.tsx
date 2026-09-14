@@ -1,5 +1,6 @@
 import PropertyPublicMap from "@/components/public/PropertyPublicMapLazy";
 import type { PublicLocation } from "@/lib/geo/types";
+import type { PinBadge } from "@/lib/map/badge";
 
 /**
  * S18 PR3 — bloque "Ubicación" de la ficha pública.
@@ -18,9 +19,11 @@ interface Props {
   location: PublicLocation;
   /** Texto legible de la zona (barrio, ciudad, provincia). */
   locationLabel?: string;
+  /** Insignia de la agencia dueña para el alfiler (S26-MAP-04). */
+  badge?: PinBadge | null;
 }
 
-export function PropertyLocationBlock({ location, locationLabel }: Props) {
+export function PropertyLocationBlock({ location, locationLabel, badge = null }: Props) {
   if (location.kind === "hidden") return null;
 
   return (
@@ -36,7 +39,7 @@ export function PropertyLocationBlock({ location, locationLabel }: Props) {
       )}
 
       <div className="mt-4">
-        <PropertyPublicMap location={location} />
+        <PropertyPublicMap location={location} badge={badge} />
       </div>
 
       <p className="mt-2 text-[11px] leading-relaxed text-slate-400">

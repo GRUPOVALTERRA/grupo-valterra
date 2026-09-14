@@ -15,6 +15,16 @@ En CI: workflow manual `E2E smoke` (Actions → Run workflow), parámetro `base_
 - Guardas admin: `/admin/leads` y `/admin/properties` sin sesión → redirect a `/admin/login`.
 - SEO/infra: `robots.txt` (Disallow /admin), `sitemap.xml`, `/api/health`.
 
+## S26 — mapa estratégico y botón flotante (`E2E_MAP=1`)
+`e2e/map-smoke.spec.ts` corre Leaflet de verdad: tiles OSM bajo la CSP, pines/clusters, tarjeta,
+link de WhatsApp con el mensaje aprobado, botón flotante, guard de `/admin/agencia`, sitemap.
+Requiere un build que ya tenga S26; hasta el merge va guardado (contra producción se omite):
+```powershell
+# ventana 1: npm run dev          # ventana 2:
+$env:E2E_MAP="1"; $env:BASE_URL="http://localhost:3000"; npx playwright test e2e/map-smoke.spec.ts --reporter=line
+```
+Después del merge se quita la guarda para que corra siempre contra producción (micro-PR de higiene).
+
 ## Diferido (requiere entorno de auth de prueba)
 Flujos **autenticados** — login por magic link, scoping por agencia (un miembro ve solo su agencia),
 member management — NO están automatizados todavía. Dependen de:

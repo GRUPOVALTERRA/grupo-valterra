@@ -63,3 +63,22 @@ export function pinBadgeFor(badge: AgencyBadge | null | undefined): PinBadge {
     initial: initialOf(badge.name),
   };
 }
+
+/**
+ * S26-MAP-04 — insignia por defecto del portal.
+ *
+ * Grupo Valterra ES el portal: su isotipo (kit de marca, DEC-BRAND-01) ya
+ * viaja con el sitio en /public/brand. Mientras la agencia canonica no suba
+ * un logo propio, sus pines usan ese isotipo; las demas agencias caen a la
+ * inicial del nombre. Un logo subido siempre gana sobre el valor por defecto.
+ */
+export const PORTAL_BADGE_SRC = "/brand/isotipo-vt.svg";
+
+export function effectiveAgencyLogo(
+  slug: string | null | undefined,
+  ownLogoUrl: string | null,
+  canonicalSlug: string,
+): string | null {
+  if (ownLogoUrl) return ownLogoUrl;
+  return slug != null && slug === canonicalSlug ? PORTAL_BADGE_SRC : null;
+}

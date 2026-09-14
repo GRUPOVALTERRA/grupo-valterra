@@ -11,6 +11,8 @@ import {
 import { getPropertyBySlug } from "@/services/properties";
 import { listPropertyImages } from "@/services/property-images";
 import { getAgencyWhatsappById } from "@/services/agencies";
+import { getAgencyBadgeMap } from "@/services/agency-badges";
+import { pinBadgeFor } from "@/lib/map/badge";
 import { DEFAULT_WHATSAPP } from "@/lib/social";
 import { formatPrice, type Property } from "@/services/mock-properties";
 import { WaLink } from "@/components/public/WaLink";
@@ -101,6 +103,10 @@ export default async function PropertyDetailPage({ params }: PageProps) {
   );
   // WhatsApp de la inmobiliaria dueña de la propiedad; fallback al general.
   const agencyWhatsapp = await getAgencyWhatsappById(property.agencyId);
+  // S26-MAP-04: insignia de la agencia dueña para el alfiler del mapa de la ficha.
+  const badges = await getAgencyBadgeMap();
+  const agencyBadge =
+    property.agencyId && badges[property.agencyId] ? pinBadgeFor(badges[property.agencyId]) : null;
   const waLink = `https://wa.me/${agencyWhatsapp ?? DEFAULT_WHATSAPP}?text=${waMsg}`;
   const operationLabel = OPERATION_LABEL[property.operation];
 
@@ -273,6 +279,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
             recibe únicamente el PublicLocation resuelto por CORE-GEO-01. */}
         <PropertyLocationBlock
           location={publicLocation}
+          badge={agencyBadge}
           locationLabel={[property.neighborhood, property.city, property.province]
             .filter(Boolean)
             .join(", ")}

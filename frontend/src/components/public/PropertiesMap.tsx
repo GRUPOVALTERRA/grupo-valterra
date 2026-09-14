@@ -7,6 +7,7 @@ import { cellSizeDegForZoom, clusterByGrid, isCluster } from "@/lib/map/cluster"
 import { boundsOf, type MapPoint } from "@/lib/map/types";
 import { compactPrice } from "@/lib/map/format";
 import { pinBadgeFor, type AgencyBadge, type PinBadge } from "@/lib/map/badge";
+import { escapeAction, fullscreenLabel } from "@/lib/map/fullscreen";
 import { MapPropertyCard } from "@/components/public/MapPropertyCard";
 
 /**
@@ -46,11 +47,16 @@ const SHEET_BREAKPOINT_PX = 640;
 const CARD_WIDTH_PX = 288;
 const CARD_HEIGHT_PX = 360;
 const EMPTY_BADGES: Record<string, AgencyBadge> = {};
+// S26-MAP-05: iconos del control de pantalla completa (SVG estatico, sin datos de usuario).
+const FS_ICON_EXPAND =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+const FS_ICON_COMPRESS =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
 
 const PIN_CSS = `
 .vt-pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;transition:transform .15s;cursor:pointer}
 .vt-pin .vt-pill{display:flex;align-items:center;gap:6px;background:#0A2342;color:#FFFFFF;font:600 12px/1 system-ui,sans-serif;padding:4px 10px 4px 4px;border-radius:999px;white-space:nowrap;border:1.5px solid rgba(255,255,255,.9);box-shadow:0 2px 10px rgba(10,35,66,.35)}
-.vt-pin .vt-badge{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;overflow:hidden;background:#C9A84C;color:#0A2342;font:700 11px/1 system-ui,sans-serif}
+.vt-pin .vt-badge{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;overflow:hidden;background:#C9A84C;color:#0A2342;font:700 11px/1 system-ui,sans-serif;box-shadow:0 0 0 1.5px rgba(255,255,255,.9)}
 .vt-pin .vt-badge img{display:block;width:22px;height:22px;object-fit:cover;border-radius:999px}
 .vt-pin .vt-dot{width:8px;height:8px;margin-top:-2px;border-radius:999px;background:#0A2342;border:1.5px solid #fff}
 .vt-pin[data-active="1"]{transform:translate(-50%,-100%) scale(1.08)}
@@ -58,6 +64,8 @@ const PIN_CSS = `
 .vt-pin[data-active="1"] .vt-badge{background:#0A2342;color:#FFFFFF}
 .vt-pin[data-active="1"] .vt-dot{background:#C9A84C}
 .vt-cluster{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:999px;background:#0A2342;color:#fff;font:700 13px/1 system-ui,sans-serif;border:2px solid #C9A84C;box-shadow:0 2px 10px rgba(10,35,66,.4);cursor:pointer}
+.vt-fs button{display:flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;background:#fff;color:#0A2342;cursor:pointer}
+.vt-fs button:hover{background:#f4f4f4}
 `;
 
 interface Props {
@@ -140,6 +148,9 @@ export default function PropertiesMap({
   const [zoom, setZoom] = useState(FALLBACK_ZOOM);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [cardPos, setCardPos] = useState<{ x: number; y: number } | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const fullscreenRef = useRef(false);
+  const fsButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const sizeReady = size.w > 0 && size.h > 0;
 
@@ -169,6 +180,32 @@ export default function PropertiesMap({
     activeLayerRef.current = L.layerGroup().addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
 
+    // S26-MAP-05: control "pantalla completa" bajo el zoom. Es un boton
+    // nuestro dentro de una barra de Leaflet; el click no debe llegar al
+    // mapa (cerraria la tarjeta) ni iniciar un arrastre.
+    const FullscreenControl = L.Control.extend({
+      onAdd() {
+        const bar = L.DomUtil.create("div", "leaflet-bar vt-fs");
+        const btn = L.DomUtil.create("button", "", bar) as HTMLButtonElement;
+        btn.type = "button";
+        btn.innerHTML = FS_ICON_EXPAND;
+        btn.setAttribute("aria-label", fullscreenLabel(false));
+        btn.setAttribute("title", fullscreenLabel(false));
+        btn.setAttribute("aria-pressed", "false");
+        L.DomEvent.disableClickPropagation(bar);
+        L.DomEvent.on(btn, "click", (e) => {
+          L.DomEvent.stop(e);
+          setFullscreen((v) => !v);
+        });
+        fsButtonRef.current = btn;
+        return bar;
+      },
+      onRemove() {
+        fsButtonRef.current = null;
+      },
+    });
+    new FullscreenControl({ position: "topleft" }).addTo(map);
+
     const syncZoom = () => setZoom(map.getZoom());
     const clearSelection = () => onSelectRef.current(null);
     map.on("zoomend", syncZoom);
@@ -187,6 +224,46 @@ export default function PropertiesMap({
       markersRef.current = new Map();
     };
   }, [scrollWheelZoom]);
+
+  /* -------- pantalla completa (S26-MAP-05) -------- */
+  useEffect(() => {
+    fullscreenRef.current = fullscreen;
+    const btn = fsButtonRef.current;
+    if (btn) {
+      btn.innerHTML = fullscreen ? FS_ICON_COMPRESS : FS_ICON_EXPAND;
+      btn.setAttribute("aria-label", fullscreenLabel(fullscreen));
+      btn.setAttribute("title", fullscreenLabel(fullscreen));
+      btn.setAttribute("aria-pressed", fullscreen ? "true" : "false");
+    }
+    const map = mapRef.current;
+    if (map) {
+      // A pantalla completa el mapa ES la pagina: la rueda hace zoom. Al
+      // volver se respeta lo que pidio la superficie (solo /mapa la usa).
+      if (fullscreen || scrollWheelZoom) map.scrollWheelZoom.enable();
+      else map.scrollWheelZoom.disable();
+      // El ResizeObserver tambien lo hace; esto cubre el primer frame.
+      requestAnimationFrame(() => map.invalidateSize());
+    }
+    if (!fullscreen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [fullscreen, scrollWheelZoom]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      // Con tarjeta abierta la cierra su propio listener; recien el
+      // siguiente Escape sale de pantalla completa (lib/map/fullscreen).
+      if (escapeAction({ fullscreen: fullscreenRef.current, hasSelection: selectedRef.current !== null }) === "exit-fullscreen") {
+        setFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   /* -------- tamaño del contenedor (sheet vs anclada + invalidateSize) -------- */
   useEffect(() => {
@@ -357,7 +434,10 @@ export default function PropertiesMap({
   const hayAproximadas = points.some((p) => p.location.kind === "approximate");
 
   return (
-    <div className={`relative ${className ?? ""}`}>
+    <div
+      data-map-fullscreen={fullscreen ? "1" : "0"}
+      className={fullscreen ? "fixed inset-0 z-[1400] bg-white" : `relative ${className ?? ""}`}
+    >
       <style>{PIN_CSS}</style>
       <div ref={containerRef} className="h-full w-full" aria-label="Mapa de propiedades" />
 
