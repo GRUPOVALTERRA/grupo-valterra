@@ -37,7 +37,8 @@ export type WaSource =
   | "cta-home"
   | "footer"
   | "footer-contacto"
-  | "card-mapa";
+  | "card-mapa"
+  | "navbar-publicar";
 
 interface WaLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   href: string;
@@ -48,14 +49,18 @@ interface WaLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   children: ReactNode;
 }
 
-export function WaLink({ href, source, propertySlug, children, ...rest }: WaLinkProps) {
+export function WaLink({ href, source, propertySlug, children, onClick, ...rest }: WaLinkProps) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
       {...rest}
-      onClick={() => {
+      onClick={(e) => {
+        // onClick propio del llamador (ej: cerrar el menú mobile del navbar).
+        // Va primero y no bloquea nada: este handler nunca cancela el evento,
+        // así que la navegación a wa.me sigue su curso pase lo que pase.
+        onClick?.(e);
         // Canal 1 — Vercel Web Analytics (F1, se conserva).
         track("wa_click", {
           source,

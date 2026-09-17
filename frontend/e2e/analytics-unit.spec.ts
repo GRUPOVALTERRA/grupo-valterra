@@ -16,6 +16,7 @@ const PUBLIC_WA_FILES = [
   "components/home/PropertyCard.tsx",
   "components/home/CTASection.tsx",
   "components/layout/Footer.tsx",
+  "components/layout/Navbar.tsx",
   "app/propiedades/[slug]/page.tsx",
 ];
 
