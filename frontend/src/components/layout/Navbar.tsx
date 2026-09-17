@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { WaLink } from "@/components/public/WaLink";
+import { DEFAULT_WHATSAPP } from "@/lib/social";
 
 /**
  * Navegación pública.
@@ -20,6 +22,21 @@ const LINKS = [
   { href: "/propiedades", label: "Propiedades" },
   { href: "/#contacto", label: "Contacto" },
 ];
+
+/**
+ * "Publicar propiedad" — captación directa por WhatsApp (S27).
+ *
+ * Antes el botón bajaba a /#contacto, el mismo formulario que usa quien
+ * busca comprar o alquilar. Decisión comercial: el propietario que quiere
+ * publicar arranca la conversación en WhatsApp, sin formulario intermedio.
+ * El formulario sigue disponible en la sección Contacto para quien lo
+ * prefiera, así que no se pierde ningún canal.
+ *
+ * El texto va prellenado para que el asesor sepa desde el primer renglón
+ * que es una captación y no una consulta de compra.
+ */
+const PUBLICAR_MSG = "Hola, me gustaría publicar mi propiedad, necesito más info";
+const PUBLICAR_WA_HREF = `https://wa.me/${DEFAULT_WHATSAPP}?text=${encodeURIComponent(PUBLICAR_MSG)}`;
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -108,12 +125,13 @@ export function Navbar() {
           </ul>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <Link
-              href="/#contacto"
+            <WaLink
+              href={PUBLICAR_WA_HREF}
+              source="navbar-publicar"
               className="inline-flex h-10 items-center rounded-full bg-[#C9A86A] px-5 text-sm font-bold text-[#0A2342] shadow-sm transition-all hover:brightness-105 hover:shadow-md"
             >
               Publicar propiedad
-            </Link>
+            </WaLink>
           </div>
 
           <button
@@ -163,13 +181,14 @@ export function Navbar() {
               {l.label}
             </Link>
           ))}
-          <Link
-            href="/#contacto"
+          <WaLink
+            href={PUBLICAR_WA_HREF}
+            source="navbar-publicar"
             onClick={() => setOpen(false)}
             className="mt-4 block rounded-full bg-[#C9A86A] px-4 py-3 text-center text-base font-bold text-[#0A2342]"
           >
             Publicar propiedad
-          </Link>
+          </WaLink>
         </div>
       </div>
     </header>
