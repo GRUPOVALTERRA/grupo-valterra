@@ -1,5 +1,19 @@
-import Link from "next/link";
 import { WaLink } from "@/components/public/WaLink";
+import { DEFAULT_WHATSAPP } from "@/lib/social";
+
+/**
+ * Tarjeta "Publicá tu propiedad" — captación directa por WhatsApp (S27).
+ *
+ * Mismo criterio que el botón del header: el propietario que quiere
+ * publicar arranca la conversación donde el asesor responde, sin
+ * formulario intermedio. El formulario sigue vivo en la sección Contacto.
+ *
+ * Superficie propia `cta-publicar`: comparte sección con "WhatsApp directo"
+ * (`cta-home`), pero es intención de CAPTACIÓN, no consulta de compra.
+ * Con la misma source no se podrían separar en el tablero.
+ */
+const PUBLICAR_MSG = "Hola, me gustaría publicar mi propiedad, necesito más info";
+const PUBLICAR_WA_HREF = `https://wa.me/${DEFAULT_WHATSAPP}?text=${encodeURIComponent(PUBLICAR_MSG)}`;
 
 export function CTASection() {
   return (
@@ -45,12 +59,13 @@ export function CTASection() {
               <p className="mt-2 text-sm text-white/70">
                 Contanos qué querés publicar y un asesor te acompaña en el proceso.
               </p>
-              <Link
-                href="/#contacto"
+              <WaLink
+                href={PUBLICAR_WA_HREF}
+                source="cta-publicar"
                 className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#C9A86A] px-5 text-sm font-bold text-[#0A2342] transition-all hover:brightness-105"
               >
                 Empezar ahora →
-              </Link>
+              </WaLink>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all hover:border-[#C9A86A]/40 hover:bg-white/10">
