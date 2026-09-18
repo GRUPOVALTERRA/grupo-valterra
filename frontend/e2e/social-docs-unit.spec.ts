@@ -31,7 +31,9 @@ test.describe("kit social documental", () => {
     const acc = readDoc("SOCIAL_ACCOUNTS.md");
     const docUrls = [...acc.matchAll(/https?:\/\/[^\s|)`",]+/g)]
       .map((m) => m[0])
-      .filter((u) => /facebook\.com|instagram\.com|tiktok\.com|x\.com/.test(u))
+      // youtube.com entra al filtro: el codigo lo lista desde S20 y sin el la
+      // comparacion no podia dar nunca, ni con el documento correcto.
+      .filter((u) => /facebook\.com|instagram\.com|tiktok\.com|x\.com|youtube\.com/.test(u))
       .sort();
     expect(docUrls).toEqual(codeUrls);
   });
@@ -56,7 +58,9 @@ test.describe("kit social documental", () => {
   test("sin handles viejos/propuestos fuera de los reales", () => {
     const kit = allKit();
     expect(kit).not.toMatch(/instagram\.com\/grupovalterra(?!ar)/);
-    expect(kit).not.toMatch(/tiktok\.com\/@grupovalterra(?!_ok)/);
+    // Desde el 18/09/2026 el handle real es @grupovalterraar; el viejo (_ok)
+    // solo puede aparecer como historia, nunca como enlace.
+    expect(kit).not.toMatch(/tiktok\.com\/@grupovalterra(?!ar)/);
     expect(kit).not.toMatch(/x\.com\/grupovalterra(?!ar)/);
     expect(kit).not.toMatch(/facebook\.com\/grupovalterra/);
   });
@@ -65,10 +69,13 @@ test.describe("kit social documental", () => {
     expect(allKit()).not.toMatch(/contraseña|password|api[_ -]?key|código de recuperación|recovery code|cookie/i);
   });
 
-  test("cambio de TikTok documentado como pendiente, no consumado", () => {
+  test("cambio de TikTok consumado y con rastro en el changelog", () => {
+    // El handle viejo no desaparece de la documentacion: queda como historia,
+    // para que nadie lo reviva creyendo que fue un error.
     const log = readDoc("SOCIAL_CHANGELOG.md");
     expect(log).toContain("@grupovalterra_ok");
-    expect(log).toContain("01/09/2026");
-    expect(readDoc("SOCIAL_ACCOUNTS.md")).toContain("ACCIÓN PENDIENTE");
+    expect(log).toContain("@grupovalterraar");
+    expect(log).toContain("18/09/2026");
+    expect(readDoc("SOCIAL_ACCOUNTS.md")).toContain("CONSUMADO");
   });
 });

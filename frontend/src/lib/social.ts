@@ -2,15 +2,16 @@
  * Redes sociales oficiales de Grupo Valterra.
  * ÚNICO lugar donde se editan las URLs — Footer y ContactSection leen de acá.
  *
- * ⚠️ TikTok: el username cambia @grupovalterra_ok → @grupovalterraar
- * alrededor del 01/09/2026. Cuando ocurra, actualizar SOLO la URL de abajo.
+ * TikTok: el cambio de username @grupovalterra_ok → @grupovalterraar se
+ * CONSUMÓ el 18/09/2026 (confirmado por el Owner y verificado en el perfil).
+ * El handle viejo quedó libre: no volver a enlazarlo.
  */
 export const SOCIAL_LINKS = [
   // ⚠️ facebook.com/61567845351489 es una página AJENA con el mismo nombre — NO usar.
   // Página sin username todavía — cuando reclamen @grupovalterra, reemplazar por la URL corta.
   { name: "Facebook", href: "https://www.facebook.com/1182768651594251" },
   { name: "Instagram", href: "https://www.instagram.com/grupovalterraar" },
-  { name: "TikTok", href: "https://www.tiktok.com/@grupovalterra_ok" },
+  { name: "TikTok", href: "https://www.tiktok.com/@grupovalterraar" },
   { name: "X", href: "https://x.com/grupovalterraar" },
   { name: "YouTube", href: "https://www.youtube.com/@grupovalterra" },
 ] as const;
