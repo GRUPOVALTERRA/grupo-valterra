@@ -38,7 +38,8 @@ export type WaSource =
   | "footer"
   | "footer-contacto"
   | "card-mapa"
-  | "navbar-publicar";
+  | "navbar-publicar"
+  | "cta-publicar";
 
 interface WaLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   href: string;
