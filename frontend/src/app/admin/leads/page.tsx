@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { LeadsDashboard } from "@/components/admin/leads/LeadsDashboard";
 import { getAllLeads, computeStats, type Lead } from "@/services/mock-leads";
+import { getAllProperties } from "@/services/properties";
+import type { PropertyOption } from "@/components/admin/leads/NewLeadForm";
 import { log } from "@/lib/logger";
 import { getAdminContext } from "@/lib/admin-context";
 import {
@@ -65,6 +67,36 @@ export default async function AdminLeadsPage({
       (m) => m.agencyId === ctx.scopedAgencyId && (m.role === "owner" || m.role === "admin"),
     );
 
+  // S28 PR-A — quién puede cargar consultas y mover estados: owner/admin/agent
+  // del scope, o super-admin. La server action vuelve a decidir por su cuenta.
+  const canWrite =
+    ctx.isSuperAdmin ||
+    ctx.memberships.some(
+      (m) =>
+        m.agencyId === ctx.scopedAgencyId &&
+        (m.role === "owner" || m.role === "admin" || m.role === "agent"),
+    );
+
+  // Opciones de propiedad para el alta: las de la agencia (incluye borradores,
+  // una consulta puede llegar antes de publicar). Un fallo acá no bloquea la bandeja.
+  let propertyOptions: PropertyOption[] = [];
+  if (canWrite) {
+    try {
+      const props = await getAllProperties({
+        ...(ctx.scopedAgencyId ? { agencyId: ctx.scopedAgencyId } : {}),
+        includeDraft: true,
+        allowSampleFallback: false,
+      });
+      propertyOptions = props
+        .map((p) => ({ slug: p.slug, title: p.title }))
+        .sort((a, b) => a.title.localeCompare(b.title, "es"));
+    } catch (err) {
+      log.warn("admin/leads", "no se pudieron cargar propiedades para el alta", {
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   return (
     <>
       {dbError !== null && (
@@ -80,6 +112,8 @@ export default async function AdminLeadsPage({
         totalInScope={leads.length}
         attentionCount={attentionCount}
         canRetry={canRetry}
+        canWrite={canWrite}
+        propertyOptions={propertyOptions}
       />
     </>
   );

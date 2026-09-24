@@ -375,6 +375,50 @@ export async function addLead(input: NewLeadInput): Promise<Lead> {
   }
 }
 
+/**
+ * S28 PR-A — cambio de estado comercial desde /admin/leads.
+ * `updated_at` lo fija el trigger `leads_set_updated_at` (0001); acá no se
+ * manda. El scope por agencia es obligatorio para no super-admin: un id de
+ * otra agencia devuelve null, indistinguible de inexistente.
+ */
+export async function updateLeadStatus(
+  id: string,
+  status: LeadStatus,
+  scope: { agencyId?: string } = {},
+): Promise<Lead | null> {
+  if (!isSupabaseConfigured()) {
+    warnMemoryMode();
+    const found = MEMORY_STORE.find((l) => l.id === id) ?? null;
+    if (!found) return null;
+    if (scope.agencyId && found.agencyId !== scope.agencyId) return null;
+    found.status = status;
+    return found;
+  }
+  try {
+    const supabase = getSupabaseAdmin();
+    let query = supabase.from("leads").update({ status }).eq("id", id);
+    if (scope.agencyId) query = query.eq("agency_id", scope.agencyId);
+    const { data, error } = await withTimeout(
+      query
+        .select(
+          "id,created_at,name,phone,email,message,property_slug,property_title,agent_name,agency_id,source,status,notify_status,notify_attempts,notify_last_at,notify_reason,notify_message_id",
+        )
+        .maybeSingle(),
+      8000,
+      "leads.updateStatus",
+    );
+    if (error) {
+      log.error("leads", "supabase updateStatus error", { message: error.message, code: error.code });
+      throw new Error(`supabase updateStatus: ${error.message}`);
+    }
+    if (!data) return null;
+    return rowToLead(data as LeadRow);
+  } catch (err) {
+    log.error("leads", "updateLeadStatus falló", err instanceof Error ? err : { err: String(err) });
+    throw err;
+  }
+}
+
 export function computeStats(leads: Lead[]): LeadStats {
   const stats: LeadStats = {
     total: leads.length,
