@@ -3,6 +3,7 @@ import { activeFilterCount, type LeadListFilters } from "@/lib/admin-lead-filter
 import { LeadStatsCards } from "./LeadStatsCards";
 import { LeadFilters } from "./LeadFilters";
 import { LeadTable } from "./LeadTable";
+import { NewLeadForm, type PropertyOption } from "./NewLeadForm";
 
 /**
  * Dashboard del panel /admin/leads.
@@ -24,6 +25,9 @@ interface LeadsDashboardProps {
   attentionCount: number;
   /** S16-LEAD-OBS PR3: visibilidad del reintento (rol resuelto server-side). */
   canRetry: boolean;
+  /** S28 PR-A: alta manual + cambio de estado (owner/admin/agent o super-admin). */
+  canWrite: boolean;
+  propertyOptions: PropertyOption[];
 }
 
 export function LeadsDashboard({
@@ -33,6 +37,8 @@ export function LeadsDashboard({
   totalInScope,
   attentionCount,
   canRetry,
+  canWrite,
+  propertyOptions,
 }: LeadsDashboardProps) {
   const isFiltered = activeFilterCount(filters) > 0;
   return (
@@ -68,11 +74,12 @@ export function LeadsDashboard({
         </p>
       </div>
 
+      {canWrite && <NewLeadForm properties={propertyOptions} />}
       <LeadStatsCards stats={stats} />
 
       <LeadFilters filters={filters} resultCount={leads.length} />
 
-      <LeadTable leads={leads} canRetry={canRetry} />
+      <LeadTable leads={leads} canRetry={canRetry} canWrite={canWrite} />
     </main>
   );
 }

@@ -1,6 +1,8 @@
 import type { Lead, LeadStatus, LeadSource } from "@/services/mock-leads";
 import { NOTIFY_TONE_CLASS, notifyBadge } from "@/lib/lead-notify-view";
 import { RetryNotifyButton } from "./RetryNotifyButton";
+import { LeadStatusSelect } from "./LeadStatusSelect";
+import { extractCampaignRef } from "@/lib/lead-intake";
 
 /**
  * Tabla de leads.
@@ -16,6 +18,8 @@ interface LeadTableProps {
    * autorización: la server action vuelve a decidir por su cuenta.
    */
   canRetry: boolean;
+  /** S28 PR-A: puede cambiar el estado desde la fila. */
+  canWrite?: boolean;
 }
 
 const STATUS_LABEL: Record<LeadStatus, string> = {
@@ -118,7 +122,7 @@ function telLink(lead: Lead): string {
   return `tel:${lead.phone.replace(/\s/g, "")}`;
 }
 
-export function LeadTable({ leads, canRetry }: LeadTableProps) {
+export function LeadTable({ leads, canRetry, canWrite = false }: LeadTableProps) {
   // Un listado vacío tras filtrar es un resultado legítimo, no un error: se
   // dice explícitamente en vez de dejar una tabla en blanco que parece rota.
   if (leads.length === 0) {
@@ -179,6 +183,11 @@ export function LeadTable({ leads, canRetry }: LeadTableProps) {
                   </td>
                   <td className="px-4 py-3 align-top">
                     <SourceBadge source={lead.source} propertySlug={lead.propertySlug} />
+                    {extractCampaignRef(lead.message) && (
+                      <div className="mt-1 font-mono text-[10px] text-[#4A5568]" title="Referencia de campaña">
+                        {extractCampaignRef(lead.message)}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 align-top">
                     <div className="flex flex-col items-start gap-1.5">
@@ -196,7 +205,11 @@ export function LeadTable({ leads, canRetry }: LeadTableProps) {
                     </div>
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <StatusBadge status={lead.status} />
+                    {canWrite ? (
+                      <LeadStatusSelect leadId={lead.id} status={lead.status} />
+                    ) : (
+                      <StatusBadge status={lead.status} />
+                    )}
                   </td>
                   <td className="px-4 py-3 align-top text-xs text-slate-600">
                     {formatRelative(lead.createdAt)}
@@ -242,7 +255,11 @@ export function LeadTable({ leads, canRetry }: LeadTableProps) {
                 <div className="font-semibold text-[#0A2342]">{lead.name}</div>
                 <div className="text-xs text-slate-500">{formatRelative(lead.createdAt)}</div>
               </div>
-              <StatusBadge status={lead.status} />
+              {canWrite ? (
+                <LeadStatusSelect leadId={lead.id} status={lead.status} />
+              ) : (
+                <StatusBadge status={lead.status} />
+              )}
             </div>
 
             <div className="mt-3 space-y-1 text-sm text-slate-700">
