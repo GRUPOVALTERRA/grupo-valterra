@@ -5,6 +5,7 @@ import { WA_SOURCES } from "../src/lib/events";
 import { mapWhatsappMessage } from "../src/lib/map/wa";
 import { shouldShowMapFab } from "../src/lib/map/fab";
 import { PORTAL_BADGE_SRC } from "../src/lib/map/badge";
+import { latestMigrationDefining, sqlOf } from "./fixtures/migrations";
 
 /**
  * S26-MAP-01 — guardas estaticas del mapa estrategico.
@@ -35,7 +36,10 @@ const VIEW = read("src/components/public/PropertiesMapView.tsx");
 const WALINK = read("src/components/public/WaLink.tsx");
 const PAGE = read("src/app/mapa/page.tsx");
 const LISTADO = read("src/app/propiedades/page.tsx");
-const MIG = read("supabase/migrations/0017_site_events_source_mapa.sql");
+// 0017 introdujo 'card-mapa'; la allowlist VIGENTE vive en la ULTIMA migracion
+// que redefine el CHECK (OPS-09: antes se fijaba 0017 y 0018/0019 la dejaron roja).
+const MIG_0017 = read("supabase/migrations/0017_site_events_source_mapa.sql");
+const MIG_VIGENTE = latestMigrationDefining(ROOT, "site_events_source_check");
 const FAB = read("src/components/layout/MapFab.tsx");
 const LAYOUT = read("src/app/layout.tsx");
 const BADGES = read("src/services/agency-badges.ts");
@@ -116,11 +120,20 @@ test.describe("G3 · las tres allowlists de `source` dicen lo mismo", () => {
     expect([...WA_SOURCES]).toContain("card-mapa");
   });
 
-  test("la migracion 0017 amplia el CHECK real de la base con TODAS las fuentes", () => {
-    expect(MIG).toContain("site_events_source_check");
-    expect(MIG).toContain("drop constraint if exists");
+  test("0017 introdujo 'card-mapa' en el CHECK real de la base", () => {
+    const sql = sqlOf(MIG_0017);
+    expect(sql).toContain("site_events_source_check");
+    expect(sql).toContain("drop constraint if exists");
+    expect(sql).toContain("'card-mapa'");
+  });
+
+  test("la ULTIMA migracion que redefine el CHECK contiene TODAS las fuentes", () => {
+    // Contrato, no numero: no debe ponerse roja cuando exista 0020, 0021, ...
+    expect(MIG_VIGENTE.file >= "0017").toBe(true);
+    const sql = sqlOf(MIG_VIGENTE.sql);
+    expect(sql).toContain("drop constraint if exists site_events_source_check");
     for (const source of WA_SOURCES) {
-      expect(MIG).toContain(`'${source}'`);
+      expect(sql, `${MIG_VIGENTE.file} no incluye '${source}'`).toContain(`'${source}'`);
     }
   });
 });

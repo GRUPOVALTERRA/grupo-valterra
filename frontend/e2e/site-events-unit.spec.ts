@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { latestMigrationDefining, sqlOf } from "./fixtures/migrations";
 import {
   validateEvent,
   isIngestionEnabled,
@@ -27,11 +28,9 @@ import {
 const ROOT = join(__dirname, "..");
 const MIGRATION = readFileSync(join(ROOT, "supabase/migrations/0014_site_events.sql"), "utf8");
 // S26: la allowlist VIGENTE de `source` vive en la ultima migracion que
-// redefine el CHECK. 0014 conserva la coherencia wa_click <-> source.
-const MIGRATION_SOURCES = readFileSync(
-  join(ROOT, "supabase/migrations/0019_site_events_source_cta_publicar.sql"),
-  "utf8",
-);
+// redefine el CHECK (resuelta por contrato, OPS-09). 0014 conserva la
+// coherencia wa_click <-> source.
+const MIGRATION_SOURCES = sqlOf(latestMigrationDefining(ROOT, "site_events_source_check").sql);
 const ROUTE = readFileSync(join(ROOT, "src/app/api/events/route.ts"), "utf8");
 const EVENTS_LIB = readFileSync(join(ROOT, "src/lib/events.ts"), "utf8");
 const WALINK = readFileSync(join(ROOT, "src/components/public/WaLink.tsx"), "utf8");
